@@ -50,6 +50,7 @@ fn render_item(app: &App, item: &VisibleItem, is_selected: bool) -> Line<'static
 }
 
 /// Render a file header line with collapse indicator, name, and +/- stats.
+/// When an active filter is set, highlights the matching portion of the filename.
 fn render_file_header(app: &App, file_idx: usize, sel_bg: Color) -> Line<'static> {
     let file = &app.diff_data.files[file_idx];
     let is_collapsed = app
@@ -74,27 +75,77 @@ fn render_file_header(app: &App, file_idx: usize, sel_bg: Color) -> Line<'static
         Color::Rgb(30, 30, 40)
     };
 
-    Line::from(vec![
+    let mut spans = vec![
         Span::styled(
             format!(" {} ", indicator),
             Style::default().fg(Color::Yellow).bg(header_bg),
         ),
-        Span::styled(
-            format!("{} ", name),
+    ];
+
+    // Render filename with match highlighting if filter is active
+    let name_with_space = format!("{} ", name);
+    if let Some(ref filter) = app.active_filter {
+        let name_lower = name_with_space.to_lowercase();
+        let filter_lower = filter.to_lowercase();
+        if let Some(pos) = name_lower.find(&filter_lower) {
+            let before = &name_with_space[..pos];
+            let matched = &name_with_space[pos..pos + filter.len()];
+            let after = &name_with_space[pos + filter.len()..];
+
+            if !before.is_empty() {
+                spans.push(Span::styled(
+                    before.to_string(),
+                    Style::default()
+                        .fg(Color::White)
+                        .bg(header_bg)
+                        .add_modifier(Modifier::BOLD),
+                ));
+            }
+            spans.push(Span::styled(
+                matched.to_string(),
+                Style::default()
+                    .fg(Color::Black)
+                    .bg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ));
+            if !after.is_empty() {
+                spans.push(Span::styled(
+                    after.to_string(),
+                    Style::default()
+                        .fg(Color::White)
+                        .bg(header_bg)
+                        .add_modifier(Modifier::BOLD),
+                ));
+            }
+        } else {
+            spans.push(Span::styled(
+                name_with_space,
+                Style::default()
+                    .fg(Color::White)
+                    .bg(header_bg)
+                    .add_modifier(Modifier::BOLD),
+            ));
+        }
+    } else {
+        spans.push(Span::styled(
+            name_with_space,
             Style::default()
                 .fg(Color::White)
                 .bg(header_bg)
                 .add_modifier(Modifier::BOLD),
-        ),
-        Span::styled(
-            format!("+{}", file.added_count),
-            Style::default().fg(Color::Green).bg(header_bg),
-        ),
-        Span::styled(
-            format!(" -{}", file.removed_count),
-            Style::default().fg(Color::Red).bg(header_bg),
-        ),
-    ])
+        ));
+    }
+
+    spans.push(Span::styled(
+        format!("+{}", file.added_count),
+        Style::default().fg(Color::Green).bg(header_bg),
+    ));
+    spans.push(Span::styled(
+        format!(" -{}", file.removed_count),
+        Style::default().fg(Color::Red).bg(header_bg),
+    ));
+
+    Line::from(spans)
 }
 
 /// Render a hunk header line with collapse indicator and @@ header.

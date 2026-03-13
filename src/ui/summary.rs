@@ -36,6 +36,16 @@ pub fn render_summary(app: &App, frame: &mut Frame, area: Rect) {
         ));
     }
 
+    // Show active filter indicator
+    if let Some(ref filter) = app.active_filter {
+        spans.push(Span::styled(
+            format!("  [filter: {}]", filter),
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        ));
+    }
+
     let line = Line::from(spans);
     let paragraph = ratatui::widgets::Paragraph::new(line);
     frame.render_widget(paragraph, area);

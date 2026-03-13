@@ -4,6 +4,13 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::collections::HashSet;
 use tokio::sync::mpsc;
 
+/// Input mode for the application.
+#[derive(Debug, Clone, PartialEq)]
+pub enum InputMode {
+    Normal,
+    Search,
+}
+
 /// Messages processed by the TEA update loop.
 #[derive(Debug)]
 pub enum Message {
@@ -55,6 +62,12 @@ pub struct App {
     pub event_tx: Option<mpsc::Sender<Message>>,
     /// Handle to the current debounce timer task, if any.
     pub debounce_handle: Option<tokio::task::JoinHandle<()>>,
+    /// Current input mode (Normal or Search).
+    pub input_mode: InputMode,
+    /// Current search query being typed.
+    pub search_query: String,
+    /// The confirmed filter pattern (set on Enter in search mode).
+    pub active_filter: Option<String>,
 }
 
 impl App {
@@ -73,6 +86,9 @@ impl App {
             should_quit: false,
             event_tx: None,
             debounce_handle: None,
+            input_mode: InputMode::Normal,
+            search_query: String::new(),
+            active_filter: None,
         }
     }
 
@@ -193,8 +209,16 @@ impl App {
         self.diff_data.files.get(fi).map(|f| f.target_file.clone())
     }
 
-    /// Handle a key press event.
+    /// Handle a key press event, branching on input mode.
     fn handle_key(&mut self, key: KeyEvent) -> Option<Command> {
+        match self.input_mode {
+            InputMode::Normal => self.handle_key_normal(key),
+            InputMode::Search => self.handle_key_search(key),
+        }
+    }
+
+    /// Handle keys in Normal mode.
+    fn handle_key_normal(&mut self, key: KeyEvent) -> Option<Command> {
         let items_len = self.visible_items().len();
         if items_len == 0 {
             if key.code == KeyCode::Char('q') || key.code == KeyCode::Esc {
@@ -204,7 +228,36 @@ impl App {
         }
 
         match key.code {
-            KeyCode::Char('q') | KeyCode::Esc => Some(Command::Quit),
+            KeyCode::Char('q') => Some(Command::Quit),
+
+            KeyCode::Esc => {
+                // If there's an active filter, clear it first instead of quitting
+                if self.active_filter.is_some() {
+                    self.active_filter = None;
+                    self.ui_state.selected_index = 0;
+                    self.adjust_scroll();
+                    None
+                } else {
+                    Some(Command::Quit)
+                }
+            }
+
+            // Search
+            KeyCode::Char('/') => {
+                self.input_mode = InputMode::Search;
+                self.search_query.clear();
+                None
+            }
+
+            // Jump to next/previous search match
+            KeyCode::Char('n') => {
+                self.jump_to_match(true);
+                None
+            }
+            KeyCode::Char('N') => {
+                self.jump_to_match(false);
+                None
+            }
 
             // Navigation
             KeyCode::Char('j') | KeyCode::Down => {
@@ -243,6 +296,70 @@ impl App {
             }
 
             _ => None,
+        }
+    }
+
+    /// Handle keys in Search mode.
+    fn handle_key_search(&mut self, key: KeyEvent) -> Option<Command> {
+        match key.code {
+            KeyCode::Esc => {
+                self.input_mode = InputMode::Normal;
+                self.search_query.clear();
+                self.active_filter = None;
+                None
+            }
+            KeyCode::Enter => {
+                self.input_mode = InputMode::Normal;
+                self.active_filter = if self.search_query.is_empty() {
+                    None
+                } else {
+                    Some(self.search_query.clone())
+                };
+                self.ui_state.selected_index = 0;
+                self.adjust_scroll();
+                None
+            }
+            KeyCode::Backspace => {
+                self.search_query.pop();
+                None
+            }
+            KeyCode::Char(c) => {
+                self.search_query.push(c);
+                None
+            }
+            _ => None,
+        }
+    }
+
+    /// Jump to the next or previous file header matching the active filter.
+    fn jump_to_match(&mut self, forward: bool) {
+        if self.active_filter.is_none() {
+            return;
+        }
+        let items = self.visible_items();
+        if items.is_empty() {
+            return;
+        }
+
+        let pattern = self.active_filter.as_ref().unwrap().to_lowercase();
+        let len = items.len();
+        let start = self.ui_state.selected_index;
+
+        // Search through all items wrapping around
+        for offset in 1..=len {
+            let idx = if forward {
+                (start + offset) % len
+            } else {
+                (start + len - offset) % len
+            };
+            if let VisibleItem::FileHeader { file_idx } = &items[idx] {
+                let path = &self.diff_data.files[*file_idx].target_file;
+                if path.to_lowercase().contains(&pattern) {
+                    self.ui_state.selected_index = idx;
+                    self.adjust_scroll();
+                    return;
+                }
+            }
         }
     }
 
@@ -299,10 +416,22 @@ impl App {
         }
     }
 
-    /// Compute the list of visible items respecting collapsed state.
+    /// Compute the list of visible items respecting collapsed state and active filter.
     pub fn visible_items(&self) -> Vec<VisibleItem> {
+        let filter_lower = self
+            .active_filter
+            .as_ref()
+            .map(|f| f.to_lowercase());
+
         let mut items = Vec::new();
         for (fi, file) in self.diff_data.files.iter().enumerate() {
+            // If filter is active, skip files that don't match
+            if let Some(ref pattern) = filter_lower {
+                if !file.target_file.to_lowercase().contains(pattern) {
+                    continue;
+                }
+            }
+
             items.push(VisibleItem::FileHeader { file_idx: fi });
             if !self.ui_state.collapsed.contains(&NodeId::File(fi)) {
                 for (hi, hunk) in file.hunks.iter().enumerate() {
