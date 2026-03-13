@@ -2,6 +2,11 @@
 name = "semantic-diff"
 version = "0.1.0"
 edition = "2021"
+description = "A terminal diff viewer with AI-powered semantic grouping via Claude CLI"
+license = "MIT"
+repository = "https://github.com/alankyshum/semantic-diff"
+keywords = ["git", "diff", "tui", "semantic", "claude"]
+categories = ["command-line-utilities", "development-tools"]
 
 [dependencies]
 ratatui = "0.30"
