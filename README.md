@@ -17,11 +17,19 @@ Groups your git changes by *meaning* — not just by file path. Designed to run 
 
 ## Install
 
+### Homebrew (macOS)
+
 ```bash
-cargo install --git https://github.com/alankyshum/semantic-diff
+brew install alankyshum/tap/semantic-diff
 ```
 
-Or build from source:
+### Cargo (crates.io)
+
+```bash
+cargo install semantic-diff
+```
+
+### Build from source
 
 ```bash
 git clone https://github.com/alankyshum/semantic-diff
