@@ -1,6 +1,7 @@
 mod app;
 mod diff;
 mod event;
+mod grouper;
 mod highlight;
 mod signal;
 mod ui;
@@ -60,6 +61,24 @@ async fn main() -> Result<()> {
     // 7. Spawn the async event loop (terminal events + SIGUSR1)
     tokio::spawn(event::event_loop(tx.clone()));
 
+    // 7b. Trigger initial semantic grouping if claude is available
+    if app.claude_available {
+        let summaries = grouper::file_summaries(&app.diff_data);
+        let tx2 = tx.clone();
+        let handle = tokio::spawn(async move {
+            match grouper::llm::request_grouping_with_timeout(&summaries).await {
+                Ok(groups) => {
+                    let _ = tx2.send(Message::GroupingComplete(groups)).await;
+                }
+                Err(e) => {
+                    let _ = tx2.send(Message::GroupingFailed(e.to_string())).await;
+                }
+            }
+        });
+        app.grouping_handle = Some(handle);
+        app.grouping_status = grouper::GroupingStatus::Loading;
+    }
+
     // 8. Init terminal and enter main loop
     let mut terminal = ratatui::init();
 
@@ -85,6 +104,23 @@ async fn main() -> Result<()> {
                                 let _ = tx2.send(Message::DiffParsed(data)).await;
                             }
                         });
+                    }
+                    Command::SpawnGrouping(summaries) => {
+                        let tx2 = tx.clone();
+                        let handle = tokio::spawn(async move {
+                            match crate::grouper::llm::request_grouping_with_timeout(&summaries)
+                                .await
+                            {
+                                Ok(groups) => {
+                                    let _ = tx2.send(Message::GroupingComplete(groups)).await;
+                                }
+                                Err(e) => {
+                                    let _ =
+                                        tx2.send(Message::GroupingFailed(e.to_string())).await;
+                                }
+                            }
+                        });
+                        app.grouping_handle = Some(handle);
                     }
                     Command::Quit => break,
                 }

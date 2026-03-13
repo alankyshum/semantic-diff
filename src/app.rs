@@ -1,4 +1,5 @@
 use crate::diff::DiffData;
+use crate::grouper::{GroupingStatus, SemanticGroup};
 use crate::highlight::HighlightCache;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::collections::HashSet;
@@ -19,12 +20,15 @@ pub enum Message {
     RefreshSignal,
     DebouncedRefresh,
     DiffParsed(DiffData),
+    GroupingComplete(Vec<SemanticGroup>),
+    GroupingFailed(String),
     Quit,
 }
 
 /// Commands returned by update() for the main loop to execute.
 pub enum Command {
     SpawnDiffParse,
+    SpawnGrouping(String),
     Quit,
 }
 
@@ -68,6 +72,14 @@ pub struct App {
     pub search_query: String,
     /// The confirmed filter pattern (set on Enter in search mode).
     pub active_filter: Option<String>,
+    /// Semantic groups from LLM, if available. None = ungrouped.
+    pub semantic_groups: Option<Vec<SemanticGroup>>,
+    /// Lifecycle state of the current grouping request.
+    pub grouping_status: GroupingStatus,
+    /// Handle to the in-flight grouping task, for cancellation (ROB-05).
+    pub grouping_handle: Option<tokio::task::JoinHandle<()>>,
+    /// Whether the `claude` CLI is available on PATH (checked once at startup).
+    pub claude_available: bool,
 }
 
 impl App {
@@ -89,6 +101,10 @@ impl App {
             input_mode: InputMode::Normal,
             search_query: String::new(),
             active_filter: None,
+            semantic_groups: None,
+            grouping_status: GroupingStatus::Idle,
+            grouping_handle: None,
+            claude_available: crate::grouper::llm::claude_available(),
         }
     }
 
@@ -121,7 +137,30 @@ impl App {
             }
             Message::DiffParsed(new_data) => {
                 self.apply_new_diff_data(new_data);
+                if self.claude_available {
+                    // Cancel in-flight grouping (ROB-05)
+                    if let Some(handle) = self.grouping_handle.take() {
+                        handle.abort();
+                    }
+                    self.grouping_status = GroupingStatus::Loading;
+                    let summaries = crate::grouper::file_summaries(&self.diff_data);
+                    Some(Command::SpawnGrouping(summaries))
+                } else {
+                    self.grouping_status = GroupingStatus::Idle;
+                    None
+                }
+            }
+            Message::GroupingComplete(groups) => {
+                self.semantic_groups = Some(groups);
+                self.grouping_status = GroupingStatus::Done;
+                self.grouping_handle = None;
                 None
+            }
+            Message::GroupingFailed(err) => {
+                tracing::warn!("Grouping failed: {}", err);
+                self.grouping_status = GroupingStatus::Error(err);
+                self.grouping_handle = None;
+                None // Continue showing ungrouped — graceful degradation (ROB-06)
             }
             Message::Quit => Some(Command::Quit),
         }
