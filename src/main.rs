@@ -2,6 +2,7 @@ mod app;
 mod diff;
 mod event;
 mod highlight;
+mod signal;
 mod ui;
 
 use anyhow::Result;
