@@ -9,16 +9,16 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Diff Rendering
 
-- [ ] **DIFF-01**: Display syntax-highlighted unified diff with line numbers and hunk headers
-- [ ] **DIFF-02**: Show file change statistics (+/- counts) per file and as a total summary
-- [ ] **DIFF-03**: Highlight exact changed characters within modified lines (word-level inline diff)
-- [ ] **DIFF-04**: Diff working tree against HEAD (staged + unstaged changes)
+- [x] **DIFF-01**: Display syntax-highlighted unified diff with line numbers and hunk headers
+- [x] **DIFF-02**: Show file change statistics (+/- counts) per file and as a total summary
+- [x] **DIFF-03**: Highlight exact changed characters within modified lines (word-level inline diff)
+- [x] **DIFF-04**: Diff working tree against HEAD (staged + unstaged changes)
 
 ### Navigation & Interaction
 
-- [ ] **NAV-01**: Vim-like keyboard navigation (j/k to move, arrow keys, q to quit)
-- [ ] **NAV-02**: Collapse/expand individual files with Enter key
-- [ ] **NAV-03**: Collapse/expand individual diff hunks within files
+- [x] **NAV-01**: Vim-like keyboard navigation (j/k to move, arrow keys, q to quit)
+- [x] **NAV-02**: Collapse/expand individual files with Enter key
+- [x] **NAV-03**: Collapse/expand individual diff hunks within files
 - [ ] **NAV-04**: File tree sidebar showing changed files organized by semantic group
 - [ ] **NAV-05**: Search/filter files by name or content within diff view
 
@@ -38,9 +38,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Robustness
 
-- [ ] **ROB-01**: Panic hook that restores terminal state on crash (critical for cmux pane)
-- [ ] **ROB-02**: Gracefully skip binary files in diff (show placeholder instead of garbage)
-- [ ] **ROB-03**: Handle file renames correctly (detect and display as rename, not delete+add)
+- [x] **ROB-01**: Panic hook that restores terminal state on crash (critical for cmux pane)
+- [x] **ROB-02**: Gracefully skip binary files in diff (show placeholder instead of garbage)
+- [x] **ROB-03**: Handle file renames correctly (detect and display as rename, not delete+add)
 - [ ] **ROB-04**: Debounce rapid SIGUSR1 signals (coalesce multiple hook fires within 500ms window)
 - [ ] **ROB-05**: Cancel in-flight clauded process when new refresh signal arrives
 - [ ] **ROB-06**: Graceful degradation when clauded is unavailable (show ungrouped diff, no error)
@@ -77,13 +77,13 @@ Requirements for initial release. Each maps to roadmap phases.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DIFF-01 | Phase 1 | Pending |
-| DIFF-02 | Phase 1 | Pending |
-| DIFF-03 | Phase 1 | Pending |
-| DIFF-04 | Phase 1 | Pending |
-| NAV-01 | Phase 1 | Pending |
-| NAV-02 | Phase 1 | Pending |
-| NAV-03 | Phase 1 | Pending |
+| DIFF-01 | Phase 1 | Complete |
+| DIFF-02 | Phase 1 | Complete |
+| DIFF-03 | Phase 1 | Complete |
+| DIFF-04 | Phase 1 | Complete |
+| NAV-01 | Phase 1 | Complete |
+| NAV-02 | Phase 1 | Complete |
+| NAV-03 | Phase 1 | Complete |
 | NAV-04 | Phase 3 | Pending |
 | NAV-05 | Phase 2 | Pending |
 | SEM-01 | Phase 3 | Pending |
@@ -94,9 +94,9 @@ Requirements for initial release. Each maps to roadmap phases.
 | INT-02 | Phase 2 | Pending |
 | INT-03 | Phase 2 | Pending |
 | INT-04 | Phase 2 | Pending |
-| ROB-01 | Phase 1 | Pending |
-| ROB-02 | Phase 1 | Pending |
-| ROB-03 | Phase 1 | Pending |
+| ROB-01 | Phase 1 | Complete |
+| ROB-02 | Phase 1 | Complete |
+| ROB-03 | Phase 1 | Complete |
 | ROB-04 | Phase 2 | Pending |
 | ROB-05 | Phase 3 | Pending |
 | ROB-06 | Phase 3 | Pending |

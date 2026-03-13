@@ -12,7 +12,7 @@ This roadmap delivers a Rust terminal diff viewer with AI-powered semantic group
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Diff Viewer** - Rust/ratatui app that parses and renders git diffs with syntax highlighting, collapse/expand, and keyboard navigation
+- [x] **Phase 1: Diff Viewer** - Rust/ratatui app that parses and renders git diffs with syntax highlighting, collapse/expand, and keyboard navigation (completed 2026-03-13)
 - [ ] **Phase 2: Hook Integration** - SIGUSR1-triggered refresh, cmux auto-split lifecycle, PID file management, and search
 - [ ] **Phase 3: Semantic Grouping** - AI-powered file clustering via clauded with collapsible groups, summaries, and graceful degradation
 
@@ -31,9 +31,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans:** 3 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Project scaffold, diff parser, TEA skeleton, panic hook, basic TUI
-- [ ] 01-02-PLAN.md — Syntax highlighting, keyboard navigation, collapse/expand, line numbers, statistics
-- [ ] 01-03-PLAN.md — Word-level inline diff highlighting and final verification
+- [x] 01-01-PLAN.md — Project scaffold, diff parser, TEA skeleton, panic hook, basic TUI
+- [x] 01-02-PLAN.md — Syntax highlighting, keyboard navigation, collapse/expand, line numbers, statistics
+- [x] 01-03-PLAN.md — Word-level inline diff highlighting and final verification
 
 ### Phase 2: Hook Integration
 **Goal**: User's semantic-diff view auto-refreshes in real time as Claude Code edits files, running in a cmux split pane
@@ -73,6 +73,6 @@ Phases execute in numeric order: 1 -> 2 -> 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Diff Viewer | 0/3 | Planning complete | - |
+| 1. Diff Viewer | 3/3 | Complete | 2026-03-13 |
 | 2. Hook Integration | 0/2 | Not started | - |
 | 3. Semantic Grouping | 0/2 | Not started | - |
