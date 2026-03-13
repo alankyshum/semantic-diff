@@ -23,9 +23,9 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 ## Current Position
 
 Phase: 3 of 3 (Semantic Grouping)
-Plan: 0 of 2 in current phase
-Status: Not started — Phase 2 complete, Phase 3 plans TBD
-Last activity: 2026-03-13 -- Phase 2 complete
+Plan: 1 of 2 in current phase
+Status: In progress — Plan 03-01 complete (grouper module), Plan 03-02 pending (tree sidebar)
+Last activity: 2026-03-13 -- Plan 03-01 complete
 
 Progress: [██████████████░░░░░░] 67%
 
@@ -71,5 +71,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-13
-Stopped at: Phase 2 complete and verified. Phase 3 not yet planned.
+Stopped at: Plan 03-01 complete. Plan 03-02 (tree sidebar) next.
 Resume file: None
