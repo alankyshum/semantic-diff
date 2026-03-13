@@ -28,12 +28,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. User sees line numbers, hunk headers, and per-file/total change statistics (+/-) counts
   4. User sees word-level highlighting of changed characters within modified lines
   5. Binary files show a placeholder instead of garbage, renames display as renames, and a crash restores terminal state cleanly
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
-- [ ] 01-03: TBD
+- [ ] 01-01-PLAN.md — Project scaffold, diff parser, TEA skeleton, panic hook, basic TUI
+- [ ] 01-02-PLAN.md — Syntax highlighting, keyboard navigation, collapse/expand, line numbers, statistics
+- [ ] 01-03-PLAN.md — Word-level inline diff highlighting and final verification
 
 ### Phase 2: Hook Integration
 **Goal**: User's semantic-diff view auto-refreshes in real time as Claude Code edits files, running in a cmux split pane
@@ -73,6 +73,6 @@ Phases execute in numeric order: 1 -> 2 -> 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Diff Viewer | 0/3 | Not started | - |
+| 1. Diff Viewer | 0/3 | Planning complete | - |
 | 2. Hook Integration | 0/2 | Not started | - |
 | 3. Semantic Grouping | 0/2 | Not started | - |
