@@ -1,5 +1,5 @@
 use crate::app::{App, NodeId, VisibleItem};
-use crate::diff::LineType;
+use crate::diff::{LineType, SegmentTag};
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
@@ -166,12 +166,41 @@ fn render_diff_line(
         ),
     ];
 
-    // Syntax-highlighted content or fallback
-    if let Some(highlighted) = app.highlight_cache.get(file_idx, hunk_idx, line_idx) {
+    // Render content: with inline diff segments if available, otherwise syntax highlighting
+    if let Some(segments) = &line.inline_segments {
+        // Inline diff mode: render segments with emphasis on changed parts
+        let emphasis_bg = match line.line_type {
+            LineType::Added => Color::Rgb(0, 80, 0),   // brighter green for changed
+            LineType::Removed => Color::Rgb(80, 0, 0),  // brighter red for changed
+            LineType::Context => final_bg,
+        };
+
+        for segment in segments {
+            let seg_bg = if is_selected {
+                Color::Rgb(40, 40, 60)
+            } else {
+                match segment.tag {
+                    SegmentTag::Changed => emphasis_bg,
+                    SegmentTag::Equal => bg,
+                }
+            };
+            let seg_modifier = if segment.tag == SegmentTag::Changed {
+                Modifier::BOLD
+            } else {
+                Modifier::empty()
+            };
+            spans.push(Span::styled(
+                segment.text.clone(),
+                Style::default().fg(fg).bg(seg_bg).add_modifier(seg_modifier),
+            ));
+        }
+    } else if let Some(highlighted) = app.highlight_cache.get(file_idx, hunk_idx, line_idx) {
+        // Syntax highlighting mode
         for (style, text) in highlighted {
             spans.push(Span::styled(text.clone(), style.bg(final_bg)));
         }
     } else {
+        // Fallback: plain text
         spans.push(Span::styled(
             line.content.clone(),
             Style::default().fg(fg).bg(final_bg),

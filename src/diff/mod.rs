@@ -1,6 +1,6 @@
 mod parser;
 
-pub use parser::parse;
+pub use parser::{compute_inline_diffs, parse};
 
 /// Top-level parsed diff result.
 #[derive(Debug, Clone)]
