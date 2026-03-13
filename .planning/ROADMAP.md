@@ -60,11 +60,11 @@ Plans:
   3. The diff view shows ungrouped files immediately and smoothly transitions to grouped view when the LLM responds, never blocking the UI
   4. When clauded is unavailable or times out, the viewer continues working with ungrouped files and no error is shown
   5. A new refresh signal cancels any in-flight clauded process so stale groupings never overwrite fresh ones
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: TBD
-- [ ] 03-02: TBD
+- [ ] 03-01-PLAN.md — Grouper module with Claude CLI integration, progressive enhancement state machine, cancellation, graceful degradation
+- [ ] 03-02-PLAN.md — File tree sidebar with tui-tree-widget, horizontal split layout, panel focus, group rendering
 
 ## Progress
 
