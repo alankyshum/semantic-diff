@@ -1,15 +1,25 @@
 use crate::diff::DiffData;
 use crate::grouper::{GroupingStatus, SemanticGroup};
 use crate::highlight::HighlightCache;
+use crate::ui::file_tree::TreeNodeId;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use std::cell::RefCell;
 use std::collections::HashSet;
 use tokio::sync::mpsc;
+use tui_tree_widget::TreeState;
 
 /// Input mode for the application.
 #[derive(Debug, Clone, PartialEq)]
 pub enum InputMode {
     Normal,
     Search,
+}
+
+/// Which panel currently has keyboard focus.
+#[derive(Debug, Clone, PartialEq)]
+pub enum FocusedPanel {
+    FileTree,
+    DiffView,
 }
 
 /// Messages processed by the TEA update loop.
@@ -80,6 +90,10 @@ pub struct App {
     pub grouping_handle: Option<tokio::task::JoinHandle<()>>,
     /// Whether the `claude` CLI is available on PATH (checked once at startup).
     pub claude_available: bool,
+    /// Which panel currently has keyboard focus.
+    pub focused_panel: FocusedPanel,
+    /// Persistent tree state for tui-tree-widget (RefCell for interior mutability in render).
+    pub tree_state: RefCell<TreeState<TreeNodeId>>,
 }
 
 impl App {
@@ -105,6 +119,8 @@ impl App {
             grouping_status: GroupingStatus::Idle,
             grouping_handle: None,
             claude_available: crate::grouper::llm::claude_available(),
+            focused_panel: FocusedPanel::DiffView,
+            tree_state: RefCell::new(TreeState::default()),
         }
     }
 
@@ -258,36 +274,98 @@ impl App {
 
     /// Handle keys in Normal mode.
     fn handle_key_normal(&mut self, key: KeyEvent) -> Option<Command> {
-        let items_len = self.visible_items().len();
-        if items_len == 0 {
-            if key.code == KeyCode::Char('q') || key.code == KeyCode::Esc {
-                return Some(Command::Quit);
-            }
-            return None;
-        }
-
+        // Global keys that work regardless of focused panel
         match key.code {
-            KeyCode::Char('q') => Some(Command::Quit),
-
+            KeyCode::Char('q') => return Some(Command::Quit),
+            KeyCode::Tab => {
+                self.focused_panel = match self.focused_panel {
+                    FocusedPanel::FileTree => FocusedPanel::DiffView,
+                    FocusedPanel::DiffView => FocusedPanel::FileTree,
+                };
+                return None;
+            }
             KeyCode::Esc => {
-                // If there's an active filter, clear it first instead of quitting
                 if self.active_filter.is_some() {
                     self.active_filter = None;
                     self.ui_state.selected_index = 0;
                     self.adjust_scroll();
-                    None
+                    return None;
                 } else {
-                    Some(Command::Quit)
+                    return Some(Command::Quit);
                 }
             }
-
-            // Search
             KeyCode::Char('/') => {
                 self.input_mode = InputMode::Search;
                 self.search_query.clear();
+                return None;
+            }
+            _ => {}
+        }
+
+        // Route to panel-specific handler
+        match self.focused_panel {
+            FocusedPanel::FileTree => self.handle_key_tree(key),
+            FocusedPanel::DiffView => self.handle_key_diff(key),
+        }
+    }
+
+    /// Handle keys when the file tree sidebar is focused.
+    fn handle_key_tree(&mut self, key: KeyEvent) -> Option<Command> {
+        let mut ts = self.tree_state.borrow_mut();
+        match key.code {
+            KeyCode::Char('j') | KeyCode::Down => {
+                ts.key_down();
                 None
             }
+            KeyCode::Char('k') | KeyCode::Up => {
+                ts.key_up();
+                None
+            }
+            KeyCode::Left => {
+                ts.key_left();
+                None
+            }
+            KeyCode::Right => {
+                ts.key_right();
+                None
+            }
+            KeyCode::Enter => {
+                // Check if selected node is a file leaf — if so, scroll diff view to that file
+                let selected = ts.selected().to_vec();
+                drop(ts); // release borrow before mutating self
+                if let Some(last) = selected.last() {
+                    match last {
+                        TreeNodeId::File(path) => {
+                            self.scroll_diff_to_file(path);
+                        }
+                        TreeNodeId::Group(_) => {
+                            // Toggle collapse on group node
+                            self.tree_state.borrow_mut().toggle_selected();
+                        }
+                    }
+                }
+                None
+            }
+            KeyCode::Char('g') => {
+                ts.select_first();
+                None
+            }
+            KeyCode::Char('G') => {
+                ts.select_last();
+                None
+            }
+            _ => None,
+        }
+    }
 
+    /// Handle keys when the diff view is focused (original behavior).
+    fn handle_key_diff(&mut self, key: KeyEvent) -> Option<Command> {
+        let items_len = self.visible_items().len();
+        if items_len == 0 {
+            return None;
+        }
+
+        match key.code {
             // Jump to next/previous search match
             KeyCode::Char('n') => {
                 self.jump_to_match(true);
@@ -335,6 +413,24 @@ impl App {
             }
 
             _ => None,
+        }
+    }
+
+    /// Scroll the diff view to a specific file path (selected from tree sidebar).
+    fn scroll_diff_to_file(&mut self, path: &str) {
+        let items = self.visible_items();
+        if let Some(idx) = items.iter().position(|item| {
+            if let VisibleItem::FileHeader { file_idx } = item {
+                let file_path = self.diff_data.files[*file_idx]
+                    .target_file
+                    .trim_start_matches("b/");
+                file_path == path
+            } else {
+                false
+            }
+        }) {
+            self.ui_state.selected_index = idx;
+            self.adjust_scroll();
         }
     }
 

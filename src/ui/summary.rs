@@ -46,6 +46,32 @@ pub fn render_summary(app: &App, frame: &mut Frame, area: Rect) {
         ));
     }
 
+    // Show grouping status
+    use crate::grouper::GroupingStatus;
+    match &app.grouping_status {
+        GroupingStatus::Loading => {
+            spans.push(Span::styled(
+                " | Grouping...",
+                Style::default().fg(Color::Yellow),
+            ));
+        }
+        GroupingStatus::Done => {
+            if let Some(ref groups) = app.semantic_groups {
+                spans.push(Span::styled(
+                    format!(" | {} groups", groups.len()),
+                    Style::default().fg(Color::Cyan),
+                ));
+            }
+        }
+        GroupingStatus::Error(_) => {
+            spans.push(Span::styled(
+                " | Ungrouped",
+                Style::default().fg(Color::DarkGray),
+            ));
+        }
+        GroupingStatus::Idle => {} // nothing extra
+    }
+
     let line = Line::from(spans);
     let paragraph = ratatui::widgets::Paragraph::new(line);
     frame.render_widget(paragraph, area);

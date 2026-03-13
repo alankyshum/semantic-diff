@@ -1,4 +1,5 @@
 pub mod diff_view;
+pub mod file_tree;
 pub mod summary;
 
 use crate::app::{App, InputMode};
@@ -7,21 +8,35 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::Frame;
 
-/// Draw the entire UI: diff view + summary/search bar.
+/// Draw the entire UI: file tree sidebar + diff view + summary/search bar.
 pub fn draw(app: &App, frame: &mut Frame) {
     let area = frame.area();
 
-    // When in search mode, show search bar at the bottom instead of summary
+    // Vertical split: main content area | bottom bar
     let bottom_height = 1;
-    let chunks = Layout::vertical([Constraint::Min(1), Constraint::Length(bottom_height)]).split(area);
+    let vertical =
+        Layout::vertical([Constraint::Min(1), Constraint::Length(bottom_height)]).split(area);
 
-    // Render diff view in main area
-    diff_view::render_diff(app, frame, chunks[0]);
+    // Horizontal split: sidebar | diff view
+    // On narrow terminals (<80 cols), use a smaller sidebar
+    let sidebar_width = if area.width < 80 {
+        Constraint::Max(25)
+    } else {
+        Constraint::Max(40)
+    };
+    let horizontal =
+        Layout::horizontal([sidebar_width, Constraint::Min(40)]).split(vertical[0]);
+
+    // Render file tree sidebar in left panel
+    file_tree::render_tree(app, frame, horizontal[0]);
+
+    // Render diff view in right panel (existing)
+    diff_view::render_diff(app, frame, horizontal[1]);
 
     // Render bottom bar: search bar when searching, summary bar otherwise
     match app.input_mode {
-        InputMode::Search => render_search_bar(app, frame, chunks[1]),
-        InputMode::Normal => summary::render_summary(app, frame, chunks[1]),
+        InputMode::Search => render_search_bar(app, frame, vertical[1]),
+        InputMode::Normal => summary::render_summary(app, frame, vertical[1]),
     }
 }
 
