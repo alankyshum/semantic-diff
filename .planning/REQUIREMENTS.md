@@ -77,35 +77,35 @@ Requirements for initial release. Each maps to roadmap phases.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DIFF-01 | — | Pending |
-| DIFF-02 | — | Pending |
-| DIFF-03 | — | Pending |
-| DIFF-04 | — | Pending |
-| NAV-01 | — | Pending |
-| NAV-02 | — | Pending |
-| NAV-03 | — | Pending |
-| NAV-04 | — | Pending |
-| NAV-05 | — | Pending |
-| SEM-01 | — | Pending |
-| SEM-02 | — | Pending |
-| SEM-03 | — | Pending |
-| SEM-04 | — | Pending |
-| INT-01 | — | Pending |
-| INT-02 | — | Pending |
-| INT-03 | — | Pending |
-| INT-04 | — | Pending |
-| ROB-01 | — | Pending |
-| ROB-02 | — | Pending |
-| ROB-03 | — | Pending |
-| ROB-04 | — | Pending |
-| ROB-05 | — | Pending |
-| ROB-06 | — | Pending |
+| DIFF-01 | Phase 1 | Pending |
+| DIFF-02 | Phase 1 | Pending |
+| DIFF-03 | Phase 1 | Pending |
+| DIFF-04 | Phase 1 | Pending |
+| NAV-01 | Phase 1 | Pending |
+| NAV-02 | Phase 1 | Pending |
+| NAV-03 | Phase 1 | Pending |
+| NAV-04 | Phase 3 | Pending |
+| NAV-05 | Phase 2 | Pending |
+| SEM-01 | Phase 3 | Pending |
+| SEM-02 | Phase 3 | Pending |
+| SEM-03 | Phase 3 | Pending |
+| SEM-04 | Phase 3 | Pending |
+| INT-01 | Phase 2 | Pending |
+| INT-02 | Phase 2 | Pending |
+| INT-03 | Phase 2 | Pending |
+| INT-04 | Phase 2 | Pending |
+| ROB-01 | Phase 1 | Pending |
+| ROB-02 | Phase 1 | Pending |
+| ROB-03 | Phase 1 | Pending |
+| ROB-04 | Phase 2 | Pending |
+| ROB-05 | Phase 3 | Pending |
+| ROB-06 | Phase 3 | Pending |
 
 **Coverage:**
 - v1 requirements: 23 total
-- Mapped to phases: 0
-- Unmapped: 23 (pending roadmap creation)
+- Mapped to phases: 23
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-13*
-*Last updated: 2026-03-13 after initial definition*
+*Last updated: 2026-03-13 after roadmap creation*
