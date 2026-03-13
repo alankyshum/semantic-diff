@@ -44,11 +44,11 @@ Plans:
   2. The hook script opens semantic-diff in a cmux right pane if not already running, and the pane persists until the user closes it
   3. Rapid successive hook fires (e.g., Claude editing multiple files in quick succession) are debounced and do not cause duplicate refreshes or crashes
   4. User can search/filter files by name within the diff view
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
+- [ ] 02-01-PLAN.md — Async event loop refactor, SIGUSR1 handling, PID file lifecycle, debounced refresh
+- [ ] 02-02-PLAN.md — File search/filter, Claude Code hook script, cmux integration config
 
 ### Phase 3: Semantic Grouping
 **Goal**: Changed files are organized into AI-generated semantic groups (e.g., "refactored auth", "added tests") so the user understands the intent behind changes at a glance
