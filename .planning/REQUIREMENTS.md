@@ -19,15 +19,15 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **NAV-01**: Vim-like keyboard navigation (j/k to move, arrow keys, q to quit)
 - [x] **NAV-02**: Collapse/expand individual files with Enter key
 - [x] **NAV-03**: Collapse/expand individual diff hunks within files
-- [ ] **NAV-04**: File tree sidebar showing changed files organized by semantic group
+- [x] **NAV-04**: File tree sidebar showing changed files organized by semantic group
 - [x] **NAV-05**: Search/filter files by name or content within diff view
 
 ### Semantic Grouping
 
-- [ ] **SEM-01**: AI-powered semantic clustering of changed files via clauded CLI (e.g. "refactored auth", "added tests", "updated configs")
-- [ ] **SEM-02**: Collapsible semantic groups as tree nodes in file tree sidebar
-- [ ] **SEM-03**: Group summaries showing description and change counts per group
-- [ ] **SEM-04**: Progressive enhancement — show ungrouped diff immediately, regroup when LLM responds (never block UI)
+- [x] **SEM-01**: AI-powered semantic clustering of changed files via clauded CLI (e.g. "refactored auth", "added tests", "updated configs")
+- [x] **SEM-02**: Collapsible semantic groups as tree nodes in file tree sidebar
+- [x] **SEM-03**: Group summaries showing description and change counts per group
+- [x] **SEM-04**: Progressive enhancement — show ungrouped diff immediately, regroup when LLM responds (never block UI)
 
 ### Integration
 
@@ -42,8 +42,8 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **ROB-02**: Gracefully skip binary files in diff (show placeholder instead of garbage)
 - [x] **ROB-03**: Handle file renames correctly (detect and display as rename, not delete+add)
 - [x] **ROB-04**: Debounce rapid SIGUSR1 signals (coalesce multiple hook fires within 500ms window)
-- [ ] **ROB-05**: Cancel in-flight clauded process when new refresh signal arrives
-- [ ] **ROB-06**: Graceful degradation when clauded is unavailable (show ungrouped diff, no error)
+- [x] **ROB-05**: Cancel in-flight clauded process when new refresh signal arrives
+- [x] **ROB-06**: Graceful degradation when clauded is unavailable (show ungrouped diff, no error)
 
 ## v2 Requirements
 
@@ -84,12 +84,12 @@ Requirements for initial release. Each maps to roadmap phases.
 | NAV-01 | Phase 1 | Complete |
 | NAV-02 | Phase 1 | Complete |
 | NAV-03 | Phase 1 | Complete |
-| NAV-04 | Phase 3 | Pending |
+| NAV-04 | Phase 3 | Complete |
 | NAV-05 | Phase 2 | Complete |
-| SEM-01 | Phase 3 | Pending |
-| SEM-02 | Phase 3 | Pending |
-| SEM-03 | Phase 3 | Pending |
-| SEM-04 | Phase 3 | Pending |
+| SEM-01 | Phase 3 | Complete |
+| SEM-02 | Phase 3 | Complete |
+| SEM-03 | Phase 3 | Complete |
+| SEM-04 | Phase 3 | Complete |
 | INT-01 | Phase 2 | Complete |
 | INT-02 | Phase 2 | Complete |
 | INT-03 | Phase 2 | Complete |
@@ -98,8 +98,8 @@ Requirements for initial release. Each maps to roadmap phases.
 | ROB-02 | Phase 1 | Complete |
 | ROB-03 | Phase 1 | Complete |
 | ROB-04 | Phase 2 | Complete |
-| ROB-05 | Phase 3 | Pending |
-| ROB-06 | Phase 3 | Pending |
+| ROB-05 | Phase 3 | Complete |
+| ROB-06 | Phase 3 | Complete |
 
 **Coverage:**
 - v1 requirements: 23 total
@@ -108,4 +108,4 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ---
 *Requirements defined: 2026-03-13*
-*Last updated: 2026-03-13 after roadmap creation*
+*Last updated: 2026-03-13 after Phase 3 completion*
