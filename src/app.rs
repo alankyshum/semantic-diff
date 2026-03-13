@@ -1,7 +1,8 @@
 use crate::diff::DiffData;
+use crate::highlight::HighlightCache;
 use crate::ui;
 use anyhow::Result;
-use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
+use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use std::collections::HashSet;
 use std::time::Duration;
 
@@ -24,6 +25,8 @@ pub struct UiState {
     pub selected_index: usize,
     pub scroll_offset: u16,
     pub collapsed: HashSet<NodeId>,
+    /// Terminal viewport height, updated each frame.
+    pub viewport_height: u16,
 }
 
 /// An item in the flattened visible list.
@@ -38,19 +41,23 @@ pub enum VisibleItem {
 pub struct App {
     pub diff_data: DiffData,
     pub ui_state: UiState,
+    pub highlight_cache: HighlightCache,
     pub should_quit: bool,
 }
 
 impl App {
     /// Create a new App with parsed diff data.
     pub fn new(diff_data: DiffData) -> Self {
+        let highlight_cache = HighlightCache::new(&diff_data);
         Self {
             diff_data,
             ui_state: UiState {
                 selected_index: 0,
                 scroll_offset: 0,
                 collapsed: HashSet::new(),
+                viewport_height: 24, // will be updated on first draw
             },
+            highlight_cache,
             should_quit: false,
         }
     }
@@ -58,7 +65,11 @@ impl App {
     /// Main event loop: draw, poll events, handle key events.
     pub fn run(&mut self, terminal: &mut ratatui::DefaultTerminal) -> Result<()> {
         while !self.should_quit {
-            terminal.draw(|frame| self.view(frame))?;
+            terminal.draw(|frame| {
+                // Update viewport height each frame
+                self.ui_state.viewport_height = frame.area().height.saturating_sub(1); // -1 for summary bar
+                self.view(frame);
+            })?;
 
             if event::poll(Duration::from_millis(100))? {
                 if let Event::Key(key) = event::read()? {
@@ -81,9 +92,100 @@ impl App {
 
     /// Handle a key press event.
     fn handle_key(&mut self, key: KeyEvent) {
+        let items_len = self.visible_items().len();
+        if items_len == 0 {
+            if key.code == KeyCode::Char('q') || key.code == KeyCode::Esc {
+                self.should_quit = true;
+            }
+            return;
+        }
+
         match key.code {
             KeyCode::Char('q') | KeyCode::Esc => self.should_quit = true,
+
+            // Navigation
+            KeyCode::Char('j') | KeyCode::Down => {
+                self.move_selection(1, items_len);
+            }
+            KeyCode::Char('k') | KeyCode::Up => {
+                self.move_selection(-1, items_len);
+            }
+            KeyCode::Char('g') => {
+                self.ui_state.selected_index = 0;
+                self.adjust_scroll();
+            }
+            KeyCode::Char('G') => {
+                self.ui_state.selected_index = items_len.saturating_sub(1);
+                self.adjust_scroll();
+            }
+            KeyCode::Char('d') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                let half_page = (self.ui_state.viewport_height / 2) as usize;
+                self.move_selection(half_page as isize, items_len);
+            }
+            KeyCode::Char('u') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                let half_page = (self.ui_state.viewport_height / 2) as usize;
+                self.move_selection(-(half_page as isize), items_len);
+            }
+
+            // Collapse/Expand
+            KeyCode::Enter => {
+                self.toggle_collapse();
+            }
+
             _ => {}
+        }
+    }
+
+    /// Move selection by delta, clamping to valid range.
+    fn move_selection(&mut self, delta: isize, items_len: usize) {
+        let max_idx = items_len.saturating_sub(1);
+        let new_idx = if delta > 0 {
+            (self.ui_state.selected_index + delta as usize).min(max_idx)
+        } else {
+            self.ui_state.selected_index.saturating_sub((-delta) as usize)
+        };
+        self.ui_state.selected_index = new_idx;
+        self.adjust_scroll();
+    }
+
+    /// Toggle collapse on the currently selected item.
+    fn toggle_collapse(&mut self) {
+        let items = self.visible_items();
+        if let Some(item) = items.get(self.ui_state.selected_index) {
+            let node_id = match item {
+                VisibleItem::FileHeader { file_idx } => Some(NodeId::File(*file_idx)),
+                VisibleItem::HunkHeader { file_idx, hunk_idx } => {
+                    Some(NodeId::Hunk(*file_idx, *hunk_idx))
+                }
+                VisibleItem::DiffLine { .. } => None, // no-op on diff lines
+            };
+
+            if let Some(id) = node_id {
+                if self.ui_state.collapsed.contains(&id) {
+                    self.ui_state.collapsed.remove(&id);
+                } else {
+                    self.ui_state.collapsed.insert(id);
+                }
+
+                // Clamp selected_index after collapse/expand changes visible items
+                let new_items_len = self.visible_items().len();
+                if self.ui_state.selected_index >= new_items_len {
+                    self.ui_state.selected_index = new_items_len.saturating_sub(1);
+                }
+                self.adjust_scroll();
+            }
+        }
+    }
+
+    /// Adjust scroll offset to keep the selected item visible.
+    fn adjust_scroll(&mut self) {
+        let selected = self.ui_state.selected_index as u16;
+        let viewport = self.ui_state.viewport_height;
+
+        if selected < self.ui_state.scroll_offset {
+            self.ui_state.scroll_offset = selected;
+        } else if selected >= self.ui_state.scroll_offset + viewport {
+            self.ui_state.scroll_offset = selected - viewport + 1;
         }
     }
 

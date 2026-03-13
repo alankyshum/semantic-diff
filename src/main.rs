@@ -1,6 +1,7 @@
 mod app;
 mod diff;
 mod event;
+mod highlight;
 mod ui;
 
 use anyhow::Result;
