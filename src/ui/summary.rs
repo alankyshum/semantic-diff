@@ -12,17 +12,17 @@ pub fn render_summary(app: &App, frame: &mut Frame, area: Rect) {
 
     let mut spans = vec![
         Span::styled(
-            format!(" {} file(s) changed  ", total_files),
+            format!(" {total_files} file(s) changed  "),
             Style::default().add_modifier(Modifier::BOLD),
         ),
         Span::styled(
-            format!("+{}", total_added),
+            format!("+{total_added}"),
             Style::default()
                 .fg(Color::Green)
                 .add_modifier(Modifier::BOLD),
         ),
         Span::styled(
-            format!(" -{}", total_removed),
+            format!(" -{total_removed}"),
             Style::default()
                 .fg(Color::Red)
                 .add_modifier(Modifier::BOLD),
@@ -39,7 +39,7 @@ pub fn render_summary(app: &App, frame: &mut Frame, area: Rect) {
     // Show active filter indicator
     if let Some(ref filter) = app.active_filter {
         spans.push(Span::styled(
-            format!("  [filter: {}]", filter),
+            format!("  [filter: {filter}]"),
             Style::default()
                 .fg(Color::Cyan)
                 .add_modifier(Modifier::BOLD),

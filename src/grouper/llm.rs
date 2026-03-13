@@ -29,8 +29,7 @@ pub async fn request_grouping(file_summaries: &str) -> anyhow::Result<Vec<Semant
          - Every file must appear in exactly one group\n\
          - Use 2-5 groups (fewer for small changesets)\n\
          - Labels should describe the PURPOSE (e.g. \"Auth refactor\", \"Test coverage\")\n\n\
-         Changed files:\n{}",
-        file_summaries
+         Changed files:\n{file_summaries}",
     );
 
     let output = Command::new("claude")

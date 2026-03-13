@@ -14,6 +14,7 @@ pub struct GroupingResponse {
 pub struct SemanticGroup {
     pub label: String,
     #[serde(default)]
+    #[allow(dead_code)]
     pub description: String,
     pub files: Vec<String>,
 }

@@ -17,8 +17,7 @@ pub fn render_diff(app: &App, frame: &mut Frame, area: Rect) {
     let start = scroll;
     let end = (scroll + viewport_height).min(items.len());
 
-    for idx in start..end {
-        let item = &items[idx];
+    for (idx, item) in items.iter().enumerate().take(end).skip(start) {
         let is_selected = idx == app.ui_state.selected_index;
         let line = render_item(app, item, is_selected);
         lines.push(line);
@@ -77,13 +76,13 @@ fn render_file_header(app: &App, file_idx: usize, sel_bg: Color) -> Line<'static
 
     let mut spans = vec![
         Span::styled(
-            format!(" {} ", indicator),
+            format!(" {indicator} "),
             Style::default().fg(Color::Yellow).bg(header_bg),
         ),
     ];
 
     // Render filename with match highlighting if filter is active
-    let name_with_space = format!("{} ", name);
+    let name_with_space = format!("{name} ");
     if let Some(ref filter) = app.active_filter {
         let name_lower = name_with_space.to_lowercase();
         let filter_lower = filter.to_lowercase();
@@ -164,7 +163,7 @@ fn render_hunk_header(
 
     Line::from(vec![
         Span::styled(
-            format!("   {} ", indicator),
+            format!("   {indicator} "),
             Style::default().fg(Color::Yellow).bg(sel_bg),
         ),
         Span::styled(
@@ -212,7 +211,7 @@ fn render_diff_line(
         ),
         // +/- prefix
         Span::styled(
-            format!("{} ", prefix),
+            format!("{prefix} "),
             Style::default().fg(fg).bg(final_bg),
         ),
     ];
@@ -292,10 +291,10 @@ fn compute_line_numbers(
 /// Format the line number gutter (4 chars for source, 4 chars for target).
 fn format_gutter(src: Option<usize>, tgt: Option<usize>) -> String {
     let s = src
-        .map(|n| format!("{:>4}", n))
+        .map(|n| format!("{n:>4}"))
         .unwrap_or_else(|| "    ".to_string());
     let t = tgt
-        .map(|n| format!("{:>4}", n))
+        .map(|n| format!("{n:>4}"))
         .unwrap_or_else(|| "    ".to_string());
-    format!("{} {} ", s, t)
+    format!("{s} {t} ")
 }

@@ -17,8 +17,8 @@ pub enum TreeNodeId {
 impl std::fmt::Display for TreeNodeId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TreeNodeId::Group(i) => write!(f, "group-{}", i),
-            TreeNodeId::File(path) => write!(f, "file-{}", path),
+            TreeNodeId::Group(i) => write!(f, "group-{i}"),
+            TreeNodeId::File(path) => write!(f, "file-{path}"),
         }
     }
 }
@@ -39,7 +39,7 @@ fn build_flat_tree<'a>(app: &App) -> Vec<TreeItem<'a, TreeNodeId>> {
         .map(|file| {
             let path = file.target_file.trim_start_matches("b/").to_string();
             let line = Line::from(vec![
-                Span::raw(format!("{} ", path)),
+                Span::raw(format!("{path} ")),
                 Span::styled(
                     format!("+{}", file.added_count),
                     Style::default().fg(Color::Green),
@@ -80,7 +80,7 @@ fn build_grouped_tree<'a>(
                 used_paths.insert(path.clone());
 
                 let line = Line::from(vec![
-                    Span::raw(format!("{} ", path)),
+                    Span::raw(format!("{path} ")),
                     Span::styled(
                         format!("+{}", file.added_count),
                         Style::default().fg(Color::Green),
@@ -104,12 +104,12 @@ fn build_grouped_tree<'a>(
                         .add_modifier(Modifier::BOLD),
                 ),
                 Span::styled(
-                    format!("+{}", group_added),
+                    format!("+{group_added}"),
                     Style::default().fg(Color::Green),
                 ),
                 Span::raw(" "),
                 Span::styled(
-                    format!("-{}", group_removed),
+                    format!("-{group_removed}"),
                     Style::default().fg(Color::Red),
                 ),
                 Span::styled(
@@ -129,7 +129,7 @@ fn build_grouped_tree<'a>(
         let path = file.target_file.trim_start_matches("b/").to_string();
         if !used_paths.contains(&path) {
             let line = Line::from(vec![
-                Span::raw(format!("{} ", path)),
+                Span::raw(format!("{path} ")),
                 Span::styled(
                     format!("+{}", file.added_count),
                     Style::default().fg(Color::Green),

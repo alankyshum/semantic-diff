@@ -16,7 +16,7 @@ async fn main() -> Result<()> {
     let original_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
         signal::remove_pid_file();
-        let _ = ratatui::restore();
+        ratatui::restore();
         original_hook(info);
     }));
 

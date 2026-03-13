@@ -16,6 +16,7 @@ pub fn remove_pid_file() {
 
 /// Read and parse the PID from the PID file.
 /// Returns None if the file is missing or contains invalid data.
+#[allow(dead_code)]
 pub fn read_pid() -> Option<u32> {
     fs::read_to_string(PID_FILE)
         .ok()?

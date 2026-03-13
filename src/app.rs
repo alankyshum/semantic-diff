@@ -32,8 +32,8 @@ pub enum Message {
     DiffParsed(DiffData),
     GroupingComplete(Vec<SemanticGroup>),
     GroupingFailed(String),
-    Quit,
 }
+
 
 /// Commands returned by update() for the main loop to execute.
 pub enum Command {
@@ -71,6 +71,7 @@ pub struct App {
     pub diff_data: DiffData,
     pub ui_state: UiState,
     pub highlight_cache: HighlightCache,
+    #[allow(dead_code)]
     pub should_quit: bool,
     /// Channel sender for spawning debounce timers that send DebouncedRefresh.
     pub event_tx: Option<mpsc::Sender<Message>>,
@@ -178,7 +179,6 @@ impl App {
                 self.grouping_handle = None;
                 None // Continue showing ungrouped — graceful degradation (ROB-06)
             }
-            Message::Quit => Some(Command::Quit),
         }
     }
 
