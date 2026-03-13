@@ -1,15 +1,23 @@
 use crate::diff::DiffData;
 use crate::highlight::HighlightCache;
-use crate::ui;
-use anyhow::Result;
-use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::collections::HashSet;
-use std::time::Duration;
+use tokio::sync::mpsc;
 
 /// Messages processed by the TEA update loop.
 #[derive(Debug)]
 pub enum Message {
     KeyPress(KeyEvent),
+    Resize(u16, u16),
+    RefreshSignal,
+    DebouncedRefresh,
+    DiffParsed(DiffData),
+    Quit,
+}
+
+/// Commands returned by update() for the main loop to execute.
+pub enum Command {
+    SpawnDiffParse,
     Quit,
 }
 
@@ -43,6 +51,10 @@ pub struct App {
     pub ui_state: UiState,
     pub highlight_cache: HighlightCache,
     pub should_quit: bool,
+    /// Channel sender for spawning debounce timers that send DebouncedRefresh.
+    pub event_tx: Option<mpsc::Sender<Message>>,
+    /// Handle to the current debounce timer task, if any.
+    pub debounce_handle: Option<tokio::task::JoinHandle<()>>,
 }
 
 impl App {
@@ -59,80 +71,178 @@ impl App {
             },
             highlight_cache,
             should_quit: false,
+            event_tx: None,
+            debounce_handle: None,
         }
     }
 
-    /// Main event loop: draw, poll events, handle key events.
-    pub fn run(&mut self, terminal: &mut ratatui::DefaultTerminal) -> Result<()> {
-        while !self.should_quit {
-            terminal.draw(|frame| {
-                // Update viewport height each frame
-                self.ui_state.viewport_height = frame.area().height.saturating_sub(1); // -1 for summary bar
-                self.view(frame);
-            })?;
+    /// TEA update: dispatch message to handler, return optional command.
+    pub fn update(&mut self, msg: Message) -> Option<Command> {
+        match msg {
+            Message::KeyPress(key) => self.handle_key(key),
+            Message::Resize(_w, h) => {
+                self.ui_state.viewport_height = h.saturating_sub(1);
+                None
+            }
+            Message::RefreshSignal => {
+                // Cancel any existing debounce timer
+                if let Some(handle) = self.debounce_handle.take() {
+                    handle.abort();
+                }
+                // Spawn a new debounce timer: 500ms delay before refresh
+                if let Some(tx) = &self.event_tx {
+                    let tx = tx.clone();
+                    self.debounce_handle = Some(tokio::spawn(async move {
+                        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                        let _ = tx.send(Message::DebouncedRefresh).await;
+                    }));
+                }
+                None
+            }
+            Message::DebouncedRefresh => {
+                self.debounce_handle = None;
+                Some(Command::SpawnDiffParse)
+            }
+            Message::DiffParsed(new_data) => {
+                self.apply_new_diff_data(new_data);
+                None
+            }
+            Message::Quit => Some(Command::Quit),
+        }
+    }
 
-            if event::poll(Duration::from_millis(100))? {
-                if let Event::Key(key) = event::read()? {
-                    if key.kind == KeyEventKind::Press {
-                        self.update(Message::KeyPress(key));
+    /// Apply new diff data while preserving scroll position and collapse state.
+    fn apply_new_diff_data(&mut self, new_data: DiffData) {
+        // 1. Record collapsed state by file path (not index)
+        let mut collapsed_files: HashSet<String> = HashSet::new();
+        let mut collapsed_hunks: HashSet<(String, usize)> = HashSet::new();
+
+        for node in &self.ui_state.collapsed {
+            match node {
+                NodeId::File(fi) => {
+                    if let Some(file) = self.diff_data.files.get(*fi) {
+                        collapsed_files.insert(file.target_file.clone());
+                    }
+                }
+                NodeId::Hunk(fi, hi) => {
+                    if let Some(file) = self.diff_data.files.get(*fi) {
+                        collapsed_hunks.insert((file.target_file.clone(), *hi));
                     }
                 }
             }
         }
-        Ok(())
+
+        // 2. Record current selected file path for position preservation
+        let selected_path = self.selected_file_path();
+
+        // 3. Replace diff data and rebuild highlight cache
+        self.diff_data = new_data;
+        self.highlight_cache = HighlightCache::new(&self.diff_data);
+
+        // 4. Rebuild collapsed set with new indices
+        self.ui_state.collapsed.clear();
+        for (fi, file) in self.diff_data.files.iter().enumerate() {
+            if collapsed_files.contains(&file.target_file) {
+                self.ui_state.collapsed.insert(NodeId::File(fi));
+            }
+            for (hi, _) in file.hunks.iter().enumerate() {
+                if collapsed_hunks.contains(&(file.target_file.clone(), hi)) {
+                    self.ui_state.collapsed.insert(NodeId::Hunk(fi, hi));
+                }
+            }
+        }
+
+        // 5. Restore selected position by file path, or clamp
+        if let Some(path) = selected_path {
+            let items = self.visible_items();
+            let restored = items.iter().position(|item| {
+                if let VisibleItem::FileHeader { file_idx } = item {
+                    self.diff_data.files[*file_idx].target_file == path
+                } else {
+                    false
+                }
+            });
+            if let Some(idx) = restored {
+                self.ui_state.selected_index = idx;
+            } else {
+                self.ui_state.selected_index = self
+                    .ui_state
+                    .selected_index
+                    .min(items.len().saturating_sub(1));
+            }
+        } else {
+            let items_len = self.visible_items().len();
+            self.ui_state.selected_index = self
+                .ui_state
+                .selected_index
+                .min(items_len.saturating_sub(1));
+        }
+
+        self.adjust_scroll();
     }
 
-    /// TEA update: dispatch message to handler.
-    fn update(&mut self, msg: Message) {
-        match msg {
-            Message::KeyPress(key) => self.handle_key(key),
-            Message::Quit => self.should_quit = true,
-        }
+    /// Get the file path of the currently selected item (for position preservation).
+    fn selected_file_path(&self) -> Option<String> {
+        let items = self.visible_items();
+        let item = items.get(self.ui_state.selected_index)?;
+        let fi = match item {
+            VisibleItem::FileHeader { file_idx } => *file_idx,
+            VisibleItem::HunkHeader { file_idx, .. } => *file_idx,
+            VisibleItem::DiffLine { file_idx, .. } => *file_idx,
+        };
+        self.diff_data.files.get(fi).map(|f| f.target_file.clone())
     }
 
     /// Handle a key press event.
-    fn handle_key(&mut self, key: KeyEvent) {
+    fn handle_key(&mut self, key: KeyEvent) -> Option<Command> {
         let items_len = self.visible_items().len();
         if items_len == 0 {
             if key.code == KeyCode::Char('q') || key.code == KeyCode::Esc {
-                self.should_quit = true;
+                return Some(Command::Quit);
             }
-            return;
+            return None;
         }
 
         match key.code {
-            KeyCode::Char('q') | KeyCode::Esc => self.should_quit = true,
+            KeyCode::Char('q') | KeyCode::Esc => Some(Command::Quit),
 
             // Navigation
             KeyCode::Char('j') | KeyCode::Down => {
                 self.move_selection(1, items_len);
+                None
             }
             KeyCode::Char('k') | KeyCode::Up => {
                 self.move_selection(-1, items_len);
+                None
             }
             KeyCode::Char('g') => {
                 self.ui_state.selected_index = 0;
                 self.adjust_scroll();
+                None
             }
             KeyCode::Char('G') => {
                 self.ui_state.selected_index = items_len.saturating_sub(1);
                 self.adjust_scroll();
+                None
             }
             KeyCode::Char('d') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                 let half_page = (self.ui_state.viewport_height / 2) as usize;
                 self.move_selection(half_page as isize, items_len);
+                None
             }
             KeyCode::Char('u') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                 let half_page = (self.ui_state.viewport_height / 2) as usize;
                 self.move_selection(-(half_page as isize), items_len);
+                None
             }
 
             // Collapse/Expand
             KeyCode::Enter => {
                 self.toggle_collapse();
+                None
             }
 
-            _ => {}
+            _ => None,
         }
     }
 
@@ -216,7 +326,7 @@ impl App {
     }
 
     /// TEA view: delegate rendering to the UI module.
-    fn view(&self, frame: &mut ratatui::Frame) {
-        ui::draw(self, frame);
+    pub fn view(&self, frame: &mut ratatui::Frame) {
+        crate::ui::draw(self, frame);
     }
 }

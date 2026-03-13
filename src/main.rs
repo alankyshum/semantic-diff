@@ -6,13 +6,15 @@ mod signal;
 mod ui;
 
 use anyhow::Result;
-use app::App;
+use app::{App, Command, Message};
+use tokio::sync::mpsc;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // 1. Panic hook FIRST (ROB-01) — restore terminal before printing panic info
+    // 1. Panic hook FIRST (ROB-01) — restore terminal and clean up PID file before printing panic info
     let original_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
+        signal::remove_pid_file();
         let _ = ratatui::restore();
         original_hook(info);
     }));
@@ -47,11 +49,54 @@ async fn main() -> Result<()> {
         "Parsed diff"
     );
 
-    // 5. Init terminal and run app
-    let mut terminal = ratatui::init();
-    let result = App::new(diff_data).run(&mut terminal);
+    // 5. Write PID file for external signal senders
+    signal::write_pid_file()?;
 
-    // 6. Always restore terminal
+    // 6. Set up async channel and app
+    let (tx, mut rx) = mpsc::channel::<Message>(32);
+    let mut app = App::new(diff_data);
+    app.event_tx = Some(tx.clone());
+
+    // 7. Spawn the async event loop (terminal events + SIGUSR1)
+    tokio::spawn(event::event_loop(tx.clone()));
+
+    // 8. Init terminal and enter main loop
+    let mut terminal = ratatui::init();
+
+    loop {
+        terminal.draw(|f| {
+            app.ui_state.viewport_height = f.area().height.saturating_sub(1);
+            app.view(f);
+        })?;
+
+        if let Some(msg) = rx.recv().await {
+            if let Some(cmd) = app.update(msg) {
+                match cmd {
+                    Command::SpawnDiffParse => {
+                        let tx2 = tx.clone();
+                        tokio::spawn(async move {
+                            let output = tokio::process::Command::new("git")
+                                .args(["diff", "HEAD", "-M"])
+                                .output()
+                                .await;
+                            if let Ok(output) = output {
+                                let raw = String::from_utf8_lossy(&output.stdout).to_string();
+                                let data = crate::diff::parse(&raw);
+                                let _ = tx2.send(Message::DiffParsed(data)).await;
+                            }
+                        });
+                    }
+                    Command::Quit => break,
+                }
+            }
+        } else {
+            break; // channel closed
+        }
+    }
+
+    // 9. Cleanup: remove PID file and restore terminal
+    signal::remove_pid_file();
     ratatui::restore();
-    result
+
+    Ok(())
 }
