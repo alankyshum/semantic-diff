@@ -64,7 +64,7 @@ Plans:
 
 Plans:
 - [x] 03-01-PLAN.md — Grouper module with Claude CLI integration, progressive enhancement state machine, cancellation, graceful degradation
-- [ ] 03-02-PLAN.md — File tree sidebar with tui-tree-widget, horizontal split layout, panel focus, group rendering
+- [x] 03-02-PLAN.md — File tree sidebar with tui-tree-widget, horizontal split layout, panel focus, group rendering
 
 ## Progress
 
@@ -75,4 +75,4 @@ Phases execute in numeric order: 1 -> 2 -> 3
 |-------|----------------|--------|-----------|
 | 1. Diff Viewer | 3/3 | Complete | 2026-03-13 |
 | 2. Hook Integration | 2/2 | Complete | 2026-03-13 |
-| 3. Semantic Grouping | 1/2 | In progress | - |
+| 3. Semantic Grouping | 2/2 | Execution complete | - |
