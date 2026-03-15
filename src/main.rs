@@ -22,8 +22,35 @@ async fn main() -> Result<()> {
         original_hook(info);
     }));
 
-    // 2. Init logging to file
-    let log_file = std::fs::File::create("/tmp/semantic-diff.log")?;
+    // 2. Init logging to file (secure directory, not world-writable /tmp/)
+    let log_path = signal::log_file_path();
+    // Ensure parent directory exists (write_pid_file also does this, but log init comes first)
+    if let Some(parent) = log_path.parent() {
+        if !parent.exists() {
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::DirBuilderExt;
+                let _ = std::fs::DirBuilder::new()
+                    .recursive(true)
+                    .mode(0o700)
+                    .create(parent);
+            }
+            #[cfg(not(unix))]
+            {
+                let _ = std::fs::create_dir_all(parent);
+            }
+        }
+    }
+    let log_file = {
+        let mut opts = std::fs::OpenOptions::new();
+        opts.create(true).write(true).truncate(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            opts.mode(0o600);
+        }
+        opts.open(&log_path)?
+    };
     tracing_subscriber::fmt()
         .with_env_filter("semantic_diff=debug")
         .with_writer(log_file)
