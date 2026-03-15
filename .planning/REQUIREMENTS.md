@@ -35,10 +35,10 @@ Requirements for security hardening and YC demo readiness.
 ### E2E Demo Testing
 
 - [x] **TEST-01**: Integration test for live diff rendering (launch with known diff, verify TUI output)
-- [ ] **TEST-02**: Integration test for SIGUSR1 refresh (send signal, verify diff updates)
+- [x] **TEST-02**: Integration test for SIGUSR1 refresh (send signal, verify diff updates)
 - [ ] **TEST-03**: Integration test for semantic grouping (mock LLM response, verify sidebar)
 - [x] **TEST-04**: Edge case test: empty repo (no changes), verify graceful "No changes detected"
-- [ ] **TEST-05**: Edge case test: large diff (>1000 files), verify no crash or OOM
+- [x] **TEST-05**: Edge case test: large diff (>1000 files), verify no crash or OOM
 - [x] **TEST-06**: Edge case test: binary files in diff, verify placeholder rendering
 - [ ] **TEST-07**: Edge case test: clauded unavailable, verify graceful degradation
 - [ ] **TEST-08**: Edge case test: malformed LLM JSON response, verify error handling
@@ -83,10 +83,10 @@ Requirements for security hardening and YC demo readiness.
 | PATH-02 | Phase 5 | Complete |
 | PATH-03 | Phase 5 | Complete |
 | TEST-01 | Phase 6 | Complete |
-| TEST-02 | Phase 6 | Pending |
+| TEST-02 | Phase 6 | Complete |
 | TEST-03 | Phase 6 | Pending |
 | TEST-04 | Phase 6 | Complete |
-| TEST-05 | Phase 6 | Pending |
+| TEST-05 | Phase 6 | Complete |
 | TEST-06 | Phase 6 | Complete |
 | TEST-07 | Phase 6 | Pending |
 | TEST-08 | Phase 6 | Pending |

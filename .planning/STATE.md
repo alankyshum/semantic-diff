@@ -64,6 +64,9 @@ Recent decisions affecting current work:
 - [06-01]: Used ratatui TestBackend buffer cell iteration for render verification
 - [06-01]: Used env!(CARGO_BIN_EXE_semantic-diff) for binary path in empty repo test
 - [06-01]: Leveraged existing lib.rs created by parallel agent (no duplicate creation)
+- [06-02]: Used kill CLI command instead of libc crate for SIGUSR1 delivery
+- [06-02]: Created src/lib.rs exposing all modules for integration test access
+- [06-02]: Accepted non-TTY terminal init failure as expected in test environment
 
 ### Pending Todos
 
@@ -76,5 +79,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-15
-Stopped at: Completed 06-01-PLAN.md (diff rendering integration tests)
+Stopped at: Completed 06-02-PLAN.md (SIGUSR1 signal and stress tests)
 Resume file: None
