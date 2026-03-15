@@ -17,13 +17,22 @@ pub fn parse(raw: &str) -> DiffData {
     let mut patch = unidiff::PatchSet::new();
     let _ = patch.parse(raw);
 
-    // 3. Convert to our types
+    // 3. Convert to our types, validating paths against traversal attacks
     let files = patch
         .files()
         .iter()
-        .map(|pf| {
-            let source = pf.source_file.clone();
-            let target = pf.target_file.clone();
+        .filter_map(|pf| {
+            let source = validate_diff_path(&pf.source_file).unwrap_or_default();
+            let target = validate_diff_path(&pf.target_file).unwrap_or_default();
+
+            // Skip files with invalid target paths (traversal, absolute, etc.)
+            if target.is_empty() {
+                return None;
+            }
+
+            // Best-effort symlink resolution (file may not exist on disk)
+            let target = resolve_if_symlink(&target);
+
             let is_rename = is_rename_file(&source, &target);
 
             let hunks = pf
@@ -69,14 +78,14 @@ pub fn parse(raw: &str) -> DiffData {
                 })
                 .collect();
 
-            DiffFile {
+            Some(DiffFile {
                 source_file: source,
                 target_file: target,
                 is_rename,
                 hunks,
                 added_count: pf.added(),
                 removed_count: pf.removed(),
-            }
+            })
         })
         .collect();
 
