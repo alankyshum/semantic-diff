@@ -8,7 +8,7 @@ progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 6
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # Project State
@@ -23,11 +23,11 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 ## Current Position
 
 Phase: 5 of 6 (Purple Team -- Hardening)
-Plan: 3 of 4 in current phase
-Status: Executing phase 5
-Last activity: 2026-03-15 -- Completed 05-02 (path traversal hardening)
+Plan: 4 of 4 in current phase
+Status: Phase 5 complete
+Last activity: 2026-03-15 -- Completed 05-04 (LLM response hardening)
 
-Progress: [██████████████------] 75%
+Progress: [████████████████████] 100%
 
 ## Performance Metrics
 
@@ -58,6 +58,9 @@ Recent decisions affecting current work:
 - [05-02]: validate_diff_path rejects .., absolute, and null-byte paths from diff output
 - [05-02]: config_path returns Option<PathBuf> instead of falling back to cwd
 - [05-02]: cache_path validates git-dir within repo root; cache load rejects >1MB files
+- [05-04]: AsyncReadExt::take() for 1MB bounded LLM stdout reads
+- [05-04]: Character-based truncation in llm.rs vs byte-based in mod.rs for different contexts
+- [05-04]: Cache group count validation uses soft limit (returns None) not hard error
 
 ### Pending Todos
 
@@ -70,5 +73,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-15
-Stopped at: Completed 05-02-PLAN.md (path traversal hardening)
+Stopped at: Completed 05-04-PLAN.md (LLM response hardening -- Phase 5 complete)
 Resume file: None

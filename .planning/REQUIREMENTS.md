@@ -21,10 +21,10 @@ Requirements for security hardening and YC demo readiness.
 
 ### LLM Output Trust
 
-- [ ] **LLM-01**: Bound serde deserialization of LLM JSON with size limits to prevent memory exhaustion
-- [ ] **LLM-02**: Validate all string fields from LLM output (label, description) have bounded lengths
-- [ ] **LLM-03**: Validate file paths in LLM grouping response don't contain path traversal (`../`)
-- [ ] **LLM-04**: Cache file reads validate JSON structure before full deserialization
+- [x] **LLM-01**: Bound serde deserialization of LLM JSON with size limits to prevent memory exhaustion
+- [x] **LLM-02**: Validate all string fields from LLM output (label, description) have bounded lengths
+- [x] **LLM-03**: Validate file paths in LLM grouping response don't contain path traversal (`../`)
+- [x] **LLM-04**: Cache file reads validate JSON structure before full deserialization
 
 ### File Path Safety
 
@@ -75,10 +75,10 @@ Requirements for security hardening and YC demo readiness.
 | SIG-01 | Phase 5 | Complete |
 | SIG-02 | Phase 5 | Complete |
 | SIG-03 | Phase 5 | Complete |
-| LLM-01 | Phase 5 | Pending |
-| LLM-02 | Phase 5 | Pending |
-| LLM-03 | Phase 5 | Pending |
-| LLM-04 | Phase 5 | Pending |
+| LLM-01 | Phase 5 | Complete |
+| LLM-02 | Phase 5 | Complete |
+| LLM-03 | Phase 5 | Complete |
+| LLM-04 | Phase 5 | Complete |
 | PATH-01 | Phase 5 | Complete |
 | PATH-02 | Phase 5 | Complete |
 | PATH-03 | Phase 5 | Complete |
