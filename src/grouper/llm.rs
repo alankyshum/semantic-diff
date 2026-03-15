@@ -201,6 +201,91 @@ mod tests {
         assert!(response.groups[0].changes()[0].hunks.is_empty());
     }
 
+    /// Verify invoke_claude uses Stdio::piped for stdin (structural test).
+    /// This reads the source file and checks that the invoke_claude function
+    /// uses stdin(Stdio::piped()) instead of passing prompt as CLI arg.
+    #[test]
+    fn test_invoke_claude_uses_stdin_pipe() {
+        let src = include_str!("llm.rs");
+        // Find the invoke_claude function body
+        let claude_start = src.find("async fn invoke_claude").expect("invoke_claude not found");
+        let claude_body = &src[claude_start..];
+        // Find the end of the function (next "async fn" or end of non-test code)
+        let end = claude_body[1..].find("\nasync fn").unwrap_or(claude_body.len());
+        let claude_fn = &claude_body[..end];
+
+        assert!(
+            claude_fn.contains("Stdio::piped()"),
+            "invoke_claude must use Stdio::piped() for stdin"
+        );
+        assert!(
+            claude_fn.contains("write_all"),
+            "invoke_claude must write prompt to stdin via write_all"
+        );
+        // Prompt should NOT appear in args
+        assert!(
+            !claude_fn.contains(".args([") || !claude_fn.contains("prompt"),
+            "invoke_claude must not pass prompt in .args()"
+        );
+    }
+
+    /// Verify invoke_copilot uses Stdio::piped for stdin (structural test).
+    #[test]
+    fn test_invoke_copilot_uses_stdin_pipe() {
+        let src = include_str!("llm.rs");
+        let copilot_start = src.find("async fn invoke_copilot").expect("invoke_copilot not found");
+        let copilot_body = &src[copilot_start..];
+        let end = copilot_body[1..].find("\n/// ").or_else(|| copilot_body[1..].find("\n#[cfg(test)]")).unwrap_or(copilot_body.len());
+        let copilot_fn = &copilot_body[..end];
+
+        assert!(
+            copilot_fn.contains("Stdio::piped()"),
+            "invoke_copilot must use Stdio::piped() for stdin"
+        );
+        assert!(
+            copilot_fn.contains("write_all"),
+            "invoke_copilot must write prompt to stdin via write_all"
+        );
+    }
+
+    /// Verify neither invoke function passes prompt string in .args()
+    #[test]
+    fn test_no_prompt_in_args() {
+        let src = include_str!("llm.rs");
+        // Check invoke_claude: the .args array should not contain "prompt"
+        let claude_start = src.find("async fn invoke_claude").expect("invoke_claude not found");
+        let claude_body = &src[claude_start..];
+        let end = claude_body[1..].find("\nasync fn").unwrap_or(claude_body.len());
+        let claude_fn = &claude_body[..end];
+
+        // Find the .args([...]) block and ensure "prompt" is not inside it
+        if let Some(args_start) = claude_fn.find(".args([") {
+            let args_section = &claude_fn[args_start..];
+            let args_end = args_section.find("])").expect("unclosed .args");
+            let args_content = &args_section[..args_end];
+            assert!(
+                !args_content.contains("prompt"),
+                "invoke_claude .args() must not contain prompt variable"
+            );
+        }
+
+        // Check invoke_copilot
+        let copilot_start = src.find("async fn invoke_copilot").expect("invoke_copilot not found");
+        let copilot_body = &src[copilot_start..];
+        let end2 = copilot_body[1..].find("\n/// ").or_else(|| copilot_body[1..].find("\n#[cfg(test)]")).unwrap_or(copilot_body.len());
+        let copilot_fn = &copilot_body[..end2];
+
+        if let Some(args_start) = copilot_fn.find(".args([") {
+            let args_section = &copilot_fn[args_start..];
+            let args_end = args_section.find("])").expect("unclosed .args");
+            let args_content = &args_section[..args_end];
+            assert!(
+                !args_content.contains("prompt"),
+                "invoke_copilot .args() must not contain prompt variable"
+            );
+        }
+    }
+
     #[test]
     fn test_parse_files_fallback() {
         // LLM returns old "files" format instead of "changes"
