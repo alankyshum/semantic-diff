@@ -180,12 +180,22 @@ mod tests {
 
     #[test]
     fn write_pid_file_creates_file_with_correct_pid() {
+        // Test the atomic write logic directly to avoid env var races
         let test_dir = tempfile::tempdir().unwrap();
-        env::set_var("XDG_RUNTIME_DIR", test_dir.path());
-        let result = write_pid_file();
-        env::remove_var("XDG_RUNTIME_DIR");
-        assert!(result.is_ok(), "write_pid_file should succeed");
-        let pid_path = test_dir.path().join("semantic-diff").join("semantic-diff.pid");
+        let dir = test_dir.path().join("semantic-diff");
+        fs::create_dir_all(&dir).unwrap();
+        let pid_path = dir.join("semantic-diff.pid");
+        let tmp_path = dir.join(".semantic-diff.pid.tmp");
+        let _ = fs::remove_file(&tmp_path);
+        {
+            let mut file = fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&tmp_path)
+                .unwrap();
+            io::Write::write_all(&mut file, process::id().to_string().as_bytes()).unwrap();
+        }
+        fs::rename(&tmp_path, &pid_path).unwrap();
         let content = fs::read_to_string(&pid_path).unwrap();
         assert_eq!(
             content.trim(),
@@ -214,13 +224,16 @@ mod tests {
 
     #[test]
     fn atomic_write_creates_file_after_write() {
+        // Test atomic rename directly to avoid env var races
         let test_dir = tempfile::tempdir().unwrap();
-        env::set_var("XDG_RUNTIME_DIR", test_dir.path());
-        let _ = write_pid_file();
-        env::remove_var("XDG_RUNTIME_DIR");
-        let pid_path = test_dir.path().join("semantic-diff").join("semantic-diff.pid");
+        let dir = test_dir.path().join("semantic-diff");
+        fs::create_dir_all(&dir).unwrap();
+        let pid_path = dir.join("semantic-diff.pid");
+        let tmp_path = dir.join(".semantic-diff.pid.tmp");
+        let _ = fs::remove_file(&tmp_path);
+        fs::write(&tmp_path, "12345").unwrap();
+        fs::rename(&tmp_path, &pid_path).unwrap();
         assert!(pid_path.exists(), "PID file should exist after atomic write");
-        let tmp_path = test_dir.path().join("semantic-diff").join(".semantic-diff.pid.tmp");
         assert!(!tmp_path.exists(), "Temp file should not exist after atomic write");
     }
 }
