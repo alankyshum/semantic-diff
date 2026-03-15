@@ -28,9 +28,9 @@ Requirements for security hardening and YC demo readiness.
 
 ### File Path Safety
 
-- [ ] **PATH-01**: Validate file paths from git diff output don't escape repository root (no `../` traversal)
-- [ ] **PATH-02**: Resolve symlinks before processing diff files to prevent symlink-following attacks
-- [ ] **PATH-03**: Config file path (`~/.config/semantic-diff.json`) uses safe path construction
+- [x] **PATH-01**: Validate file paths from git diff output don't escape repository root (no `../` traversal)
+- [x] **PATH-02**: Resolve symlinks before processing diff files to prevent symlink-following attacks
+- [x] **PATH-03**: Config file path (`~/.config/semantic-diff.json`) uses safe path construction
 
 ### E2E Demo Testing
 
@@ -79,9 +79,9 @@ Requirements for security hardening and YC demo readiness.
 | LLM-02 | Phase 5 | Pending |
 | LLM-03 | Phase 5 | Pending |
 | LLM-04 | Phase 5 | Pending |
-| PATH-01 | Phase 5 | Pending |
-| PATH-02 | Phase 5 | Pending |
-| PATH-03 | Phase 5 | Pending |
+| PATH-01 | Phase 5 | Complete |
+| PATH-02 | Phase 5 | Complete |
+| PATH-03 | Phase 5 | Complete |
 | TEST-01 | Phase 6 | Pending |
 | TEST-02 | Phase 6 | Pending |
 | TEST-03 | Phase 6 | Pending |

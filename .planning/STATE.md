@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 Phase: 5 of 6 (Purple Team -- Hardening)
 Plan: 3 of 4 in current phase
 Status: Executing phase 5
-Last activity: 2026-03-15 -- Completed 05-03 (stdin-piped LLM invocation)
+Last activity: 2026-03-15 -- Completed 05-02 (path traversal hardening)
 
 Progress: [██████████████------] 75%
 
@@ -55,6 +55,9 @@ Recent decisions affecting current work:
 - [Phase 05-01]: Used XDG_RUNTIME_DIR with fallback to ~/.local/state/semantic-diff/ for PID and log files
 - [Phase 05-01]: Atomic PID write via temp+rename with create_new to prevent symlink following
 - [Phase 05-01]: PID ownership validated via ps (macOS) and /proc/pid/comm (Linux)
+- [05-02]: validate_diff_path rejects .., absolute, and null-byte paths from diff output
+- [05-02]: config_path returns Option<PathBuf> instead of falling back to cwd
+- [05-02]: cache_path validates git-dir within repo root; cache load rejects >1MB files
 
 ### Pending Todos
 
@@ -67,5 +70,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-15
-Stopped at: Completed 05-03-PLAN.md (stdin-piped LLM invocation)
+Stopped at: Completed 05-02-PLAN.md (path traversal hardening)
 Resume file: None
