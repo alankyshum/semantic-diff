@@ -190,8 +190,152 @@ fn extract_binary_path(line: &str) -> Option<String> {
     if parts.len() == 2 {
         // Use the target (b/) path, stripping the prefix
         let target = parts[1].trim_start_matches("b/");
-        Some(target.to_string())
+        // Validate the extracted path against traversal attacks
+        validate_diff_path(target)
     } else {
         None
+    }
+}
+
+/// Validate a file path from diff output. Rejects traversal and absolute paths.
+fn validate_diff_path(path: &str) -> Option<String> {
+    // Strip a/ or b/ prefix if present (unidiff convention)
+    let path = path.trim_start_matches("a/").trim_start_matches("b/");
+    // Reject absolute paths
+    if path.starts_with('/') {
+        tracing::warn!("Rejected absolute path from diff: {}", path);
+        return None;
+    }
+    // Reject path traversal (.. components)
+    if path.split('/').any(|component| component == "..") {
+        tracing::warn!("Rejected traversal path from diff: {}", path);
+        return None;
+    }
+    // Reject paths containing null bytes
+    if path.contains('\0') {
+        tracing::warn!("Rejected path with null byte from diff");
+        return None;
+    }
+    Some(path.to_string())
+}
+
+/// Resolve symlinks in a path, validating the resolved path stays within the repo.
+/// Best-effort: returns original path if file doesn't exist or isn't a symlink.
+fn resolve_if_symlink(path: &str) -> String {
+    let p = std::path::Path::new(path);
+    // Check if it's a symlink
+    match std::fs::symlink_metadata(p) {
+        Ok(meta) if meta.file_type().is_symlink() => {
+            match std::fs::canonicalize(p) {
+                Ok(resolved) => {
+                    // Validate resolved path is within cwd
+                    if let Ok(cwd) = std::env::current_dir() {
+                        let canonical_cwd = std::fs::canonicalize(&cwd).unwrap_or(cwd);
+                        if resolved.starts_with(&canonical_cwd) {
+                            resolved.to_string_lossy().to_string()
+                        } else {
+                            tracing::warn!(
+                                "Symlink {} resolves outside repo root to {}, using original path",
+                                path,
+                                resolved.display()
+                            );
+                            path.to_string()
+                        }
+                    } else {
+                        path.to_string()
+                    }
+                }
+                Err(_) => path.to_string(),
+            }
+        }
+        _ => path.to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_validate_diff_path_normal() {
+        assert_eq!(
+            validate_diff_path("src/main.rs"),
+            Some("src/main.rs".to_string())
+        );
+    }
+
+    #[test]
+    fn test_validate_diff_path_traversal_rejected() {
+        assert_eq!(validate_diff_path("../../../etc/passwd"), None);
+    }
+
+    #[test]
+    fn test_validate_diff_path_embedded_traversal_rejected() {
+        assert_eq!(validate_diff_path("src/../lib.rs"), None);
+    }
+
+    #[test]
+    fn test_validate_diff_path_absolute_rejected() {
+        assert_eq!(validate_diff_path("/etc/passwd"), None);
+    }
+
+    #[test]
+    fn test_validate_diff_path_normal_nested() {
+        assert_eq!(
+            validate_diff_path("normal/path/file.rs"),
+            Some("normal/path/file.rs".to_string())
+        );
+    }
+
+    #[test]
+    fn test_validate_diff_path_strips_prefix() {
+        assert_eq!(
+            validate_diff_path("b/src/main.rs"),
+            Some("src/main.rs".to_string())
+        );
+        assert_eq!(
+            validate_diff_path("a/src/main.rs"),
+            Some("src/main.rs".to_string())
+        );
+    }
+
+    #[test]
+    fn test_validate_diff_path_null_byte_rejected() {
+        assert_eq!(validate_diff_path("src/\0evil.rs"), None);
+    }
+
+    #[test]
+    fn test_extract_binary_path_with_traversal_returns_none() {
+        let line = "Binary files a/normal.png and b/../../../etc/shadow differ";
+        assert_eq!(extract_binary_path(line), None);
+    }
+
+    #[test]
+    fn test_extract_binary_path_valid() {
+        let line = "Binary files a/icon.png and b/icon.png differ";
+        assert_eq!(extract_binary_path(line), Some("icon.png".to_string()));
+    }
+
+    #[test]
+    fn test_parse_with_traversal_path_skipped() {
+        // Craft a minimal diff with traversal in the filename
+        let raw = "diff --git a/../../../etc/passwd b/../../../etc/passwd\n\
+                   --- a/../../../etc/passwd\n\
+                   +++ b/../../../etc/passwd\n\
+                   @@ -0,0 +1 @@\n\
+                   +malicious content\n";
+        let result = parse(raw);
+        // The traversal path should be filtered out
+        assert!(
+            result.files.iter().all(|f| !f.target_file.contains("..")),
+            "Traversal paths should be rejected"
+        );
+    }
+
+    #[test]
+    fn test_resolve_if_symlink_nonexistent() {
+        // Non-existent file should return original path
+        let result = resolve_if_symlink("nonexistent/path/file.rs");
+        assert_eq!(result, "nonexistent/path/file.rs");
     }
 }
