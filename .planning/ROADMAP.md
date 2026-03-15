@@ -68,7 +68,11 @@ Plans:
   2. An integration test sends SIGUSR1 and verifies the diff view updates without crashing or losing scroll state
   3. An integration test with a mock LLM response verifies semantic grouping appears in the sidebar with correct file assignments
   4. Edge case tests pass for: empty repo (graceful message), large diff (no OOM), binary files (placeholder), clauded unavailable (degradation), malformed LLM JSON (error handled)
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 06-01-PLAN.md -- Diff rendering, empty repo, and binary file integration tests (TEST-01, TEST-04, TEST-06)
+- [ ] 06-02-PLAN.md -- SIGUSR1 signal handling and large diff stress tests (TEST-02, TEST-05)
+- [ ] 06-03-PLAN.md -- LLM grouping, unavailability, and malformed JSON tests (TEST-03, TEST-07, TEST-08)
 
 ## Progress
 
@@ -79,4 +83,4 @@ Plans:
 | 3. Semantic Grouping | v1.0 | 2/2 | Complete | 2026-03-15 |
 | 4. Red Team Audit | v1.1 | 0/2 | Planned | - |
 | 5. Purple Team Hardening | v1.1 | 0/4 | Planned | - |
-| 6. Blue Team E2E Testing | v1.1 | 0/? | Not started | - |
+| 6. Blue Team E2E Testing | v1.1 | 0/3 | Not started | - |
