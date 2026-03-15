@@ -27,7 +27,8 @@ pub async fn request_grouping_with_timeout(
 
 /// Invoke the LLM backend to group hunks by semantic intent.
 ///
-/// Uses `tokio::process::Command::output()` so that aborting the JoinHandle
+/// Prompts are piped via stdin to prevent process table exposure of code diffs.
+/// Uses `tokio::process::Command::spawn()` so that aborting the JoinHandle
 /// drops the Child, which sends SIGKILL (critical for ROB-05 cancellation).
 pub async fn request_grouping(
     backend: LlmBackend,
@@ -91,11 +92,16 @@ pub async fn request_grouping(
 }
 
 /// Invoke the `claude` CLI and return the LLM response text.
+///
+/// Pipes the prompt via stdin to avoid exposing code diffs in the process table.
+/// The `-p` flag without an argument causes claude to read from stdin.
 async fn invoke_claude(prompt: &str, model: &str) -> anyhow::Result<String> {
-    let output = Command::new("claude")
+    use std::process::Stdio;
+    use tokio::io::AsyncWriteExt;
+
+    let mut child = Command::new("claude")
         .args([
             "-p",
-            prompt,
             "--output-format",
             "json",
             "--model",
@@ -103,11 +109,22 @@ async fn invoke_claude(prompt: &str, model: &str) -> anyhow::Result<String> {
             "--max-turns",
             "1",
         ])
-        .output()
-        .await?;
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
+
+    // Write prompt to stdin, then close it
+    if let Some(mut stdin) = child.stdin.take() {
+        stdin.write_all(prompt.as_bytes()).await?;
+        // stdin is dropped here, closing the pipe
+    }
+
+    let output = child.wait_with_output().await?;
 
     if !output.status.success() {
-        anyhow::bail!("claude exited with status {}", output.status);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        anyhow::bail!("claude exited with status {}: {}", output.status, stderr);
     }
 
     let stdout = String::from_utf8(output.stdout)?;
@@ -120,14 +137,30 @@ async fn invoke_claude(prompt: &str, model: &str) -> anyhow::Result<String> {
 }
 
 /// Invoke `copilot --yolo` and return the LLM response text.
+///
+/// Pipes the prompt via stdin to avoid exposing code diffs in the process table.
+/// Without a positional prompt argument, copilot reads from stdin.
 async fn invoke_copilot(prompt: &str, model: &str) -> anyhow::Result<String> {
-    let output = Command::new("copilot")
-        .args(["--yolo", "--model", model, prompt])
-        .output()
-        .await?;
+    use std::process::Stdio;
+    use tokio::io::AsyncWriteExt;
+
+    let mut child = Command::new("copilot")
+        .args(["--yolo", "--model", model])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
+
+    // Write prompt to stdin, then close it
+    if let Some(mut stdin) = child.stdin.take() {
+        stdin.write_all(prompt.as_bytes()).await?;
+    }
+
+    let output = child.wait_with_output().await?;
 
     if !output.status.success() {
-        anyhow::bail!("copilot exited with status {}", output.status);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        anyhow::bail!("copilot exited with status {}: {}", output.status, stderr);
     }
 
     Ok(String::from_utf8(output.stdout)?)
@@ -222,11 +255,16 @@ mod tests {
             claude_fn.contains("write_all"),
             "invoke_claude must write prompt to stdin via write_all"
         );
-        // Prompt should NOT appear in args
-        assert!(
-            !claude_fn.contains(".args([") || !claude_fn.contains("prompt"),
-            "invoke_claude must not pass prompt in .args()"
-        );
+        // Prompt should NOT appear inside the .args([...]) array
+        if let Some(args_start) = claude_fn.find(".args([") {
+            let args_section = &claude_fn[args_start..];
+            let args_end = args_section.find("])").expect("unclosed .args");
+            let args_content = &args_section[..args_end];
+            assert!(
+                !args_content.contains("prompt"),
+                "invoke_claude must not pass prompt in .args()"
+            );
+        }
     }
 
     /// Verify invoke_copilot uses Stdio::piped for stdin (structural test).
