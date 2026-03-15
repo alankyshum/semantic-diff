@@ -72,13 +72,7 @@ Watch the workflow:
 cd /Users/kshum/Documents/gitproj/semantic-diff && gh run list --limit 1
 ```
 
-### 8. Switch back to default account
-
-```bash
-gh auth switch --user kshum_LinkedIn
-```
-
-### 9. Report
+### 8. Report
 
 Print summary with links:
 - crates.io: https://crates.io/crates/semantic-diff
