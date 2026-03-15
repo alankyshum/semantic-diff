@@ -6,7 +6,7 @@ Groups your git changes by *meaning* — not just by file path. Designed to run 
 
 ## Demo
 
-https://github.com/user-attachments/assets/semantic-diff-demo.mp4
+https://github.com/alankyshum/semantic-diff/releases/download/v0.2.0/2026-03-14.20.02.43.mp4
 
 ## Features
 
