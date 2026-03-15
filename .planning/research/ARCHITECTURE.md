@@ -1,453 +1,447 @@
-# Architecture Research
+# Architecture Research: Security Hardening for Rust TUI
 
-**Domain:** Rust TUI diff viewer with async LLM integration
-**Researched:** 2026-03-13
-**Confidence:** HIGH
+**Domain:** Security hardening of a Rust TUI app that shells out to external commands
+**Researched:** 2026-03-15
+**Confidence:** HIGH (based on direct source code analysis + established Rust/Unix security patterns)
 
-## Standard Architecture
-
-### System Overview
+## Current Architecture with Security Boundaries
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                      External Triggers                          │
-│  ┌──────────────────┐  ┌──────────────────┐                     │
-│  │ PostToolUse Hook │  │ Keyboard/Terminal │                     │
-│  │ (SIGUSR1 signal) │  │ (crossterm events)│                     │
-│  └────────┬─────────┘  └────────┬─────────┘                     │
-│           │                     │                               │
-├───────────┴─────────────────────┴───────────────────────────────┤
-│                      Event Router (tokio::select!)              │
-│  Multiplexes: signals, terminal input, async task results       │
-│  Produces: unified Message enum for the update loop             │
-├─────────────────────────────────────────────────────────────────┤
-│                      Application Core (TEA)                     │
-│  ┌──────────┐  ┌──────────┐  ┌──────────────┐                   │
-│  │  Model   │  │  Update  │  │     View     │                   │
-│  │ (state)  │←─│ (reduce) │  │ (render TUI) │                   │
-│  └──────────┘  └──────────┘  └──────────────┘                   │
-├─────────────────────────────────────────────────────────────────┤
-│                      Domain Services                            │
-│  ┌──────────────┐  ┌──────────────┐  ┌────────────────┐         │
-│  │ Diff Parser   │  │ LLM Grouper  │  │ Syntax Highlighter│      │
-│  │ (git diff)    │  │ (clauded)    │  │ (tree-sitter)     │      │
-│  └──────────────┘  └──────────────┘  └────────────────┘         │
-├─────────────────────────────────────────────────────────────────┤
-│                      UI Components                              │
-│  ┌────────────┐  ┌────────────┐  ┌────────────┐                 │
-│  │ File Tree  │  │ Diff View  │  │ Summary Bar│                 │
-│  │ Sidebar    │  │ (hunks)    │  │ (header)   │                 │
-│  └────────────┘  └────────────┘  └────────────┘                 │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                     EXTERNAL INPUTS (UNTRUSTED)                      │
+│  ┌──────────┐  ┌──────────────┐  ┌─────────────┐  ┌─────────────┐  │
+│  │ SIGUSR1  │  │ git diff     │  │ Claude CLI  │  │ Hook script │  │
+│  │ (any     │  │ stdout       │  │ JSON output │  │ (shell exec)│  │
+│  │  process)│  │ (repo data)  │  │ (LLM text)  │  │             │  │
+│  └────┬─────┘  └──────┬───────┘  └──────┬──────┘  └──────┬──────┘  │
+│ ------│----------------│-----------------│----------------│-------- │
+│       │       TRUST BOUNDARY 1: OS -> App                 │         │
+│ ------│----------------│-----------------│----------------│-------- │
+│                     APPLICATION LAYER                                │
+│  ┌──────────┐  ┌──────────────┐  ┌─────────────┐                    │
+│  │ event.rs │  │ diff/parser  │  │ grouper/llm │                    │
+│  │ (signal  │  │ (parses raw  │  │ (shells out, │                    │
+│  │  router) │  │  diff text)  │  │  parses JSON)│                    │
+│  └────┬─────┘  └──────┬───────┘  └──────┬──────┘                    │
+│       │               │                 │                            │
+│ ------│---------------│-----------------│-------------------------- │
+│       │      TRUST BOUNDARY 2: Parsed -> Validated                   │
+│ ------│---------------│-----------------│-------------------------- │
+│       │               │                 │                            │
+│       └───────────────┼─────────────────┘                            │
+│                       v                                              │
+│              ┌─────────────────┐                                     │
+│              │     app.rs      │                                     │
+│              │  (TEA Model:    │                                     │
+│              │   TRUSTED state)│                                     │
+│              └────────┬────────┘                                     │
+│                       v                                              │
+│              ┌─────────────────┐                                     │
+│              │     ui.rs       │                                     │
+│              │  (ratatui view) │                                     │
+│              └─────────────────┘                                     │
+├─────────────────────────────────────────────────────────────────────┤
+│                     FILESYSTEM / OS LAYER                            │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐       │
+│  │ /tmp/*.pid   │  │ .git/cache   │  │ ~/.config/semantic-  │       │
+│  │ /tmp/*.log   │  │  .json       │  │   diff.json          │       │
+│  └──────────────┘  └──────────────┘  └──────────────────────┘       │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Component Responsibilities
+### Four Trust Boundaries
 
-| Component | Responsibility | Typical Implementation |
-|-----------|----------------|------------------------|
-| Event Router | Multiplex terminal events, OS signals, and async task completions into a single Message stream | `tokio::select!` loop in a dedicated task, sends Messages via `mpsc` channel |
-| Model | Hold all application state: parsed diff, semantic groups, UI state (focus, scroll, collapse) | Single `App` struct with nested domain structs |
-| Update | Pure-ish function mapping (Model, Message) to new Model state, may spawn async side-effects | `fn update(&mut self, msg: Message) -> Option<Command>` |
-| View | Render Model to terminal frame using ratatui widgets | `fn view(model: &Model, frame: &mut Frame)` |
-| Diff Parser | Parse unified diff format into structured hunk/file data | Sync function, runs on `git diff HEAD` output |
-| LLM Grouper | Async call to `clauded` to cluster changed files by semantic intent | Spawned tokio task, result arrives as Message |
-| Syntax Highlighter | Apply syntax coloring to diff content | `syntect` or `tree-sitter-highlight` crate |
-| File Tree Sidebar | Display files organized by semantic group, handle collapse/expand | Ratatui `List` or custom `StatefulWidget` |
-| Diff View | Render inline unified diff with hunk collapse/expand and line highlighting | Custom `StatefulWidget` with scroll state |
-| Summary Bar | Show totals: files changed, insertions, deletions, grouping status | Ratatui `Paragraph` in header area |
+| Boundary | Crosses At | Threat | Current Defense |
+|----------|-----------|--------|-----------------|
+| 1. External Process Output -> App | `diff/parser.rs`, `grouper/llm.rs` | Malformed data, injection | `unidiff` crate for diff; serde + `known_files` filter for LLM |
+| 2. OS Signals -> App | `event.rs` | Any local process can trigger refresh | 500ms debounce only |
+| 3. Filesystem -> App | `cache.rs`, `config.rs`, `signal.rs` | Symlink attacks, cache poisoning, TOCTOU | None |
+| 4. App -> Shell Commands | `main.rs`, `grouper/llm.rs`, `cache.rs` | Command injection | `Command::new().args()` -- already safe (no shell) |
 
-## Recommended Project Structure
+**Key finding:** Boundary 4 (command execution) is already secure. The codebase uses `std::process::Command` with array args everywhere, which never invokes a shell. The real risks are at boundaries 1, 2, and 3.
+
+## Component Security Assessment
+
+### Components That Need Hardening (Code Changes)
+
+| Component | File | Issue | Severity | Specific Fix |
+|-----------|------|-------|----------|--------------|
+| LLM output validation | `grouper/llm.rs` | Hunk indices from LLM not bounds-checked | MEDIUM | Clamp hunk indices against actual hunk count per file |
+| LLM output validation | `grouper/llm.rs` | `extract_json()` uses naive first-`{`-to-last-`}` -- could match across unrelated braces | LOW | Parse with `serde_json::from_str` directly; if that fails, strip markdown fences then retry |
+| LLM output validation | `grouper/mod.rs` | `label` and `description` from LLM have no length limits | LOW | Truncate to reasonable bounds (100 chars label, 500 chars description) |
+| PID file management | `signal.rs` | World-writable `/tmp/semantic-diff.pid` -- symlink attack vector | MEDIUM | Use `$XDG_RUNTIME_DIR` or per-UID subdirectory with `0700` permissions |
+| PID file management | `signal.rs` | No stale PID detection -- overwrites without checking if PID belongs to another semantic-diff | LOW | Read existing PID, verify process name before overwriting |
+| Log file location | `main.rs:27` | `/tmp/semantic-diff.log` is predictable, world-writable | LOW | Move to `$XDG_RUNTIME_DIR` or add PID suffix |
+| Cache path | `cache.rs:107` | `git rev-parse --git-dir` output not validated | LOW | Verify returned path is a real directory, not a symlink outside expected locations |
+| Hook script | `.claude/hooks/refresh-semantic-diff.sh` | `PID=$(cat "$PIDFILE")` then `kill -USR1 "$PID"` -- classic TOCTOU | MEDIUM | Validate PID is numeric; verify process name matches `semantic-diff` before kill |
+| Hunk summaries | `grouper/mod.rs:144` | `truncate()` slices on byte index -- panics on multi-byte UTF-8 at boundary | LOW | Use `s.chars().take(max)` or `s.char_indices()` for safe truncation |
+| Diff content in prompt | `grouper/mod.rs` | Raw diff content included in LLM prompt enables prompt injection | MEDIUM | Not fixable without breaking functionality; document as accepted risk |
+
+### Components That Need Testing Only (No Code Changes)
+
+| Component | File | What to Test | Test Type |
+|-----------|------|--------------|-----------|
+| Diff parser | `diff/parser.rs` | Malformed input: truncated diffs, binary garbage, huge files, adversarial filenames | Fuzz + unit |
+| Diff parser | `diff/parser.rs` | Files with terminal escape sequences in names | Unit |
+| Event loop | `event.rs` | SIGUSR1 flood (100 signals in 1 second) | Integration |
+| TEA update | `app.rs` | GroupingComplete with references to non-existent files/hunks | Unit |
+| TEA update | `app.rs` | DiffParsed with empty data, then immediate DiffParsed with real data | Unit |
+| Cache | `cache.rs` | Corrupt JSON cache file, hash collision, missing `.git` dir | Unit |
+| Config | `config.rs` | Malformed JSONC, missing file, permission denied | Unit |
+| UI rendering | `ui.rs` | File paths containing ANSI escape codes | Integration with TestBackend |
+
+### Components Already Secure (No Work Needed)
+
+| Component | Why |
+|-----------|-----|
+| `Command::new("git").args(...)` in main.rs | No shell interpolation; args are fixed strings |
+| `Command::new("claude").args(...)` in llm.rs | Prompt passed as single arg, not shell-interpolated |
+| `Command::new("copilot").args(...)` in llm.rs | Same safe pattern |
+| 500ms debounce on RefreshSignal | Prevents signal flooding from causing resource exhaustion |
+| `tokio::time::timeout(60s)` on LLM calls | Prevents hung LLM processes from blocking indefinitely |
+| `handle.abort()` for in-flight cancellation (ROB-05) | Drops the child process, preventing zombie accumulation |
+
+## Data Flow with Trust Annotations
+
+### Flow 1: Diff Parsing (MEDIUM risk -- needs fuzz testing)
 
 ```
-src/
-├── main.rs             # Entry point: terminal init, run event loop, cleanup
-├── app.rs              # App struct (Model), update logic, Message enum
-├── event.rs            # Event router: tokio::select! over signals, terminal, channels
-├── ui/                 # View layer
-│   ├── mod.rs          # Top-level layout (sidebar + diff + header)
-│   ├── file_tree.rs    # File tree sidebar widget
-│   ├── diff_view.rs    # Diff hunk rendering widget
-│   └── summary.rs      # Summary header widget
-├── diff/               # Domain: diff parsing
-│   ├── mod.rs          # Public types: DiffFile, Hunk, Line
-│   └── parser.rs       # Parse unified diff text into structs
-├── grouper/            # Domain: semantic grouping
-│   ├── mod.rs          # SemanticGroup type, grouping state machine
-│   └── llm.rs          # clauded CLI invocation, prompt construction, JSON parse
-├── highlight.rs        # Syntax highlighting for diff content
-└── signal.rs           # Unix signal handler (SIGUSR1 for hook refresh)
+[git diff HEAD -M]
+    |
+    | stdout bytes (UNTRUSTED: git processes repo content,
+    |               including adversarial file names, binary data)
+    v
+[String::from_utf8_lossy]  -- SAFE: replaces invalid UTF-8
+    |
+    v
+[unidiff::PatchSet::parse]  -- MEDIUM TRUST: third-party crate
+    |                          Risk: panics on malformed input?
+    v
+[DiffData]  -- file paths still contain raw git output
+    |          Risk: paths like "../../etc/passwd" or ANSI escapes
+    v
+[App state]  -- TRUSTED within app boundaries
+    |
+    v
+[ui.rs rendering via ratatui]  -- ratatui sanitizes terminal output
 ```
 
-### Structure Rationale
+**Verdict:** The main risk is `unidiff` panicking on adversarial input. Fuzz testing will surface this. File path sanitization is not needed because git controls the paths and ratatui handles terminal escapes.
 
-- **`app.rs`:** Single file for the Model/Update core keeps state transitions traceable. This is the "brain" -- anyone reading the codebase starts here.
-- **`event.rs`:** Isolates the async multiplexing complexity. The rest of the app only sees `Message` values.
-- **`ui/`:** Separated from logic. Each widget file owns its own rendering and scroll/focus state. The `mod.rs` composes layout.
-- **`diff/`:** Pure data transformation, no async, no UI. Easily testable with fixture files.
-- **`grouper/`:** Encapsulates all LLM interaction. If `clauded` CLI changes, only this module changes.
-- **`signal.rs`:** Thin wrapper around `tokio::signal::unix`. Separated because signal handling has platform-specific concerns.
+### Flow 2: LLM Grouping (HIGH risk -- needs hardening)
 
-## Architectural Patterns
+```
+[DiffData.files + hunk content]
+    |
+    v
+[hunk_summaries()]
+    | Builds prompt with raw diff content (PROMPT INJECTION risk)
+    | Truncated to 8000 chars (partial mitigation)
+    v
+[Command::new("claude").args(["-p", prompt, ...])]
+    | Safe: no shell interpolation
+    | Risk: prompt injection changes LLM behavior
+    v
+[stdout from claude CLI]  (UNTRUSTED: LLM can return anything)
+    |
+    v
+[extract_json()]  -- WEAK: naive { to } extraction
+    |                Could match braces from markdown prose
+    v
+[serde_json::from_str::<GroupingResponse>]  -- MEDIUM: schema enforced
+    |   but no bounds on string lengths or array sizes
+    v
+[known_files filter]  -- GOOD: rejects unknown file paths
+    |   MISSING: no hunk index bounds check
+    v
+[App.semantic_groups]  -- PARTIALLY VALIDATED
+```
 
-### Pattern 1: The Elm Architecture (TEA) as Application Skeleton
+**Hardening needed:**
+1. Replace `extract_json()` with stricter approach: try direct parse, then strip code fences with regex, then fail
+2. Add hunk index validation: `c.hunks.iter().filter(|&h| h < file_hunk_count)`
+3. Add string length caps on `label` and `description`
+4. Fix `truncate()` in `grouper/mod.rs` for UTF-8 safety
 
-**What:** Model-View-Update pattern where all state lives in one `App` struct, all mutations go through a `Message` enum, and rendering is a pure function of state.
+### Flow 3: Signal Refresh (LOW risk -- PID file is the issue)
 
-**When to use:** This is the primary architecture for the entire application. Use it from day one.
+```
+[Hook script reads /tmp/semantic-diff.pid]  (TOCTOU window)
+    |
+    | kill -USR1 $PID
+    v
+[tokio signal handler in event.rs]
+    |
+    v
+[Message::RefreshSignal]
+    |
+    v
+[500ms debounce]  -- rate limits signal storms (GOOD)
+    |
+    v
+[Command::new("git").args(["diff", "HEAD", "-M"])]  -- safe
+```
 
-**Trade-offs:** Slightly more boilerplate than ad-hoc mutation, but dramatically easier to reason about state transitions, especially when async results arrive at unpredictable times.
+**Risk:** The PID file is the weak link, not the signal handler. An attacker who can write to `/tmp/` could redirect signals to another process. Practical risk is low (requires local access), but the fix is straightforward.
 
-**Example:**
+## Architectural Patterns for Hardening
+
+### Pattern 1: Input Validation at Trust Boundaries
+
+**What:** Every function that accepts data from outside the application validates it before passing it inward. Validation happens once, at the boundary, not scattered throughout.
+
+**Where to apply:**
+- `grouper/llm.rs::request_grouping()` -- validate LLM output (partially done)
+- `diff/parser.rs::parse()` -- add input size limit check
+- `cache.rs::load()` -- validate cache JSON structure
+
+**Example (strengthening LLM validation):**
 ```rust
-enum Message {
-    // Terminal input
-    KeyPress(KeyEvent),
-    Resize(u16, u16),
-
-    // External triggers
-    RefreshSignal,              // SIGUSR1 from hook
-
-    // Async results
-    DiffParsed(Vec<DiffFile>),
-    GroupingComplete(Vec<SemanticGroup>),
-    GroupingFailed(String),
-
-    // UI actions
-    ToggleCollapse(NodeId),
-    ScrollUp,
-    ScrollDown,
-    FocusNext,
-    FocusPrev,
-    Quit,
+fn validate_llm_groups(
+    response: GroupingResponse,
+    known_files: &HashSet<&str>,
+    hunk_counts: &HashMap<&str, usize>,
+) -> Vec<SemanticGroup> {
+    response.groups.into_iter()
+        .take(20) // Cap number of groups
+        .map(|group| {
+            let label = safe_truncate(&group.label, 100);
+            let description = safe_truncate(&group.description, 500);
+            let valid_changes: Vec<GroupedChange> = group.changes().into_iter()
+                .filter(|c| known_files.contains(c.file.as_str()))
+                .map(|c| {
+                    let max_hunk = hunk_counts.get(c.file.as_str()).copied().unwrap_or(0);
+                    GroupedChange {
+                        file: c.file,
+                        hunks: c.hunks.into_iter().filter(|&h| h < max_hunk).collect(),
+                    }
+                })
+                .collect();
+            SemanticGroup::new(label, description, valid_changes)
+        })
+        .filter(|g| !g.changes().is_empty())
+        .collect()
 }
 
-struct App {
-    diff_files: Vec<DiffFile>,
-    semantic_groups: Option<Vec<SemanticGroup>>,
-    grouping_status: GroupingStatus,  // Pending | Loading | Done | Error
-    ui_state: UiState,               // focus, scroll, collapse map
-    should_quit: bool,
+/// Truncate a string safely at a char boundary.
+fn safe_truncate(s: &str, max_chars: usize) -> String {
+    s.chars().take(max_chars).collect()
 }
+```
 
-impl App {
-    fn update(&mut self, msg: Message) -> Option<Command> {
-        match msg {
-            Message::RefreshSignal => {
-                // Re-run git diff and re-request grouping
-                Some(Command::SpawnDiffParse)
-            }
-            Message::DiffParsed(files) => {
-                self.diff_files = files;
-                self.grouping_status = GroupingStatus::Loading;
-                Some(Command::SpawnGrouping(self.diff_files.clone()))
-            }
-            Message::GroupingComplete(groups) => {
-                self.semantic_groups = Some(groups);
-                self.grouping_status = GroupingStatus::Done;
-                None
-            }
-            Message::ToggleCollapse(id) => {
-                self.ui_state.toggle_collapse(id);
-                None
-            }
-            // ... other arms
+### Pattern 2: Safe PID File Management
+
+**What:** Replace naive `/tmp/` PID file with per-user directory and atomic operations.
+
+**Where to apply:** `signal.rs`, hook script
+
+```rust
+use std::path::PathBuf;
+
+fn pid_file_path() -> PathBuf {
+    // Prefer XDG_RUNTIME_DIR (per-user tmpfs, correct permissions on Linux)
+    if let Ok(runtime_dir) = std::env::var("XDG_RUNTIME_DIR") {
+        return PathBuf::from(runtime_dir).join("semantic-diff.pid");
+    }
+
+    // Fallback: /tmp/semantic-diff-<uid>/semantic-diff.pid
+    #[cfg(unix)]
+    {
+        let uid = unsafe { libc::getuid() };
+        let dir = PathBuf::from(format!("/tmp/semantic-diff-{}", uid));
+        if !dir.exists() {
+            let _ = std::fs::create_dir(&dir);
+            use std::os::unix::fs::PermissionsExt;
+            let _ = std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700));
         }
+        return dir.join("semantic-diff.pid");
+    }
+
+    #[cfg(not(unix))]
+    PathBuf::from("/tmp/semantic-diff.pid")
+}
+```
+
+**Trade-off:** Hook script must use the same path logic. Export PID path to a shared constant or env var.
+
+### Pattern 3: Fuzz Testing as Parser Hardening
+
+**What:** Use `cargo-fuzz` with `libFuzzer` to exercise all parsers with arbitrary input.
+
+**Where to apply:** `diff/parser.rs::parse()`, `grouper/llm.rs::extract_json()`
+
+```toml
+# fuzz/Cargo.toml
+[package]
+name = "semantic-diff-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[dependencies]
+libfuzzer-sys = "0.4"
+semantic-diff = { path = ".." }
+```
+
+```rust
+// fuzz/fuzz_targets/diff_parse.rs
+#![no_main]
+use libfuzzer_sys::fuzz_target;
+
+fuzz_target!(|data: &[u8]| {
+    if let Ok(s) = std::str::from_utf8(data) {
+        // Must not panic on any input
+        let _ = semantic_diff::diff::parse(s);
+    }
+});
+```
+
+**Trade-off:** Fuzzing requires `pub` visibility on `parse()` from the crate root. May need a `#[cfg(fuzzing)]` feature gate or expose through the library interface.
+
+### Pattern 4: TestBackend for TUI Rendering Tests
+
+**What:** Use ratatui's `TestBackend` to render frames in-memory and assert on buffer contents without a real terminal.
+
+**Where to apply:** All UI rendering tests
+
+```rust
+#[cfg(test)]
+mod tests {
+    use ratatui::{backend::TestBackend, Terminal};
+
+    #[test]
+    fn test_renders_diff_without_panic() {
+        let diff_data = diff::parse(include_str!("../fixtures/sample.diff"));
+        let config = config::Config::default_config();
+        let app = App::new(diff_data, &config);
+
+        let backend = TestBackend::new(120, 40);
+        let mut terminal = Terminal::new(backend).unwrap();
+        terminal.draw(|f| app.view(f)).unwrap();
+
+        // Assert buffer contains expected file name
+        let content = terminal.backend().buffer().content();
+        // ... verify rendering
     }
 }
 ```
 
-### Pattern 2: Async Command Pattern for Side Effects
+### Pattern 5: Signal Handler Testing via Self-Signal
 
-**What:** The `update` function returns an `Option<Command>` enum describing side effects to perform (spawn git diff, call clauded, etc.). The event loop executes these commands and routes their results back as Messages.
-
-**When to use:** Whenever update logic needs to trigger IO -- git commands, LLM calls, file reads.
-
-**Trade-offs:** Adds indirection (update does not directly spawn tasks), but keeps update logic pure and testable. You can test that `RefreshSignal` produces `Command::SpawnDiffParse` without actually running git.
-
-**Example:**
-```rust
-enum Command {
-    SpawnDiffParse,
-    SpawnGrouping(Vec<DiffFile>),
-    Quit,
-}
-
-// In the main loop:
-async fn run(mut app: App, mut events: EventStream) {
-    loop {
-        terminal.draw(|f| view(&app, f))?;
-
-        let msg = events.next().await;
-        if let Some(cmd) = app.update(msg) {
-            match cmd {
-                Command::SpawnDiffParse => {
-                    let tx = events.sender();
-                    tokio::spawn(async move {
-                        let diff = parse_git_diff().await;
-                        let _ = tx.send(Message::DiffParsed(diff));
-                    });
-                }
-                Command::SpawnGrouping(files) => {
-                    let tx = events.sender();
-                    tokio::spawn(async move {
-                        match call_clauded(&files).await {
-                            Ok(groups) => { let _ = tx.send(Message::GroupingComplete(groups)); }
-                            Err(e) => { let _ = tx.send(Message::GroupingFailed(e.to_string())); }
-                        }
-                    });
-                }
-                Command::Quit => break,
-            }
-        }
-
-        if app.should_quit { break; }
-    }
-}
-```
-
-### Pattern 3: tokio::select! Event Multiplexer
-
-**What:** A dedicated async task that uses `tokio::select!` to merge multiple event sources (terminal input, OS signals, tick timer) into a single `Message` channel.
-
-**When to use:** For the event router. This is the standard ratatui-with-tokio pattern per official docs.
-
-**Trade-offs:** Slightly complex setup, but the rest of the application only ever reads from one `mpsc::Receiver<Message>`.
-
-**Example:**
-```rust
-async fn event_loop(tx: mpsc::Sender<Message>) {
-    let mut reader = crossterm::event::EventStream::new();
-    let mut signal = tokio::signal::unix::signal(SignalKind::user_defined1()).unwrap();
-    let mut tick = tokio::time::interval(Duration::from_millis(250));
-
-    loop {
-        tokio::select! {
-            // Terminal events (key press, resize)
-            Some(Ok(event)) = reader.next() => {
-                match event {
-                    CrosstermEvent::Key(key) => { let _ = tx.send(Message::KeyPress(key)).await; }
-                    CrosstermEvent::Resize(w, h) => { let _ = tx.send(Message::Resize(w, h)).await; }
-                    _ => {}
-                }
-            }
-            // Refresh signal from Claude Code hook
-            _ = signal.recv() => {
-                let _ = tx.send(Message::RefreshSignal).await;
-            }
-            // Tick for any periodic UI updates (e.g., spinner animation)
-            _ = tick.tick() => {
-                let _ = tx.send(Message::Tick).await;
-            }
-        }
-    }
-}
-```
-
-## Data Flow
-
-### Primary Data Flow
-
-```
-PostToolUse Hook
-    │
-    │  kill -USR1 <pid>
-    ▼
-Signal Handler (event.rs)
-    │
-    │  Message::RefreshSignal
-    ▼
-Update (app.rs)
-    │
-    │  Command::SpawnDiffParse
-    ▼
-Diff Parser (diff/parser.rs)
-    │
-    │  runs: git diff HEAD
-    │  parses: unified diff → Vec<DiffFile>
-    │
-    │  Message::DiffParsed(files)
-    ▼
-Update (app.rs)
-    │
-    │  stores files in Model
-    │  Command::SpawnGrouping(files)
-    ▼
-LLM Grouper (grouper/llm.rs)           [ASYNC - non-blocking]
-    │
-    │  runs: clauded --print "Group these files..."
-    │  parses: JSON response → Vec<SemanticGroup>
-    │
-    │  Message::GroupingComplete(groups)
-    ▼
-Update (app.rs)
-    │
-    │  stores groups in Model
-    │  (no command - triggers re-render on next frame)
-    ▼
-View (ui/mod.rs)
-    │
-    │  renders: file tree with groups, diff hunks, summary
-    ▼
-Terminal
-```
-
-### Key Data Flows
-
-1. **Hook-triggered refresh:** Signal -> parse diff -> render ungrouped -> request LLM grouping -> render grouped. The user sees the diff immediately; semantic groups appear when the LLM responds (1-5 seconds later).
-
-2. **User navigation:** KeyPress -> update UI state (focus, scroll, collapse) -> re-render. No async, no IO. Instant response.
-
-3. **Initial startup:** Parse diff from CLI args or working directory -> same flow as refresh but triggered by app init instead of signal.
-
-### State Management
-
-```
-App (single source of truth)
-  ├── diff_files: Vec<DiffFile>          # Parsed diff data
-  │     ├── path, status, hunks
-  │     └── each hunk: lines with +/-/context
-  ├── semantic_groups: Option<Vec<SemanticGroup>>
-  │     ├── label: "Refactored auth logic"
-  │     └── file_paths: Vec<String>
-  ├── grouping_status: enum { Idle, Loading, Done, Error(String) }
-  ├── ui_state: UiState
-  │     ├── focused_panel: enum { FileTree, DiffView }
-  │     ├── file_tree_state: ListState (selected index, scroll offset)
-  │     ├── diff_scroll: u16
-  │     └── collapsed: HashSet<NodeId>  # collapsed groups/files/hunks
-  └── should_quit: bool
-```
-
-## Hook Integration Design
-
-### Signal-Based Refresh (Recommended)
-
-The PostToolUse hook sends SIGUSR1 to the semantic-diff process. This is the simplest, most Unix-idiomatic approach.
-
-**Hook script (in Claude Code hooks config):**
-```bash
-#!/bin/bash
-# PostToolUse hook for Edit/Write tools
-# Sends refresh signal to semantic-diff if running
-PIDFILE="/tmp/semantic-diff.pid"
-if [ -f "$PIDFILE" ]; then
-    kill -USR1 "$(cat "$PIDFILE")" 2>/dev/null || true
-fi
-```
-
-**PID file management:** The semantic-diff binary writes its PID to `/tmp/semantic-diff.pid` on startup and removes it on exit. This is standard Unix daemon practice.
-
-**Why not named pipes/sockets:** Signals are zero-infrastructure (no file creation race conditions, no cleanup on crash). The semantic-diff process already needs signal handling for SIGTERM/SIGINT anyway. Adding SIGUSR1 is trivial.
-
-**Why not file watching:** PROJECT.md explicitly says "hook-triggered refresh only, no filesystem watchers or polling." Signals honor this constraint perfectly.
-
-### Signal Debouncing
-
-When Claude Code fires multiple Edit/Write tools in rapid succession, the hook sends multiple SIGUSR1 signals. Signals coalesce in the kernel (multiple SIGUSR1 before the handler runs = one delivery), but the diff parse itself takes time. Use a debounce:
+**What:** Test SIGUSR1 handling by sending the signal to the test process itself.
 
 ```rust
-// In update:
-Message::RefreshSignal => {
-    // Cancel any in-flight diff parse
-    self.cancel_pending_parse();
-    // Start a new one after 100ms debounce
-    Some(Command::DebouncedDiffParse(Duration::from_millis(100)))
+#[tokio::test]
+async fn test_sigusr1_produces_refresh_message() {
+    let (tx, mut rx) = tokio::sync::mpsc::channel(32);
+    let _handle = tokio::spawn(crate::event::event_loop(tx));
+
+    // Give event loop time to register handler
+    tokio::time::sleep(Duration::from_millis(50)).await;
+
+    // Send SIGUSR1 to self
+    unsafe { libc::kill(libc::getpid(), libc::SIGUSR1); }
+
+    let msg = tokio::time::timeout(Duration::from_secs(1), rx.recv()).await;
+    assert!(matches!(msg, Ok(Some(Message::RefreshSignal))));
 }
 ```
 
-## Scaling Considerations
+**Trade-off:** Signal tests can interfere with each other if run in parallel. Use `#[serial]` from `serial_test` crate or run signal tests in their own binary.
 
-| Scale | Architecture Adjustments |
-|-------|--------------------------|
-| Small diffs (<20 files) | Everything works as designed. LLM grouping is fast. |
-| Medium diffs (20-100 files) | LLM prompt may need chunking. Consider caching previous groupings and only re-grouping changed files. |
-| Large diffs (100+ files) | Diff parsing stays fast, but LLM call becomes slow. Show progress indicator. Consider grouping by directory as fallback. |
+## Anti-Patterns to Avoid During Hardening
 
-### Scaling Priorities
+### Anti-Pattern 1: Over-Sanitizing Diff Content
 
-1. **First bottleneck:** LLM response time. Mitigation: show ungrouped diff immediately, group async. Cache previous groupings.
-2. **Second bottleneck:** Terminal rendering with very large diffs. Mitigation: virtualized scrolling (only render visible hunks). Ratatui handles this naturally since you only render what fits in the viewport.
+**What people do:** Strip or escape file names and diff content before display.
+**Why it's wrong:** ratatui already handles terminal escape sequences through its widget rendering. Double-sanitizing breaks display of legitimate content (e.g., files with special characters).
+**Do this instead:** Trust ratatui's rendering layer. Only sanitize at boundaries where data leaves your control (e.g., passing to external commands -- which is already safe via `Command::args`).
 
-## Anti-Patterns
+### Anti-Pattern 2: Validating LLM Output After Using It
 
-### Anti-Pattern 1: Blocking the Event Loop on LLM Calls
+**What people do:** Apply LLM groups to the UI, then check if they're valid.
+**Why it's wrong:** Invalid data can cause panics (out-of-bounds access) before validation runs.
+**Do this instead:** Validate at the boundary (in `request_grouping()`) before the data enters `App` state. The current code does this correctly for file paths but misses hunk indices.
 
-**What people do:** `await` the clauded call directly in the update function, freezing the UI.
-**Why it's wrong:** The TUI becomes unresponsive for 1-5+ seconds. User cannot scroll, collapse, or quit during this time.
-**Do this instead:** Spawn LLM calls as background tokio tasks. Route results back via the Message channel. Show a loading indicator in the meantime.
+### Anti-Pattern 3: Security Through Obscurity on PID Files
 
-### Anti-Pattern 2: Shared Mutable State Across Tasks
+**What people do:** Use a "random" PID file name thinking attackers won't find it.
+**Why it's wrong:** `/tmp/` is world-readable. Any process can enumerate files there.
+**Do this instead:** Use proper directory permissions (`0700` per-user directory) rather than hiding the file name.
 
-**What people do:** `Arc<Mutex<App>>` shared between the event loop, render loop, and background tasks.
-**Why it's wrong:** Mutex contention causes jank. Race conditions between tasks mutating state. Hard to debug.
-**Do this instead:** Single-owner Model in the main loop. Background tasks communicate only via `mpsc` channels sending Messages. No shared mutable state.
+### Anti-Pattern 4: Testing Only Happy Paths After Hardening
 
-### Anti-Pattern 3: Parsing Diff on Every Render
+**What people do:** Add validation code, write tests that verify valid input still works.
+**Why it's wrong:** The point of hardening is to handle adversarial input. Tests must exercise the rejection paths.
+**Do this instead:** For every validation rule, write at least one test with input that violates it and verify it's handled gracefully (rejected, clamped, or defaulted).
 
-**What people do:** Re-run `git diff` and re-parse on every frame to keep it "fresh."
-**Why it's wrong:** `git diff` is a subprocess call (10-50ms). At 30fps this is 300-1500ms/sec of CPU. Completely unnecessary since changes only happen on hook signals.
-**Do this instead:** Parse diff only on RefreshSignal. Store parsed result in Model. Render from stored state.
+## Suggested Build Order for Security Milestone
 
-### Anti-Pattern 4: Monolithic Message Handler
+This order respects dependencies and maximizes early risk reduction:
 
-**What people do:** Put all update logic in one massive `match` block in `main.rs`.
-**Why it's wrong:** Becomes unreadable at 20+ message variants. Hard to test individual handlers.
-**Do this instead:** Delegate to `App` methods. Group related handlers (UI navigation in one method, diff operations in another). Keep the top-level match as a dispatcher.
+### Phase 1: Audit (Red Team) -- No Code Changes
+1. Document all trust boundaries (this document)
+2. Craft adversarial inputs for each boundary
+3. Run existing tests, note coverage gaps
+4. Rate each finding by severity
 
-### Anti-Pattern 5: Raw Terminal Manipulation Outside ratatui
+### Phase 2: Harden (Purple Team) -- Code Changes
+Build order within hardening, based on dependency and severity:
 
-**What people do:** Mix `crossterm::execute!` calls with ratatui rendering.
-**Why it's wrong:** ratatui uses a double-buffer diffing approach. Direct terminal writes bypass this and cause visual corruption.
-**Do this instead:** All rendering through ratatui's `Frame` API. Terminal setup/teardown only in `main.rs` init/cleanup.
+| Order | Target | Rationale |
+|-------|--------|-----------|
+| 1 | `signal.rs` -- safe PID file | Hook script and E2E tests depend on this; foundational |
+| 2 | Hook script -- validate PID before kill | Pairs with PID file fix |
+| 3 | `grouper/llm.rs` -- hunk index validation | Highest-severity remaining gap; prevents panics |
+| 4 | `grouper/llm.rs` -- replace `extract_json()` | Strengthen JSON extraction |
+| 5 | `grouper/mod.rs` -- fix `truncate()` UTF-8 safety | Quick fix, prevents panic on multi-byte chars |
+| 6 | `grouper/mod.rs` -- string length caps | Defense in depth for LLM output |
+| 7 | `main.rs` -- move log file location | Low severity, easy fix |
+| 8 | `cache.rs` -- validate `git rev-parse` output | Low severity, easy fix |
 
-## Integration Points
+### Phase 3: Test (Blue Team) -- Verification
+| Order | Target | Type |
+|-------|--------|------|
+| 1 | Unit tests for each hardening change | Unit |
+| 2 | Fuzz tests for diff parser | Fuzz (`cargo-fuzz`) |
+| 3 | Fuzz tests for `extract_json` | Fuzz |
+| 4 | Integration tests: signal -> refresh -> render | Integration |
+| 5 | Integration tests: malformed LLM responses | Integration |
+| 6 | E2E tests: full hook workflow | E2E with TestBackend |
+| 7 | E2E tests: edge cases (empty repo, huge diff, no LLM) | E2E |
 
-### External Services
+## Integration Points for Testing
 
-| Service | Integration Pattern | Notes |
-|---------|---------------------|-------|
-| `git` CLI | `tokio::process::Command` for `git diff HEAD` | Parse stdout as unified diff text. Run in repo working directory. |
-| `clauded` CLI | `tokio::process::Command` for `clauded --print` | Send file list + diff summary as prompt. Parse JSON response. Timeout after 30s. |
-| Claude Code hooks | SIGUSR1 signal | PostToolUse hook on Edit/Write fires `kill -USR1`. PID from `/tmp/semantic-diff.pid`. |
-| cmux | Launched by hook: `cmux surface.split semantic-diff` | semantic-diff is a passive pane; cmux manages lifecycle. |
+### External Services (mock strategy)
 
-### Internal Boundaries
+| Service | Real Behavior | Test Strategy |
+|---------|---------------|---------------|
+| `git diff` | Subprocess returning diff text | Use fixture files; pipe known diff content |
+| `claude` CLI | Subprocess returning JSON | Mock with test binary that outputs canned JSON |
+| `copilot` CLI | Subprocess returning text | Mock with test binary |
+| SIGUSR1 | OS signal from hook script | `libc::kill(getpid(), SIGUSR1)` in test |
+| Terminal | Real terminal with crossterm | `ratatui::TestBackend` for rendering |
 
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| Event Router <-> App | `mpsc::Receiver<Message>` | One-way: events flow in, Commands flow out as return values |
-| App <-> View | Function call: `view(&app, &mut frame)` | Synchronous. View borrows App immutably. |
-| App <-> Diff Parser | Command/Message | App sends Command::SpawnDiffParse, receives Message::DiffParsed |
-| App <-> LLM Grouper | Command/Message | App sends Command::SpawnGrouping, receives Message::GroupingComplete |
-| App <-> Background Tasks | `mpsc::Sender<Message>` clone | Tasks get a sender clone to report results back |
+### Internal Module Boundaries
 
-## Build Order (Dependencies)
-
-The architecture implies this build order for phases:
-
-1. **Diff parser + basic TUI frame** -- Foundation. Everything else depends on having parsed diff data and a working terminal. Build `diff/parser.rs`, `main.rs` (terminal init), basic `view` that dumps raw diff.
-
-2. **TEA event loop + keyboard navigation** -- The skeleton. `app.rs` with Message/update, `event.rs` with `tokio::select!`, key handlers for scroll/focus/quit. Now you have an interactive app.
-
-3. **Collapse/expand + file tree sidebar** -- UI polish. `ui/file_tree.rs` and `ui/diff_view.rs` with collapse state in Model. Requires (1) for data and (2) for interaction.
-
-4. **Signal-based refresh** -- Hook integration. `signal.rs` for SIGUSR1, debounce logic. Requires (2) for the event loop to receive signals.
-
-5. **LLM semantic grouping** -- The differentiator. `grouper/llm.rs` with clauded invocation. Requires (1) for file data to send, (2) for async task spawning, (3) for group-based file tree rendering.
-
-6. **Syntax highlighting + visual polish** -- Enhancement. `highlight.rs` with syntect. Can be added at any point after (1) but best after core UX is solid.
+| Boundary | Test Strategy |
+|----------|---------------|
+| `diff::parse()` input/output | Unit tests with fixture diffs, fuzz with arbitrary bytes |
+| `grouper::llm::request_grouping()` result | Unit tests with canned JSON (bypass actual CLI) |
+| `app.update()` state transitions | Unit tests: send Message, assert App state changes |
+| `app.view()` rendering | TestBackend assertions on buffer content |
+| `event::event_loop()` message routing | Integration test with real signal + mpsc channel |
 
 ## Sources
 
-- Ratatui official docs: Application Patterns overview (https://ratatui.rs/concepts/application-patterns/) -- HIGH confidence
-- Ratatui official docs: The Elm Architecture (https://ratatui.rs/concepts/application-patterns/the-elm-architecture/) -- HIGH confidence
-- Ratatui official docs: Component Architecture (https://ratatui.rs/concepts/application-patterns/component-architecture/) -- HIGH confidence
-- Ratatui official docs: Flux Architecture (https://ratatui.rs/concepts/application-patterns/flux-architecture/) -- HIGH confidence
-- Ratatui official docs: Terminal and Event Handler (https://ratatui.rs/recipes/apps/terminal-and-event-handler/) -- HIGH confidence
-- Ratatui templates repo (https://github.com/ratatui/templates) -- MEDIUM confidence (viewed overview, not source)
-- Tokio signal docs (https://docs.rs/tokio/latest/tokio/signal/unix/) -- HIGH confidence
-- Existing hook-manager pattern in dotfiles repo -- HIGH confidence (direct code review)
+- Direct source code analysis of all `.rs` files in `src/` (HIGH confidence)
+- Rust `std::process::Command` docs: arguments are passed directly to the OS `execvp`, no shell involved (HIGH confidence)
+- OWASP command injection prevention cheat sheet (HIGH confidence, well-established)
+- `cargo-fuzz` book: https://rust-fuzz.github.io/book/ (HIGH confidence)
+- ratatui `TestBackend` API: standard testing approach documented in ratatui examples (HIGH confidence)
+- Unix PID file security patterns: well-established in daemon programming literature (MEDIUM confidence)
+- `serial_test` crate for serialized test execution (MEDIUM confidence)
 
 ---
-*Architecture research for: Rust TUI diff viewer with async LLM integration*
-*Researched: 2026-03-13*
+*Architecture research for: Security hardening of Rust TUI app*
+*Researched: 2026-03-15*

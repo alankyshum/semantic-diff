@@ -1,142 +1,226 @@
-# Stack Research
+# Technology Stack: Security Hardening & Testing
 
-**Domain:** Rust TUI diff viewer with AI-powered semantic grouping
-**Researched:** 2026-03-13
-**Confidence:** HIGH
+**Project:** Semantic Diff TUI v1.1
+**Researched:** 2026-03-15
+**Focus:** Security auditing, hardening, and comprehensive testing for existing Rust CLI/TUI app
 
-## Recommended Stack
+## Existing Stack (DO NOT CHANGE)
 
-### Core Technologies
+Already validated in v1.0: Rust, ratatui 0.30, syntect 5.3, tokio 1, crossterm 0.29, tui-tree-widget 0.24, clap 4, serde/serde_json, anyhow, tracing, similar 2, unidiff 0.4, which 8.0.2, dirs 6.
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| ratatui | 0.30.0 | TUI framework — rendering, layout, widgets | The standard Rust TUI framework (successor to tui-rs). 20M+ downloads, active development (Dec 2025 release), Component Architecture pattern fits this project. Matches user's preference from PROJECT.md. |
-| crossterm | 0.29.0 | Terminal backend for ratatui | Default and recommended backend for ratatui on macOS. Handles raw mode, event polling, alternate screen. No external C deps unlike termion. |
-| tokio | 1.50.0 | Async runtime | Required for async LLM CLI spawning and non-blocking event loop. User already uses tokio in ember-test-runner. Use `features = ["full"]` for simplicity. |
-| unidiff | 0.4.0 | Unified diff parsing | Purpose-built for parsing `git diff` unified format output. Updated Sep 2025, actively maintained. Parses hunks, file headers, line types directly — no manual regex needed. |
-| syntect | 5.3.0 | Syntax highlighting | Battle-tested syntax highlighting using Sublime Text grammar files. Covers 100+ languages out of the box. Outputs styled spans that map cleanly to ratatui `Span`/`Style`. Sep 2025 release. |
-| serde + serde_json | 1.0.228 / 1.0.149 | JSON serialization | For parsing LLM JSON responses (semantic grouping output from clauded). De facto standard in Rust. |
-| clap | 4.6.0 | CLI argument parsing | Derive-based arg parsing. User already uses clap 4 in ember-test-runner. Handles `--repo-path`, `--hook-mode`, etc. |
-| anyhow | 1.0.102 | Error handling | Ergonomic error handling for application code (not libraries). User already uses anyhow in ember-test-runner. |
+---
 
-### Supporting Libraries
+## Recommended Stack: Security Tooling
 
-| Library | Version | Purpose | When to Use |
-|---------|---------|---------|-------------|
-| tui-tree-widget | 0.24.0 | Tree view widget for ratatui | File tree sidebar showing changed files by semantic group. Saves significant effort vs building custom tree with expand/collapse. Jan 2026 release, maintained for ratatui 0.30. |
-| tracing | 0.1.44 | Structured logging | Debug logging without polluting TUI output. Use `tracing-subscriber` (0.3.23) with file appender to write logs to `~/.semantic-diff/debug.log`. |
-| tracing-subscriber | 0.3.23 | Log subscriber/formatter | Pair with tracing for file-based debug output. |
+### Static Analysis & Dependency Auditing
 
-### Development Tools
+| Tool | Version | Purpose | Why |
+|------|---------|---------|-----|
+| cargo-audit | 0.22.1 | Scan Cargo.lock for known CVEs in dependencies | Standard Rust security tool, maintained by RustSec Advisory DB team. Checks against the official RustSec advisory database. Install as cargo subcommand, run in CI. |
+| cargo-deny | 0.19.0 | License compliance + duplicate dep detection + advisory audit | Superset of cargo-audit for policy enforcement. Catches license incompatibilities (important for MIT-licensed project), duplicate crate versions, and advisories. Use `cargo deny check` in CI. |
+| clippy (built-in) | latest stable | Lint for unsafe patterns, suspicious code, correctness issues | Already available. Run with `cargo clippy -- -D warnings -W clippy::pedantic` for security-relevant lints like `clippy::unwrap_used`, `clippy::expect_used` in non-test code. |
 
-| Tool | Purpose | Notes |
-|------|---------|-------|
-| cargo-watch | Auto-rebuild on save | `cargo watch -x run` for rapid TUI iteration |
-| cargo-nextest | Fast test runner | Parallel test execution, better output than `cargo test` |
-| bacon | Background cargo checker | Real-time compilation error feedback while editing |
+**Confidence:** HIGH -- cargo-audit and cargo-deny are the de facto Rust security scanning tools, verified via crates.io.
+
+### Fuzzing
+
+| Tool | Version | Purpose | Why |
+|------|---------|---------|-----|
+| cargo-fuzz | latest | Fuzz diff parser and JSON extraction | Uses libFuzzer under the hood. The diff parser (`parse()`) and `extract_json()` accept untrusted input (git output, LLM responses) -- prime fuzzing targets. Requires nightly Rust. |
+| arbitrary | 1.x | Structured fuzzing input generation | Derive `Arbitrary` on input structs to generate structured fuzz inputs rather than random bytes. Pairs with cargo-fuzz. |
+
+**Confidence:** HIGH -- cargo-fuzz is the standard Rust fuzzing tool, backed by Google's OSS-Fuzz infrastructure.
+
+**Note on AFL alternatives:** `afl.rs` exists but cargo-fuzz (libFuzzer) has better Rust ecosystem integration and is what the Rust project itself uses. Use cargo-fuzz.
+
+### Process Execution Hardening
+
+| Library | Version | Purpose | Why |
+|---------|---------|---------|-----|
+| std::process::Command | (stdlib) | Safe process spawning | Already used correctly -- `Command::new("git").args([...])` avoids shell injection by default because it does NOT invoke a shell. Each argument is passed directly to `execvp`. No additional library needed for basic safety. |
+
+**Critical finding:** The current codebase already uses `Command::new()` with `.args()` arrays, which is safe against shell injection. The arguments to `git diff` and `claude` CLI are hardcoded strings, not user-derived. **No crate needed here -- the code is already safe by construction.**
+
+**What to validate during audit:**
+- Ensure no `Command::new("sh").args(["-c", ...])` patterns creep in
+- The `model` parameter in `invoke_claude()` comes from config -- verify config parsing sanitizes it
+- The `prompt` passed to `claude`/`copilot` contains git diff content -- safe because it goes as a separate arg, not through a shell
+
+**Confidence:** HIGH -- Rust's `std::process::Command` documentation explicitly states it bypasses the shell.
+
+### Signal & PID File Hardening
+
+| Library | Version | Purpose | Why |
+|---------|---------|---------|-----|
+| rustix | (evaluate) | Low-level safe syscall wrappers | If PID file needs atomic creation with `O_EXCL`, rustix provides safe Rust wrappers. However, for this app's use case (single-instance detection, not a daemon), the current simple `fs::write` approach is adequate with minor hardening. |
+
+**Current PID file issues identified:**
+1. `/tmp/semantic-diff.pid` is world-writable -- symlink attack vector (LOW risk: local-only tool, single user)
+2. No file locking -- race condition if two instances start simultaneously
+3. No stale PID detection -- if process crashes, leftover PID file may confuse hook scripts
+
+**Recommended approach (no new crate needed):**
+- Use `$XDG_RUNTIME_DIR` or `$TMPDIR` instead of hardcoded `/tmp/` (already have `dirs` crate)
+- Add `O_CREAT | O_EXCL` semantics via `std::fs::OpenOptions::new().create_new(true)`
+- Validate PID is still alive with `kill(pid, 0)` signal check via `nix` crate or raw libc
+- These are stdlib + minor changes, no heavy dependencies needed
+
+**Confidence:** HIGH -- standard Unix PID file best practices, well-documented.
+
+---
+
+## Recommended Stack: Testing
+
+### CLI/Integration Testing
+
+| Library | Version | Purpose | Why |
+|---------|---------|---------|-----|
+| assert_cmd | 2.2.0 | Test CLI binary invocation (exit codes, stdout/stderr) | The standard Rust crate for testing command-line apps. Wraps `std::process::Command` with fluent assertions. Use for testing `semantic-diff` binary with various args, error conditions. |
+| assert_fs | 1.1.3 | Create temporary directories with test fixture files | Pairs with assert_cmd. Create temp git repos with known diffs for reproducible integration tests. Auto-cleanup on drop. |
+| predicates | 3.1.4 | Expressive assertion matchers | Required by assert_cmd. Provides `predicate::str::contains()`, regex matching, etc. for stdout/stderr assertions. |
+
+**Confidence:** HIGH -- assert_cmd + assert_fs + predicates is the canonical Rust CLI testing trio, used by clap's own test suite.
+
+### Snapshot Testing
+
+| Library | Version | Purpose | Why |
+|---------|---------|---------|-----|
+| insta | 1.46.3 | Snapshot test diff rendering output | Perfect for testing TUI rendering: capture rendered frames as strings, snapshot them. When rendering changes, `cargo insta review` shows a diff of the diff (meta!). Use for syntax highlighting output, file tree rendering, diff view layout. |
+
+**Confidence:** HIGH -- insta is the dominant Rust snapshot testing library (53M+ downloads). Verified on crates.io.
+
+### Property-Based Testing
+
+| Library | Version | Purpose | Why |
+|---------|---------|---------|-----|
+| proptest | 1.10.0 | Generate random inputs to find edge cases | Use for diff parser: generate arbitrary diff-like strings, verify parser never panics. Generate arbitrary JSON to test `extract_json()` resilience. Generate long file paths to test path handling. |
+
+**Confidence:** HIGH -- proptest is the standard Rust property-based testing library, modeled after Haskell's QuickCheck.
+
+### Mocking
+
+| Library | Version | Purpose | Why |
+|---------|---------|---------|-----|
+| mockall | 0.14.0 | Mock trait-based interfaces for unit testing | Use sparingly -- the codebase is function-heavy, not trait-heavy. Useful if you extract traits for LLM backends or git operations to test grouping logic without live CLI calls. |
+
+**Confidence:** MEDIUM -- mockall is the most popular Rust mocking library, but the codebase may need refactoring to traits before it becomes useful. Consider whether integration tests with real git repos are more valuable than mocked unit tests for this project.
+
+### TUI-Specific Testing
+
+| Library | Version | Purpose | Why |
+|---------|---------|---------|-----|
+| ratatui TestBackend | (built-in) | Render TUI to in-memory buffer | ratatui includes `TestBackend` for rendering to a virtual terminal buffer. Capture rendered frames, assert on cell contents. No extra crate needed. |
+
+**Confidence:** HIGH -- TestBackend is part of ratatui's public API, designed for exactly this purpose.
+
+### Test Utilities
+
+| Library | Version | Purpose | Why |
+|---------|---------|---------|-----|
+| tempfile | 3.27.0 | Create temporary files/directories | For test git repos. Lighter than assert_fs if you don't need the fluent API. Already widely used in Rust ecosystem. |
+
+**Confidence:** HIGH -- tempfile is a foundational Rust crate.
+
+---
+
+## Alternatives Considered
+
+| Category | Recommended | Alternative | Why Not |
+|----------|-------------|-------------|---------|
+| Dependency audit | cargo-audit + cargo-deny | cargo-vet | cargo-vet is for supply-chain trust (code review tracking), not CVE scanning. Overkill for this project size. |
+| Fuzzing | cargo-fuzz | afl.rs | afl.rs has worse Rust integration, requires more setup, smaller community. cargo-fuzz is what the Rust project uses. |
+| CLI testing | assert_cmd | rexpect 0.6.3 | rexpect is for interactive terminal testing (expect-style). semantic-diff IS interactive, but testing TUI interactions is better done via ratatui's TestBackend + simulated key events than expect-style byte matching. |
+| Snapshot testing | insta | expect-test | expect-test is inline (in-source) snapshots only. insta supports both inline and file-based, plus `cargo insta review` workflow. More flexible. |
+| Mocking | mockall | wiremock | wiremock is for HTTP mocking. This app doesn't use HTTP -- it shells out to CLI tools. |
+| Process safety | std::process::Command | shell-escape crate | Unnecessary -- Command::new() with .args() already avoids shell interpretation entirely. shell-escape is for when you MUST construct shell strings, which you should not do. |
+
+---
 
 ## Installation
 
 ```bash
-# In Cargo.toml [dependencies]
-ratatui = "0.30"
-crossterm = "0.29"
-tokio = { version = "1", features = ["full"] }
-unidiff = "0.4"
-syntect = "5.3"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-clap = { version = "4", features = ["derive"] }
-anyhow = "1"
-tui-tree-widget = "0.24"
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+# Security tools (install as cargo subcommands)
+cargo install cargo-audit
+cargo install cargo-deny --locked
+# cargo-fuzz requires nightly
+rustup install nightly
+cargo install cargo-fuzz
+```
 
-# Dev dependencies
-# [dev-dependencies]
-# (none required initially — standard cargo test suffices)
+```toml
+# Cargo.toml additions for v1.1
+[dev-dependencies]
+assert_cmd = "2.2"
+assert_fs = "1.1"
+predicates = "3.1"
+insta = { version = "1.46", features = ["json"] }
+proptest = "1.10"
+tempfile = "3.27"
+
+# Optional -- add only if refactoring LLM/git interfaces to traits
+# mockall = "0.14"
 ```
 
 ```bash
-# Release build (matching ember-test-runner pattern)
-# In Cargo.toml [profile.release]
-# opt-level = "z"
-# lto = true
-# strip = true
-# codegen-units = 1
+# Also install insta CLI for snapshot review workflow
+cargo install cargo-insta
 ```
 
-## Alternatives Considered
-
-| Recommended | Alternative | When to Use Alternative |
-|-------------|-------------|-------------------------|
-| unidiff 0.4 | diffy 0.4.2 | diffy computes diffs between two strings; use it if you need to diff arbitrary text rather than parse existing `git diff` output. This project parses git's own unified diff output, so unidiff is the right tool. |
-| unidiff 0.4 | patch 0.7 | patch is older (Dec 2022, no updates) and uses nom parser. unidiff is newer, simpler API, actively maintained. |
-| unidiff 0.4 | git2 0.20.4 (libgit2 bindings) | git2 can compute diffs programmatically but pulls in the entire libgit2 C library (~3MB binary bloat). Overkill when `git diff` output is already available via shell. Use git2 only if you need deep git object access (blame, log, etc.). |
-| syntect 5.3 | tree-sitter | tree-sitter provides AST-level parsing (good for code navigation) but is heavier and more complex for pure syntax highlighting. syntect is purpose-built for highlighting with simpler integration. Use tree-sitter only if you later need semantic code understanding beyond coloring. |
-| ratatui 0.30 | cursive | cursive uses a different programming model (callback-based). ratatui's immediate-mode rendering is simpler for diff viewers where you redraw on each event. Also, ratatui has far more community momentum and widget ecosystem. |
-| crossterm 0.29 | termion | termion is Unix-only and less actively maintained. crossterm is the ratatui default and cross-platform. No reason to deviate. |
-| tokio (full) | async-std | tokio dominates the Rust async ecosystem. User already uses tokio. No reason to introduce a different runtime. |
+---
 
 ## What NOT to Use
 
-| Avoid | Why | Use Instead |
-|-------|-----|-------------|
-| tui-rs (tui 0.19) | Unmaintained predecessor to ratatui. Archived in 2023. | ratatui 0.30 |
-| git2 for diff parsing | Massive C dependency (libgit2). Slow compile times. You only need to parse text diff output, not access git objects. | unidiff 0.4 + `git diff` shell command |
-| patch crate | Last updated Dec 2022. Uses nom which adds complexity. API is less ergonomic than unidiff. | unidiff 0.4 |
-| reqwest / HTTP clients | This project talks to local `clauded` CLI via stdin/stdout, not HTTP APIs. Adding HTTP deps is unnecessary weight. | tokio::process::Command |
-| colored / termcolor | These crates output ANSI directly to stdout. Incompatible with ratatui's rendering model which manages the terminal buffer. | ratatui's built-in `Style` and `Color` types |
-| notify (file watcher) | PROJECT.md explicitly states hook-triggered refresh only, no filesystem polling. | Hook-based refresh via CLI args or signals |
+| Tool/Crate | Why Not |
+|------------|---------|
+| `shell-escape` | You don't need shell escaping because `Command::new()` already bypasses the shell. Adding it implies you're constructing shell strings, which is the wrong pattern. |
+| `nix` crate (full) | Heavy dependency for what you need. Only consider it if you need `kill(pid, 0)` for stale PID detection -- and even then, a raw `libc::kill` call is simpler. |
+| `seccomp` / `landlock` | Sandboxing is overkill for a local-only TUI diff viewer. The attack surface is local git repos and a local LLM CLI. |
+| `cargo-geiger` | Counts `unsafe` blocks, but this codebase uses zero direct `unsafe`. Only useful if you suspect dependencies use excessive unsafe -- cargo-audit covers the security angle better. |
+| `tarpaulin` | If you want coverage, use `cargo llvm-cov` instead -- it's more accurate and faster. But coverage is orthogonal to security and not part of v1.1 scope. |
+| `rexpect` | Interactive terminal testing via expect-style byte matching is fragile for TUI apps. Use ratatui's TestBackend + simulated events instead. |
 
-## Stack Patterns by Variant
+---
 
-**For the async LLM integration (clauded):**
-- Use `tokio::process::Command` to spawn `clauded` with diff content on stdin
-- Parse JSON response with serde_json
-- Use `tokio::sync::mpsc` channel to send grouping results back to the TUI event loop
-- This keeps the TUI responsive while LLM processes
+## Security Audit Approach (Stack Implications)
 
-**For the hook-triggered refresh:**
-- Accept a Unix signal (SIGUSR1) or write to a named pipe/socket that the running TUI watches
-- Alternative: use a simple file-based trigger (hook writes to a known path, TUI watches with tokio fs)
-- Simplest approach: hook sends the repo path as CLI arg and the TUI re-reads git diff
+Based on code review of the current codebase, here is where each tool applies:
 
-**For syntax highlighting integration with ratatui:**
-- syntect produces `(Style, &str)` tuples per line
-- Map syntect `Style` to ratatui `Style` (foreground color, bold, italic)
-- Build `ratatui::text::Line` from `Vec<Span>` where each Span carries the mapped style
-- Cache highlighted output per file to avoid re-highlighting on scroll
+### Attack Surface 1: Shell Command Execution
+**Files:** `src/main.rs` (git diff), `src/grouper/llm.rs` (claude/copilot CLI), `src/cache.rs` (git rev-parse)
+**Tool:** Manual code review + clippy lints
+**Finding:** Already safe -- all uses are `Command::new("binary").args([...])` with no shell interpolation. The `model` config param is the only external string passed as an arg, and it goes through `.args()` not a shell.
 
-## Version Compatibility
+### Attack Surface 2: Untrusted LLM Output
+**Files:** `src/grouper/llm.rs` (`extract_json`, `request_grouping`)
+**Tools:** proptest (fuzz JSON parsing), insta (snapshot valid/invalid responses), cargo-fuzz (deep fuzzing)
+**Finding:** `extract_json()` does naive brace-matching which could be confused by nested JSON or malformed input. The `serde_json::from_str` provides type safety, but the `known_files` validation only checks file existence -- it doesn't validate hunk indices against actual hunk counts.
 
-| Package | Compatible With | Notes |
-|---------|-----------------|-------|
-| ratatui 0.30 | crossterm 0.29 | Pinned compatibility — ratatui re-exports crossterm types. Always use the crossterm version ratatui depends on. |
-| tui-tree-widget 0.24 | ratatui 0.30 | tui-tree-widget tracks ratatui releases closely. Verify 0.24 targets 0.30 before adding (LOW confidence — check Cargo.toml of the crate). |
-| syntect 5.3 | ratatui 0.30 | No direct dependency — syntect outputs styles that you manually map to ratatui styles. Always compatible. |
-| tokio 1.50 | All other deps | tokio 1.x is stable and universally compatible. |
+### Attack Surface 3: Diff Parsing
+**Files:** `src/diff/parser.rs`
+**Tools:** proptest (random diff strings), cargo-fuzz (malformed diffs), insta (snapshot known diffs)
+**Finding:** Parser delegates to `unidiff` crate which silently ignores parse errors (`let _ = patch.parse(raw)`). Malformed input won't crash but could produce wrong results. Fuzz to verify no panics.
+
+### Attack Surface 4: PID File / Signals
+**Files:** `src/signal.rs`
+**Tools:** Manual hardening (stdlib only), integration tests with assert_cmd
+**Finding:** PID written to world-readable `/tmp/`. No `O_EXCL`, no stale PID check, no file locking. Low practical risk but easy to fix.
+
+---
 
 ## Sources
 
-- crates.io API (ratatui 0.30.0, Dec 2025) — verified version, HIGH confidence
-- crates.io API (crossterm 0.29.0, Apr 2025) — verified version, HIGH confidence
-- crates.io API (tokio 1.50.0, Mar 2026) — verified version, HIGH confidence
-- crates.io API (unidiff 0.4.0, Sep 2025) — verified version, HIGH confidence
-- crates.io API (syntect 5.3.0, Sep 2025) — verified version, HIGH confidence
-- crates.io API (serde 1.0.228, Sep 2025) — verified version, HIGH confidence
-- crates.io API (serde_json 1.0.149, Jan 2026) — verified version, HIGH confidence
-- crates.io API (clap 4.6.0, Mar 2026) — verified version, HIGH confidence
-- crates.io API (anyhow 1.0.102, Feb 2026) — verified version, HIGH confidence
-- crates.io API (tui-tree-widget 0.24.0, Jan 2026) — verified version, HIGH confidence
-- crates.io API (tracing 0.1.44, Dec 2025) — verified version, HIGH confidence
-- crates.io API (tracing-subscriber 0.3.23, Mar 2026) — verified version, HIGH confidence
-- crates.io API (git2 0.20.4, Feb 2026) — checked but not recommended, HIGH confidence
-- crates.io API (diffy 0.4.2, Jan 2025) — checked as alternative, HIGH confidence
-- crates.io API (patch 0.7.0, Dec 2022) — checked and rejected (stale), HIGH confidence
-- ratatui.rs/concepts — architecture patterns (Elm, Component, Flux), MEDIUM confidence
-- User's ember-test-runner Cargo.toml — existing patterns (tokio, clap, serde, anyhow), HIGH confidence
+- cargo-audit: https://crates.io/crates/cargo-audit -- v0.22.1, verified 2026-03-15 (HIGH confidence)
+- cargo-deny: https://crates.io/crates/cargo-deny -- v0.19.0, verified 2026-03-15 (HIGH confidence)
+- cargo-fuzz: https://rust-fuzz.github.io/book/cargo-fuzz.html (HIGH confidence)
+- assert_cmd: https://crates.io/crates/assert_cmd -- v2.2.0, verified 2026-03-15 (HIGH confidence)
+- assert_fs: https://crates.io/crates/assert_fs -- v1.1.3, verified 2026-03-15 (HIGH confidence)
+- insta: https://crates.io/crates/insta -- v1.46.3, verified 2026-03-15 (HIGH confidence)
+- proptest: https://crates.io/crates/proptest -- v1.10.0, verified 2026-03-15 (HIGH confidence)
+- mockall: https://crates.io/crates/mockall -- v0.14.0, verified 2026-03-15 (HIGH confidence)
+- tempfile: https://crates.io/crates/tempfile -- v3.27.0, verified 2026-03-15 (HIGH confidence)
+- ratatui TestBackend: ratatui built-in, documented in ratatui API docs (HIGH confidence)
+- Rust std::process::Command shell bypass: https://doc.rust-lang.org/std/process/struct.Command.html (HIGH confidence)
 
 ---
-*Stack research for: Rust TUI diff viewer with semantic grouping*
-*Researched: 2026-03-13*
+*Stack research for: Semantic Diff TUI v1.1 Security & Demo Readiness*
+*Researched: 2026-03-15*
