@@ -1,18 +1,24 @@
 use crate::diff::DiffData;
+use crate::grouper::llm::LlmBackend;
 use crate::grouper::{GroupingStatus, SemanticGroup};
 use crate::highlight::HighlightCache;
 use crate::ui::file_tree::TreeNodeId;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::cell::RefCell;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use tokio::sync::mpsc;
 use tui_tree_widget::TreeState;
+
+/// Hunk-level filter: maps file path → set of hunk indices to show.
+/// An empty set means show all hunks for that file.
+pub type HunkFilter = HashMap<String, HashSet<usize>>;
 
 /// Input mode for the application.
 #[derive(Debug, Clone, PartialEq)]
 pub enum InputMode {
     Normal,
     Search,
+    Help,
 }
 
 /// Which panel currently has keyboard focus.
@@ -29,7 +35,7 @@ pub enum Message {
     Resize(u16, u16),
     RefreshSignal,
     DebouncedRefresh,
-    DiffParsed(DiffData),
+    DiffParsed(DiffData, String), // parsed data + raw diff for cache hashing
     GroupingComplete(Vec<SemanticGroup>),
     GroupingFailed(String),
 }
@@ -38,7 +44,12 @@ pub enum Message {
 /// Commands returned by update() for the main loop to execute.
 pub enum Command {
     SpawnDiffParse,
-    SpawnGrouping(String),
+    SpawnGrouping {
+        backend: LlmBackend,
+        model: String,
+        summaries: String,
+        diff_hash: u64,
+    },
     Quit,
 }
 
@@ -89,17 +100,22 @@ pub struct App {
     pub grouping_status: GroupingStatus,
     /// Handle to the in-flight grouping task, for cancellation (ROB-05).
     pub grouping_handle: Option<tokio::task::JoinHandle<()>>,
-    /// Whether the `claude` CLI is available on PATH (checked once at startup).
-    pub claude_available: bool,
+    /// Which LLM backend is available (Claude preferred, Copilot fallback), if any.
+    pub llm_backend: Option<LlmBackend>,
+    /// Model string resolved for the active backend.
+    pub llm_model: String,
     /// Which panel currently has keyboard focus.
     pub focused_panel: FocusedPanel,
     /// Persistent tree state for tui-tree-widget (RefCell for interior mutability in render).
     pub tree_state: RefCell<TreeState<TreeNodeId>>,
+    /// When a group is selected in the sidebar, filter the diff view to those (file, hunk) pairs.
+    /// Key = file path (stripped), Value = set of hunk indices (empty = all hunks).
+    pub tree_filter: Option<HunkFilter>,
 }
 
 impl App {
-    /// Create a new App with parsed diff data.
-    pub fn new(diff_data: DiffData) -> Self {
+    /// Create a new App with parsed diff data and user config.
+    pub fn new(diff_data: DiffData, config: &crate::config::Config) -> Self {
         let highlight_cache = HighlightCache::new(&diff_data);
         Self {
             diff_data,
@@ -119,9 +135,14 @@ impl App {
             semantic_groups: None,
             grouping_status: GroupingStatus::Idle,
             grouping_handle: None,
-            claude_available: crate::grouper::llm::claude_available(),
+            llm_backend: config.detect_backend(),
+            llm_model: config
+                .detect_backend()
+                .map(|b| config.model_for_backend(b).to_string())
+                .unwrap_or_default(),
             focused_panel: FocusedPanel::DiffView,
             tree_state: RefCell::new(TreeState::default()),
+            tree_filter: None,
         }
     }
 
@@ -152,16 +173,28 @@ impl App {
                 self.debounce_handle = None;
                 Some(Command::SpawnDiffParse)
             }
-            Message::DiffParsed(new_data) => {
+            Message::DiffParsed(new_data, raw_diff) => {
                 self.apply_new_diff_data(new_data);
-                if self.claude_available {
+                let hash = crate::cache::diff_hash(&raw_diff);
+                // Check cache first
+                if let Some(cached) = crate::cache::load(hash) {
+                    self.semantic_groups = Some(cached);
+                    self.grouping_status = GroupingStatus::Done;
+                    self.grouping_handle = None;
+                    None
+                } else if let Some(backend) = self.llm_backend {
                     // Cancel in-flight grouping (ROB-05)
                     if let Some(handle) = self.grouping_handle.take() {
                         handle.abort();
                     }
                     self.grouping_status = GroupingStatus::Loading;
-                    let summaries = crate::grouper::file_summaries(&self.diff_data);
-                    Some(Command::SpawnGrouping(summaries))
+                    let summaries = crate::grouper::hunk_summaries(&self.diff_data);
+                    Some(Command::SpawnGrouping {
+                        backend,
+                        model: self.llm_model.clone(),
+                        summaries,
+                        diff_hash: hash,
+                    })
                 } else {
                     self.grouping_status = GroupingStatus::Idle;
                     None
@@ -171,6 +204,13 @@ impl App {
                 self.semantic_groups = Some(groups);
                 self.grouping_status = GroupingStatus::Done;
                 self.grouping_handle = None;
+                // Reset tree state since structure changed from flat→grouped
+                let mut ts = self.tree_state.borrow_mut();
+                *ts = TreeState::default();
+                ts.select_first();
+                drop(ts);
+                // Clear any stale tree filter from the flat view
+                self.tree_filter = None;
                 None
             }
             Message::GroupingFailed(err) => {
@@ -269,6 +309,11 @@ impl App {
         match self.input_mode {
             InputMode::Normal => self.handle_key_normal(key),
             InputMode::Search => self.handle_key_search(key),
+            InputMode::Help => {
+                // Any key closes help
+                self.input_mode = InputMode::Normal;
+                None
+            }
         }
     }
 
@@ -277,6 +322,10 @@ impl App {
         // Global keys that work regardless of focused panel
         match key.code {
             KeyCode::Char('q') => return Some(Command::Quit),
+            KeyCode::Char('?') => {
+                self.input_mode = InputMode::Help;
+                return None;
+            }
             KeyCode::Tab => {
                 self.focused_panel = match self.focused_panel {
                     FocusedPanel::FileTree => FocusedPanel::DiffView,
@@ -285,7 +334,8 @@ impl App {
                 return None;
             }
             KeyCode::Esc => {
-                if self.active_filter.is_some() {
+                if self.tree_filter.is_some() || self.active_filter.is_some() {
+                    self.tree_filter = None;
                     self.active_filter = None;
                     self.ui_state.selected_index = 0;
                     self.adjust_scroll();
@@ -330,17 +380,15 @@ impl App {
                 None
             }
             KeyCode::Enter => {
-                // Check if selected node is a file leaf — if so, scroll diff view to that file
                 let selected = ts.selected().to_vec();
                 drop(ts); // release borrow before mutating self
                 if let Some(last) = selected.last() {
                     match last {
                         TreeNodeId::File(path) => {
-                            self.scroll_diff_to_file(path);
+                            self.select_tree_file(path);
                         }
-                        TreeNodeId::Group(_) => {
-                            // Toggle collapse on group node
-                            self.tree_state.borrow_mut().toggle_selected();
+                        TreeNodeId::Group(gi) => {
+                            self.select_tree_group(*gi);
                         }
                     }
                 }
@@ -416,22 +464,142 @@ impl App {
         }
     }
 
-    /// Scroll the diff view to a specific file path (selected from tree sidebar).
-    fn scroll_diff_to_file(&mut self, path: &str) {
+    /// Filter the diff view to the group containing the selected file, and scroll to it.
+    /// If the group is already active, just scroll to the file without toggling off.
+    fn select_tree_file(&mut self, path: &str) {
+        let filter = self.hunk_filter_for_file(path);
+        // Always apply the group filter (don't toggle — that's what group headers are for)
+        self.tree_filter = Some(filter);
+        // Rebuild visible items and scroll to the selected file's header
         let items = self.visible_items();
-        if let Some(idx) = items.iter().position(|item| {
+        let target_idx = items.iter().position(|item| {
             if let VisibleItem::FileHeader { file_idx } = item {
-                let file_path = self.diff_data.files[*file_idx]
+                self.diff_data.files[*file_idx]
                     .target_file
-                    .trim_start_matches("b/");
-                file_path == path
+                    .trim_start_matches("b/")
+                    == path
             } else {
                 false
             }
-        }) {
-            self.ui_state.selected_index = idx;
-            self.adjust_scroll();
+        });
+        self.ui_state.selected_index = target_idx.unwrap_or(0);
+        // Pin scroll so the file header is at the top of the viewport
+        self.ui_state.scroll_offset = self.ui_state.selected_index as u16;
+    }
+
+    /// Filter the diff view to all changes in the selected group.
+    fn select_tree_group(&mut self, group_idx: usize) {
+        let filter = self.hunk_filter_for_group(group_idx);
+        if filter.is_empty() {
+            self.tree_state.borrow_mut().toggle_selected();
+            return;
         }
+        // Toggle: if already filtering to this group, clear it
+        if self.tree_filter.as_ref() == Some(&filter) {
+            self.tree_filter = None;
+        } else {
+            self.tree_filter = Some(filter);
+        }
+        self.ui_state.selected_index = 0;
+        self.ui_state.scroll_offset = 0;
+    }
+
+    /// Build a HunkFilter for the group containing `path`.
+    /// Falls back to showing just that file (all hunks) if no groups exist.
+    fn hunk_filter_for_file(&self, path: &str) -> HunkFilter {
+        if let Some(groups) = &self.semantic_groups {
+            for (gi, group) in groups.iter().enumerate() {
+                let has_file = group.changes().iter().any(|c| {
+                    c.file == path || path.ends_with(c.file.as_str()) || c.file.ends_with(path)
+                });
+                if has_file {
+                    return self.hunk_filter_for_group(gi);
+                }
+            }
+            // File is in the "Other" group — collect ungrouped file/hunks
+            return self.hunk_filter_for_other();
+        }
+        // No semantic groups — filter to just this file (all hunks)
+        let mut filter = HunkFilter::new();
+        filter.insert(path.to_string(), HashSet::new());
+        filter
+    }
+
+    /// Build a HunkFilter for group at `group_idx`.
+    fn hunk_filter_for_group(&self, group_idx: usize) -> HunkFilter {
+        if let Some(groups) = &self.semantic_groups {
+            if let Some(group) = groups.get(group_idx) {
+                let mut filter = HunkFilter::new();
+                for change in &group.changes() {
+                    // Resolve to actual diff path
+                    if let Some(diff_path) = self.resolve_diff_path(&change.file) {
+                        let hunk_set: HashSet<usize> = change.hunks.iter().copied().collect();
+                        filter
+                            .entry(diff_path)
+                            .or_default()
+                            .extend(hunk_set.iter());
+                    }
+                }
+                return filter;
+            }
+            // group_idx beyond actual groups = "Other" group
+            if group_idx >= groups.len() {
+                return self.hunk_filter_for_other();
+            }
+        }
+        HunkFilter::new()
+    }
+
+    /// Build a HunkFilter for the "Other" group (ungrouped hunks).
+    fn hunk_filter_for_other(&self) -> HunkFilter {
+        let groups = match &self.semantic_groups {
+            Some(g) => g,
+            None => return HunkFilter::new(),
+        };
+
+        // Collect all grouped (file, hunk) pairs
+        let mut grouped: HashMap<String, HashSet<usize>> = HashMap::new();
+        for group in groups {
+            for change in &group.changes() {
+                if let Some(dp) = self.resolve_diff_path(&change.file) {
+                    grouped.entry(dp).or_default().extend(change.hunks.iter());
+                }
+            }
+        }
+
+        // For each diff file, include hunks NOT covered by any group
+        let mut filter = HunkFilter::new();
+        for file in &self.diff_data.files {
+            let dp = file.target_file.trim_start_matches("b/").to_string();
+            if let Some(grouped_hunks) = grouped.get(&dp) {
+                // If grouped_hunks is empty, all hunks are claimed
+                if grouped_hunks.is_empty() {
+                    continue;
+                }
+                let ungrouped: HashSet<usize> = (0..file.hunks.len())
+                    .filter(|hi| !grouped_hunks.contains(hi))
+                    .collect();
+                if !ungrouped.is_empty() {
+                    filter.insert(dp, ungrouped);
+                }
+            } else {
+                // File not in any group — all hunks are "other"
+                filter.insert(dp, HashSet::new());
+            }
+        }
+        filter
+    }
+
+    /// Resolve a group file path to the actual diff file path (stripped of b/ prefix).
+    fn resolve_diff_path(&self, group_path: &str) -> Option<String> {
+        self.diff_data.files.iter().find_map(|f| {
+            let dp = f.target_file.trim_start_matches("b/");
+            if dp == group_path || dp.ends_with(group_path) {
+                Some(dp.to_string())
+            } else {
+                None
+            }
+        })
     }
 
     /// Handle keys in Search mode.
@@ -551,7 +719,8 @@ impl App {
         }
     }
 
-    /// Compute the list of visible items respecting collapsed state and active filter.
+    /// Compute the list of visible items respecting collapsed state, active filter,
+    /// and hunk-level tree filter.
     pub fn visible_items(&self) -> Vec<VisibleItem> {
         let filter_lower = self
             .active_filter
@@ -560,16 +729,35 @@ impl App {
 
         let mut items = Vec::new();
         for (fi, file) in self.diff_data.files.iter().enumerate() {
-            // If filter is active, skip files that don't match
+            let file_path = file.target_file.trim_start_matches("b/");
+
+            // If search filter is active, skip files that don't match
             if let Some(ref pattern) = filter_lower {
                 if !file.target_file.to_lowercase().contains(pattern) {
                     continue;
                 }
             }
 
+            // Determine which hunks are visible based on tree filter
+            let allowed_hunks: Option<&HashSet<usize>> =
+                self.tree_filter.as_ref().and_then(|f| f.get(file_path));
+
+            // If tree filter is active but this file isn't in it, skip entirely
+            if self.tree_filter.is_some() && allowed_hunks.is_none() {
+                continue;
+            }
+
             items.push(VisibleItem::FileHeader { file_idx: fi });
             if !self.ui_state.collapsed.contains(&NodeId::File(fi)) {
                 for (hi, hunk) in file.hunks.iter().enumerate() {
+                    // If hunk filter is active and this hunk isn't in the set, skip it
+                    // (empty set = show all hunks for this file)
+                    if let Some(hunk_set) = allowed_hunks {
+                        if !hunk_set.is_empty() && !hunk_set.contains(&hi) {
+                            continue;
+                        }
+                    }
+
                     items.push(VisibleItem::HunkHeader {
                         file_idx: fi,
                         hunk_idx: hi,

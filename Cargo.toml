@@ -1,8 +1,8 @@
 [package]
 name = "semantic-diff"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
-description = "A terminal diff viewer with AI-powered semantic grouping via Claude CLI"
+description = "A terminal diff viewer with AI-powered semantic grouping (Claude CLI / Copilot)"
 license = "MIT"
 repository = "https://github.com/alankyshum/semantic-diff"
 keywords = ["git", "diff", "tui", "semantic", "claude"]
@@ -23,6 +23,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 which = "8.0.2"
+dirs = "6"
 tui-tree-widget = "0.24"
 
 [profile.release]

@@ -72,6 +72,12 @@ pub fn render_summary(app: &App, frame: &mut Frame, area: Rect) {
         GroupingStatus::Idle => {} // nothing extra
     }
 
+    // Right-align the shortcut hint
+    spans.push(Span::styled(
+        "  ? help",
+        Style::default().fg(Color::DarkGray),
+    ));
+
     let line = Line::from(spans);
     let paragraph = ratatui::widgets::Paragraph::new(line);
     frame.render_widget(paragraph, area);

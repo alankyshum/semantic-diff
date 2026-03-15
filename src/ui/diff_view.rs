@@ -23,7 +23,8 @@ pub fn render_diff(app: &App, frame: &mut Frame, area: Rect) {
         lines.push(line);
     }
 
-    let paragraph = ratatui::widgets::Paragraph::new(lines);
+    let paragraph = ratatui::widgets::Paragraph::new(lines)
+        .wrap(ratatui::widgets::Wrap { trim: false });
     frame.render_widget(paragraph, area);
 }
 

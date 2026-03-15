@@ -31,7 +31,7 @@ pub fn build_tree_items<'a>(app: &App) -> Vec<TreeItem<'a, TreeNodeId>> {
     }
 }
 
-/// Build a flat list of file items (pre-grouping or when claude is unavailable).
+/// Build a flat list of file items (pre-grouping or when no LLM is available).
 fn build_flat_tree<'a>(app: &App) -> Vec<TreeItem<'a, TreeNodeId>> {
     app.diff_data
         .files
@@ -55,12 +55,14 @@ fn build_flat_tree<'a>(app: &App) -> Vec<TreeItem<'a, TreeNodeId>> {
         .collect()
 }
 
-/// Build a grouped tree from semantic groups.
+/// Build a grouped tree from semantic groups (hunk-level).
+/// Files can appear in multiple groups if their hunks are split.
 fn build_grouped_tree<'a>(
     app: &App,
     groups: &[crate::grouper::SemanticGroup],
 ) -> Vec<TreeItem<'a, TreeNodeId>> {
-    let mut used_paths = std::collections::HashSet::new();
+    let mut all_covered: std::collections::HashMap<String, std::collections::HashSet<usize>> =
+        std::collections::HashMap::new();
     let mut items: Vec<TreeItem<'a, TreeNodeId>> = Vec::new();
 
     for (gi, group) in groups.iter().enumerate() {
@@ -68,26 +70,63 @@ fn build_grouped_tree<'a>(
         let mut group_added: usize = 0;
         let mut group_removed: usize = 0;
 
-        for group_path in &group.files {
-            // Find matching DiffFile — compare stripped paths
+        for change in &group.changes() {
             if let Some(file) = app.diff_data.files.iter().find(|f| {
                 let diff_path = f.target_file.trim_start_matches("b/");
-                diff_path == group_path || diff_path.ends_with(group_path.as_str())
+                diff_path == change.file || diff_path.ends_with(change.file.as_str())
             }) {
                 let path = file.target_file.trim_start_matches("b/").to_string();
-                group_added += file.added_count;
-                group_removed += file.removed_count;
-                used_paths.insert(path.clone());
+
+                // Count lines for the specific hunks in this group
+                let (added, removed) = if change.hunks.is_empty() {
+                    // All hunks
+                    (file.added_count, file.removed_count)
+                } else {
+                    change.hunks.iter().fold((0usize, 0usize), |(a, r), &hi| {
+                        if let Some(hunk) = file.hunks.get(hi) {
+                            let ha = hunk
+                                .lines
+                                .iter()
+                                .filter(|l| l.line_type == crate::diff::LineType::Added)
+                                .count();
+                            let hr = hunk
+                                .lines
+                                .iter()
+                                .filter(|l| l.line_type == crate::diff::LineType::Removed)
+                                .count();
+                            (a + ha, r + hr)
+                        } else {
+                            (a, r)
+                        }
+                    })
+                };
+
+                group_added += added;
+                group_removed += removed;
+
+                // Track covered hunks
+                all_covered
+                    .entry(path.clone())
+                    .or_default()
+                    .extend(change.hunks.iter());
+
+                // Show hunk count if not all hunks
+                let hunk_info = if change.hunks.is_empty() || change.hunks.len() == file.hunks.len()
+                {
+                    String::new()
+                } else {
+                    format!(" ({}/{} hunks)", change.hunks.len(), file.hunks.len())
+                };
 
                 let line = Line::from(vec![
-                    Span::raw(format!("{path} ")),
+                    Span::raw(format!("{path}{hunk_info} ")),
                     Span::styled(
-                        format!("+{}", file.added_count),
+                        format!("+{added}"),
                         Style::default().fg(Color::Green),
                     ),
                     Span::raw(" "),
                     Span::styled(
-                        format!("-{}", file.removed_count),
+                        format!("-{removed}"),
                         Style::default().fg(Color::Red),
                     ),
                 ]);
@@ -123,11 +162,26 @@ fn build_grouped_tree<'a>(
         }
     }
 
-    // Add "Other" group for files not in any semantic group
+    // Add "Other" group for hunks not in any semantic group
     let mut other_children: Vec<TreeItem<'a, TreeNodeId>> = Vec::new();
     for file in &app.diff_data.files {
         let path = file.target_file.trim_start_matches("b/").to_string();
-        if !used_paths.contains(&path) {
+        let covered = all_covered.get(&path);
+
+        let is_other = match covered {
+            None => true, // file not in any group
+            Some(hunk_set) => {
+                // If hunk_set is empty, the LLM said "all hunks" → fully covered
+                if hunk_set.is_empty() {
+                    false
+                } else {
+                    // Check if some hunks are uncovered
+                    (0..file.hunks.len()).any(|hi| !hunk_set.contains(&hi))
+                }
+            }
+        };
+
+        if is_other {
             let line = Line::from(vec![
                 Span::raw(format!("{path} ")),
                 Span::styled(
@@ -145,14 +199,12 @@ fn build_grouped_tree<'a>(
     }
 
     if !other_children.is_empty() {
-        let other_added: usize = other_children.len(); // placeholder
         let header = Line::from(vec![Span::styled(
             format!("Other ({} files)", other_children.len()),
             Style::default()
                 .fg(Color::DarkGray)
                 .add_modifier(Modifier::BOLD),
         )]);
-        let _ = other_added; // suppress warning
         if let Ok(item) =
             TreeItem::new(TreeNodeId::Group(groups.len()), header, other_children)
         {

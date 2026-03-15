@@ -1,4 +1,6 @@
 mod app;
+mod cache;
+mod config;
 mod diff;
 mod event;
 mod grouper;
@@ -30,6 +32,10 @@ async fn main() -> Result<()> {
 
     tracing::info!("semantic-diff starting");
 
+    // 2b. Load config (creates default if missing)
+    let config = config::load();
+    tracing::info!(?config, "Loaded config");
+
     // 3. Run git diff HEAD -M and capture output
     let output = std::process::Command::new("git")
         .args(["diff", "HEAD", "-M"])
@@ -55,19 +61,26 @@ async fn main() -> Result<()> {
 
     // 6. Set up async channel and app
     let (tx, mut rx) = mpsc::channel::<Message>(32);
-    let mut app = App::new(diff_data);
+    let mut app = App::new(diff_data, &config);
     app.event_tx = Some(tx.clone());
 
     // 7. Spawn the async event loop (terminal events + SIGUSR1)
     tokio::spawn(event::event_loop(tx.clone()));
 
-    // 7b. Trigger initial semantic grouping if claude is available
-    if app.claude_available {
-        let summaries = grouper::file_summaries(&app.diff_data);
+    // 7b. Trigger initial semantic grouping — check cache first, then LLM
+    let diff_hash = cache::diff_hash(&raw_diff);
+    if let Some(cached_groups) = cache::load(diff_hash) {
+        app.semantic_groups = Some(cached_groups);
+        app.grouping_status = grouper::GroupingStatus::Done;
+        tracing::info!("Using cached grouping");
+    } else if let Some(backend) = app.llm_backend {
+        let summaries = grouper::hunk_summaries(&app.diff_data);
+        let model = app.llm_model.clone();
         let tx2 = tx.clone();
         let handle = tokio::spawn(async move {
-            match grouper::llm::request_grouping_with_timeout(&summaries).await {
+            match grouper::llm::request_grouping_with_timeout(backend, &model, &summaries).await {
                 Ok(groups) => {
+                    cache::save(diff_hash, &groups);
                     let _ = tx2.send(Message::GroupingComplete(groups)).await;
                 }
                 Err(e) => {
@@ -101,17 +114,22 @@ async fn main() -> Result<()> {
                             if let Ok(output) = output {
                                 let raw = String::from_utf8_lossy(&output.stdout).to_string();
                                 let data = crate::diff::parse(&raw);
-                                let _ = tx2.send(Message::DiffParsed(data)).await;
+                                let _ = tx2.send(Message::DiffParsed(data, raw)).await;
                             }
                         });
                     }
-                    Command::SpawnGrouping(summaries) => {
+                    Command::SpawnGrouping { backend, model, summaries, diff_hash } => {
                         let tx2 = tx.clone();
                         let handle = tokio::spawn(async move {
-                            match crate::grouper::llm::request_grouping_with_timeout(&summaries)
-                                .await
+                            match crate::grouper::llm::request_grouping_with_timeout(
+                                backend,
+                                &model,
+                                &summaries,
+                            )
+                            .await
                             {
                                 Ok(groups) => {
+                                    crate::cache::save(diff_hash, &groups);
                                     let _ = tx2.send(Message::GroupingComplete(groups)).await;
                                 }
                                 Err(e) => {

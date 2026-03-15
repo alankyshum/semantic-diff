@@ -16,7 +16,7 @@ pub async fn event_loop(tx: mpsc::Sender<Message>) {
         tokio::select! {
             Some(Ok(event)) = reader.next() => {
                 match event {
-                    CrosstermEvent::Key(key) if key.kind == KeyEventKind::Press => {
+                    CrosstermEvent::Key(key) if matches!(key.kind, KeyEventKind::Press | KeyEventKind::Repeat) => {
                         if tx.send(Message::KeyPress(key)).await.is_err() {
                             break;
                         }
