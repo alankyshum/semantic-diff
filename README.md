@@ -1,7 +1,7 @@
 # semantic-diff
 
 [![Crates.io](https://img.shields.io/crates/v/semantic-diff)](https://crates.io/crates/semantic-diff)
-[![Homebrew](https://img.shields.io/homebrew/v/semantic-diff?tap=alankyshum/tap)](https://github.com/alankyshum/homebrew-tap)
+[![Homebrew](https://img.shields.io/crates/v/semantic-diff?label=homebrew)](https://github.com/alankyshum/homebrew-tap)
 
 A terminal diff viewer with AI-powered semantic grouping. Built with Rust and [ratatui](https://ratatui.rs).
 
