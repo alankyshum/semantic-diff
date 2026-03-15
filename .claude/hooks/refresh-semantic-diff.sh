@@ -2,10 +2,11 @@
 # PostToolUse hook: refresh semantic-diff or launch it in a cmux split
 # Called by Claude Code after Edit/Write tool calls (async, non-blocking)
 PIDFILE="/tmp/semantic-diff.pid"
+SURFACEFILE="/tmp/semantic-diff-surface.id"
 
+# If semantic-diff is already running, just signal it to refresh
 if [ -f "$PIDFILE" ]; then
     PID=$(cat "$PIDFILE")
-    # Verify the process is actually semantic-diff (macOS compatible)
     if ps -p "$PID" -o comm= 2>/dev/null | grep -q semantic-diff; then
         kill -USR1 "$PID" 2>/dev/null
         exit 0
@@ -15,15 +16,34 @@ if [ -f "$PIDFILE" ]; then
 fi
 
 # semantic-diff not running — launch in cmux split if available
-if command -v cmux >/dev/null 2>&1; then
-    # Create a right split and send the launch command
-    NEW_SURFACE=$(cmux new-split right --json 2>/dev/null | jq -r '.surface // empty')
-    if [ -n "$NEW_SURFACE" ]; then
-        cmux send --surface "$NEW_SURFACE" "cd \"${CLAUDE_PROJECT_DIR:-.}\" && semantic-diff\n"
-    else
-        # Fallback: try without --json if cmux version doesn't support it
-        cmux new-split right 2>/dev/null
+if ! command -v cmux >/dev/null 2>&1; then
+    exit 0
+fi
+
+# Check if we already have a surface from a previous launch
+if [ -f "$SURFACEFILE" ]; then
+    SURFACE=$(cat "$SURFACEFILE")
+    # Verify the surface still exists
+    if cmux list-pane-surfaces 2>/dev/null | grep -q "$SURFACE"; then
+        # Surface exists but semantic-diff isn't running — relaunch in it
+        cmux send --surface "$SURFACE" "cd \"${CLAUDE_PROJECT_DIR:-.}\" && semantic-diff\n" 2>/dev/null
+        exit 0
     fi
+    # Surface gone — remove stale file
+    rm -f "$SURFACEFILE"
+fi
+
+# No existing surface — create a new right split
+# Capture the surface ref from cmux output
+OUTPUT=$(cmux new-split right 2>&1)
+# Extract surface ref (e.g., "surface:42") from the output
+SURFACE=$(echo "$OUTPUT" | grep -o 'surface:[0-9]*' | head -1)
+
+if [ -n "$SURFACE" ]; then
+    echo "$SURFACE" > "$SURFACEFILE"
+    # Small delay to let the terminal initialize
+    sleep 0.3
+    cmux send --surface "$SURFACE" "cd \"${CLAUDE_PROJECT_DIR:-.}\" && semantic-diff\n" 2>/dev/null
 fi
 
 exit 0
