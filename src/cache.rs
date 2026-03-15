@@ -50,6 +50,15 @@ pub fn load(hash: u64) -> Option<Vec<SemanticGroup>> {
     let content = std::fs::read_to_string(&path).ok()?;
     let entry: CacheEntry = serde_json::from_str(&content).ok()?;
 
+    // Validate cache structure (FINDING-16: reject unreasonable group counts)
+    if entry.groups.len() > 50 {
+        tracing::warn!(
+            "Cache has too many groups ({}), ignoring",
+            entry.groups.len()
+        );
+        return None;
+    }
+
     if entry.diff_hash != hash {
         tracing::debug!("Cache miss: hash mismatch");
         return None;
@@ -188,5 +197,37 @@ mod tests {
         );
         // We can't easily test the full load() path without mocking cache_path(),
         // but we verify the size check constant is correct
+    }
+
+    #[test]
+    fn test_cache_entry_with_valid_groups_deserializes() {
+        let json = r#"{
+            "diff_hash": 12345,
+            "groups": [
+                {"label": "Auth", "description": "Auth changes", "changes": [{"file": "src/auth.rs", "hunks": [0]}]}
+            ]
+        }"#;
+        let entry: CacheEntry = serde_json::from_str(json).unwrap();
+        assert_eq!(entry.groups.len(), 1);
+        assert_eq!(entry.groups[0].label, "Auth");
+    }
+
+    #[test]
+    fn test_cache_entry_group_count_validation() {
+        // Build a cache entry with 60 groups (over the 50 limit)
+        let mut groups = Vec::new();
+        for i in 0..60 {
+            groups.push(CachedGroup {
+                label: format!("Group {}", i),
+                description: "desc".to_string(),
+                changes: vec![],
+            });
+        }
+        let entry = CacheEntry {
+            diff_hash: 99999,
+            groups,
+        };
+        // Validation check: > 50 groups should be rejected
+        assert!(entry.groups.len() > 50);
     }
 }

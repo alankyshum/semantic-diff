@@ -141,10 +141,60 @@ pub fn hunk_summaries(diff_data: &DiffData) -> String {
     out
 }
 
+/// Truncate a string to at most `max` bytes, respecting UTF-8 char boundaries.
+/// Returns a string slice that is always valid UTF-8.
 fn truncate(s: &str, max: usize) -> &str {
     if s.len() <= max {
         s
     } else {
-        &s[..max]
+        // Find the largest char boundary <= max
+        let mut end = max;
+        while end > 0 && !s.is_char_boundary(end) {
+            end -= 1;
+        }
+        &s[..end]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_truncate_ascii() {
+        assert_eq!(truncate("hello", 3), "hel");
+    }
+
+    #[test]
+    fn test_truncate_shorter_than_max() {
+        assert_eq!(truncate("hi", 10), "hi");
+    }
+
+    #[test]
+    fn test_truncate_cjk_at_boundary_no_panic() {
+        // CJK characters are 3 bytes each in UTF-8
+        let s = "\u{4e16}\u{754c}\u{4f60}\u{597d}"; // 世界你好 (12 bytes)
+        // Truncating at byte 4 should not panic -- it should back up to byte 3
+        let result = truncate(s, 4);
+        assert_eq!(result, "\u{4e16}"); // 世 (3 bytes)
+    }
+
+    #[test]
+    fn test_truncate_emoji_at_boundary_no_panic() {
+        // Emoji like 🦀 are 4 bytes in UTF-8
+        let s = "a🦀b"; // 1 + 4 + 1 = 6 bytes
+        // Truncating at byte 3 (middle of emoji) should not panic
+        let result = truncate(s, 3);
+        assert_eq!(result, "a"); // backs up to byte 1
+    }
+
+    #[test]
+    fn test_truncate_exact_boundary() {
+        assert_eq!(truncate("hello", 5), "hello");
+    }
+
+    #[test]
+    fn test_truncate_zero() {
+        assert_eq!(truncate("hello", 0), "");
     }
 }
