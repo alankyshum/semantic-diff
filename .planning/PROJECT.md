@@ -35,7 +35,15 @@ Show Claude's code changes in real-time with AI-powered semantic grouping, so th
 
 ### Active
 
-(None — awaiting next milestone)
+- [ ] Security audit: command injection in shell invocations (git diff, claude CLI)
+- [ ] Security audit: signal handling race conditions (SIGUSR1, PID file)
+- [ ] Security audit: LLM output parsing safety (untrusted Claude CLI JSON)
+- [ ] Security audit: file path traversal and symlink safety in diff parsing
+- [ ] Fix all identified security vulnerabilities
+- [ ] E2E test: live diff rendering (syntax highlighting, line numbers, word-level diff)
+- [ ] E2E test: real-time refresh via Claude Code hooks in cmux pane
+- [ ] E2E test: semantic grouping (AI clustering, sidebar, progressive enhancement)
+- [ ] E2E test: graceful edge cases (empty repos, huge diffs, binary files, no clauded)
 
 ### Out of Scope
 
@@ -74,5 +82,15 @@ No existing terminal tool combines collapse/expand with AI-driven semantic group
 | 3-phase quick depth | Diff viewer first, then hooks, then semantic grouping — each builds on prior | ✓ Good |
 | tui-tree-widget for sidebar | Purpose-built tree rendering, less custom code than manual approach | ✓ Good |
 
+## Current Milestone: v1.1 Security & Demo Readiness
+
+**Goal:** Audit all security surfaces (command injection, signal handling, LLM output trust, path traversal), fix all vulnerabilities, and thoroughly test every claimed feature for YC demo reliability.
+
+**Target features:**
+- Red team: identify vulnerabilities across all attack surfaces
+- Purple team: fix all identified issues with defensive hardening
+- Blue team: E2E testing of all v1.0 features under real-world conditions
+- Demo readiness: every claimed feature works flawlessly end-to-end
+
 ---
-*Last updated: 2026-03-15 after v1.0 milestone*
+*Last updated: 2026-03-15 after v1.1 milestone start*
