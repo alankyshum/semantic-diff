@@ -63,8 +63,7 @@ pub async fn request_grouping(
         .lines()
         .filter_map(|line| {
             let line = line.trim();
-            if line.starts_with("FILE: ") {
-                let rest = &line[6..];
+            if let Some(rest) = line.strip_prefix("FILE: ") {
                 let end = rest.find(" (")?;
                 Some(&rest[..end])
             } else {

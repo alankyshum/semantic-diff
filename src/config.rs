@@ -18,7 +18,7 @@ pub enum AiCli {
 }
 
 /// Raw JSON-serializable config (matches the file format).
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 #[serde(default)]
 struct RawConfig {
     #[serde(rename = "preferred-ai-cli")]
@@ -27,27 +27,12 @@ struct RawConfig {
     copilot: CliConfig,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 #[serde(default)]
 struct CliConfig {
     model: Option<String>,
 }
 
-impl Default for RawConfig {
-    fn default() -> Self {
-        Self {
-            preferred_ai_cli: None,
-            claude: CliConfig::default(),
-            copilot: CliConfig::default(),
-        }
-    }
-}
-
-impl Default for CliConfig {
-    fn default() -> Self {
-        Self { model: None }
-    }
-}
 
 /// Model tier for intelligent cross-backend mapping.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
