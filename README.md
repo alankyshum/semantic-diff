@@ -143,6 +143,27 @@ chmod +x ~/.claude/hooks/refresh-semantic-diff.sh
 
 ## Changelog
 
+### v0.3.0
+
+- **Security hardening** — Secure PID file management with atomic writes and ownership validation, path traversal protection in diff parser and config/cache paths, bounded LLM response reading with validated deserialization, UTF-8 safe truncation.
+- **Stdin-piped LLM invocation** — Prompts sent via stdin instead of command-line arguments to prevent process table exposure.
+- **Secure log file location** — Log file moved to a secure directory with restricted permissions.
+- **Integration test suite** — Added diff rendering, SIGUSR1 signal handling, large diff stress tests, and LLM integration tests.
+
+### v0.2.3
+
+- **Fix** — Resolve clippy warnings in config and LLM modules.
+
+### v0.2.2
+
+- **Fix** — Account for line wrapping in scroll offset calculation.
+- **Badges** — Added crates.io and Homebrew version badges to README.
+
+### v0.2.1
+
+- **Fix** — Remove non-functional cmux resize-pane call from hook.
+- **Docs** — Embed demo video in README.
+
 ### v0.2.0
 
 - **Hunk-level semantic grouping** — Groups related hunks across files by intent, matching GitHub Copilot's content-level approach. A single file's hunks can appear in different groups.

@@ -2,7 +2,7 @@
 
 *A living document updated after each milestone. Lessons feed forward into future planning.*
 
-## Milestone: v1.0 — MVP
+## Milestone 1: MVP (v0.1.0–v0.2.3)
 
 **Shipped:** 2026-03-15
 **Phases:** 3 | **Plans:** 7
@@ -22,7 +22,7 @@
 
 ### What Was Inefficient
 - Phase 3 ROADMAP.md still shows unchecked despite completion (minor bookkeeping gap)
-- No automated tests written during v1.0 — reliance on manual verification
+- No automated tests written during MVP — reliance on manual verification
 - clauded invocation syntax was undocumented, required trial and error in Phase 3
 
 ### Patterns Established
@@ -49,7 +49,8 @@
 
 | Milestone | Phases | Plans | Key Change |
 |-----------|--------|-------|------------|
-| v1.0 | 3 | 7 | Initial project, quick depth |
+| MVP (v0.1.0–v0.2.3) | 3 | 7 | Initial project, quick depth |
+| Security (v0.3.0) | 3 | 9 | Red/purple/blue team methodology |
 
 ### Top Lessons (Verified Across Milestones)
 

@@ -2,13 +2,13 @@
 
 ## Milestones
 
-- ✅ **v1.0 MVP** -- Phases 1-3 (shipped 2026-03-15)
-- 🚧 **v1.1 Security & Demo Readiness** -- Phases 4-6 (in progress)
+- ✅ **Milestone 1: MVP** -- Phases 1-3 (shipped 2026-03-15, releases v0.1.0–v0.2.3)
+- ✅ **Milestone 2: Security & Demo Readiness** -- Phases 4-6 (shipped 2026-03-15, release v0.3.0)
 
 ## Phases
 
 <details>
-<summary>✅ v1.0 MVP (Phases 1-3) -- SHIPPED 2026-03-15</summary>
+<summary>✅ Milestone 1: MVP (Phases 1-3) -- SHIPPED 2026-03-15</summary>
 
 - [x] Phase 1: Diff Viewer (3/3 plans) -- completed 2026-03-13
 - [x] Phase 2: Hook Integration (2/2 plans) -- completed 2026-03-13
@@ -18,19 +18,19 @@ Full details: `milestones/v1.0-ROADMAP.md`
 
 </details>
 
-### 🚧 v1.1 Security & Demo Readiness (In Progress)
+### ✅ Milestone 2: Security & Demo Readiness (Shipped)
 
 **Milestone Goal:** Audit all security surfaces, fix all vulnerabilities, and E2E test every claimed feature for YC demo reliability.
 
-- [ ] **Phase 4: Red Team -- Security & Dependency Audit** - Identify all vulnerabilities across command execution, signal handling, LLM output trust, path traversal, and dependencies
-- [ ] **Phase 5: Purple Team -- Security Hardening** - Fix all vulnerabilities identified in Phase 4 with defensive hardening across all attack surfaces
-- [x] **Phase 6: Blue Team -- E2E Demo Testing** - Verify every v1.0 feature works end-to-end under real-world conditions including edge cases (completed 2026-03-15)
+- [x] **Phase 4: Red Team -- Security & Dependency Audit** - Identify all vulnerabilities across command execution, signal handling, LLM output trust, path traversal, and dependencies (completed 2026-03-15)
+- [x] **Phase 5: Purple Team -- Security Hardening** - Fix all vulnerabilities identified in Phase 4 with defensive hardening across all attack surfaces (completed 2026-03-15)
+- [x] **Phase 6: Blue Team -- E2E Demo Testing** - Verify every feature works end-to-end under real-world conditions including edge cases (completed 2026-03-15)
 
 ## Phase Details
 
 ### Phase 4: Red Team -- Security & Dependency Audit
 **Goal**: Complete audit of all attack surfaces producing a documented inventory of vulnerabilities -- no code changes
-**Depends on**: Phase 3 (v1.0 shipped)
+**Depends on**: Phase 3 (MVP shipped)
 **Requirements**: CMD-03, DEP-01, DEP-02
 **Success Criteria** (what must be TRUE):
   1. Every `std::process::Command` and `tokio::process::Command` call in the codebase is catalogued with its argument-passing method and risk level
@@ -60,7 +60,7 @@ Plans:
 - [ ] 05-04-PLAN.md -- Bound LLM response size, validate deserialization, fix UTF-8 truncation
 
 ### Phase 6: Blue Team -- E2E Demo Testing
-**Goal**: Every v1.0 feature is verified working end-to-end with automated integration tests, including all edge cases critical for demo reliability
+**Goal**: Every feature is verified working end-to-end with automated integration tests, including all edge cases critical for demo reliability
 **Depends on**: Phase 5
 **Requirements**: TEST-01, TEST-02, TEST-03, TEST-04, TEST-05, TEST-06, TEST-07, TEST-08
 **Success Criteria** (what must be TRUE):
@@ -78,9 +78,9 @@ Plans:
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 1. Diff Viewer | v1.0 | 3/3 | Complete | 2026-03-13 |
-| 2. Hook Integration | v1.0 | 2/2 | Complete | 2026-03-13 |
-| 3. Semantic Grouping | v1.0 | 2/2 | Complete | 2026-03-15 |
-| 4. Red Team Audit | v1.1 | 0/2 | Planned | - |
-| 5. Purple Team Hardening | v1.1 | 0/4 | Planned | - |
-| 6. Blue Team E2E Testing | 3/3 | Complete   | 2026-03-15 | - |
+| 1. Diff Viewer | MVP | 3/3 | Complete | 2026-03-13 |
+| 2. Hook Integration | MVP | 2/2 | Complete | 2026-03-13 |
+| 3. Semantic Grouping | MVP | 2/2 | Complete | 2026-03-15 |
+| 4. Red Team Audit | Security | 2/2 | Complete | 2026-03-15 |
+| 5. Purple Team Hardening | Security | 4/4 | Complete | 2026-03-15 |
+| 6. Blue Team E2E Testing | Security | 3/3 | Complete | 2026-03-15 |

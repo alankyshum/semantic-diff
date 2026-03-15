@@ -1,9 +1,9 @@
-# Requirements: Semantic Diff TUI — v1.1 Security & Demo Readiness
+# Requirements: Semantic Diff TUI — v0.3.0 Security & Demo Readiness
 
 **Defined:** 2026-03-15
 **Core Value:** Show Claude's code changes in real-time with AI-powered semantic grouping, so the user always knows what's being changed and can mentally track the work without leaving the terminal.
 
-## v1.1 Requirements
+## v0.3.0 Requirements
 
 Requirements for security hardening and YC demo readiness.
 
@@ -94,7 +94,7 @@ Requirements for security hardening and YC demo readiness.
 | DEP-02 | Phase 4 | Complete |
 
 **Coverage:**
-- v1.1 requirements: 23 total
+- v0.3.0 requirements: 23 total
 - Mapped to phases: 23
 - Unmapped: 0
 

@@ -12,26 +12,26 @@ Show Claude's code changes in real-time with AI-powered semantic grouping, so th
 
 ### Validated
 
-- ✓ Syntax-highlighted unified diff with line numbers and hunk headers — v1.0
-- ✓ File change statistics (+/- counts) per file and total — v1.0
-- ✓ Word-level inline diff highlighting for changed characters — v1.0
-- ✓ Diff working tree against HEAD (staged + unstaged) — v1.0
-- ✓ Vim-like keyboard navigation (j/k, arrows, g/G, Ctrl+d/u) — v1.0
-- ✓ Collapse/expand files and hunks with Enter — v1.0
-- ✓ File tree sidebar with semantic group organization — v1.0
-- ✓ Search/filter files by name with / key — v1.0
-- ✓ AI semantic grouping via Claude CLI with progressive enhancement — v1.0
-- ✓ Collapsible semantic group tree nodes with summaries — v1.0
-- ✓ SIGUSR1-triggered refresh from Claude Code hooks — v1.0
-- ✓ cmux auto-split pane lifecycle — v1.0
-- ✓ PID file management (/tmp/semantic-diff.pid) — v1.0
-- ✓ PostToolUse hook for Edit/Write tools — v1.0
-- ✓ Panic hook terminal restoration — v1.0
-- ✓ Binary file graceful handling — v1.0
-- ✓ File rename detection — v1.0
-- ✓ 500ms signal debounce — v1.0
-- ✓ In-flight clauded cancellation on new refresh — v1.0
-- ✓ Graceful degradation when clauded unavailable — v1.0
+- ✓ Syntax-highlighted unified diff with line numbers and hunk headers — v0.2.3
+- ✓ File change statistics (+/- counts) per file and total — v0.2.3
+- ✓ Word-level inline diff highlighting for changed characters — v0.2.3
+- ✓ Diff working tree against HEAD (staged + unstaged) — v0.2.3
+- ✓ Vim-like keyboard navigation (j/k, arrows, g/G, Ctrl+d/u) — v0.2.3
+- ✓ Collapse/expand files and hunks with Enter — v0.2.3
+- ✓ File tree sidebar with semantic group organization — v0.2.3
+- ✓ Search/filter files by name with / key — v0.2.3
+- ✓ AI semantic grouping via Claude CLI with progressive enhancement — v0.2.3
+- ✓ Collapsible semantic group tree nodes with summaries — v0.2.3
+- ✓ SIGUSR1-triggered refresh from Claude Code hooks — v0.2.3
+- ✓ cmux auto-split pane lifecycle — v0.2.3
+- ✓ PID file management (/tmp/semantic-diff.pid) — v0.2.3
+- ✓ PostToolUse hook for Edit/Write tools — v0.2.3
+- ✓ Panic hook terminal restoration — v0.2.3
+- ✓ Binary file graceful handling — v0.2.3
+- ✓ File rename detection — v0.2.3
+- ✓ 500ms signal debounce — v0.2.3
+- ✓ In-flight clauded cancellation on new refresh — v0.2.3
+- ✓ Graceful degradation when clauded unavailable — v0.2.3
 
 ### Active
 
@@ -56,9 +56,9 @@ Show Claude's code changes in real-time with AI-powered semantic grouping, so th
 
 ## Context
 
-Shipped v1.0 with 3,050 LOC Rust across 3 phases in 3 days.
+Shipped MVP with 3,050 LOC Rust across 3 phases in 3 days.
 Tech stack: Rust, ratatui, syntect, tokio, tui-tree-widget.
-Published as v0.2.3 on crates.io and Homebrew.
+Latest release: v0.3.0 on crates.io and Homebrew.
 User runs Claude Code in cmux terminal multiplexer on macOS.
 No existing terminal tool combines collapse/expand with AI-driven semantic grouping.
 
@@ -82,15 +82,10 @@ No existing terminal tool combines collapse/expand with AI-driven semantic group
 | 3-phase quick depth | Diff viewer first, then hooks, then semantic grouping — each builds on prior | ✓ Good |
 | tui-tree-widget for sidebar | Purpose-built tree rendering, less custom code than manual approach | ✓ Good |
 
-## Current Milestone: v1.1 Security & Demo Readiness
+## Completed Milestones
 
-**Goal:** Audit all security surfaces (command injection, signal handling, LLM output trust, path traversal), fix all vulnerabilities, and thoroughly test every claimed feature for YC demo reliability.
-
-**Target features:**
-- Red team: identify vulnerabilities across all attack surfaces
-- Purple team: fix all identified issues with defensive hardening
-- Blue team: E2E testing of all v1.0 features under real-world conditions
-- Demo readiness: every claimed feature works flawlessly end-to-end
+1. **MVP** (v0.1.0–v0.2.3) — Diff viewer, hook integration, semantic grouping
+2. **Security & Demo Readiness** (v0.3.0) — Red/purple/blue team audit, hardening, E2E tests
 
 ---
-*Last updated: 2026-03-15 after v1.1 milestone start*
+*Last updated: 2026-03-15 after v0.3.0 release*

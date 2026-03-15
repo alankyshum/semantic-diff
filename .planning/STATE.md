@@ -1,8 +1,8 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
+milestone: 2
 milestone_name: Security & Demo Readiness
-status: unknown
+status: complete
 last_updated: "2026-03-15T16:49:39.277Z"
 progress:
   total_phases: 3
@@ -31,7 +31,7 @@ Progress: [████████████████████] 100%
 
 ## Performance Metrics
 
-**Velocity (v1.0):**
+**Velocity (MVP):**
 - Total plans completed: 10
 - Total execution time: ~3 days
 
@@ -42,8 +42,8 @@ Progress: [████████████████████] 100%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- [v1.1]: Red/purple/blue team methodology -- audit first (no code changes), then fix, then E2E test
-- [v1.1]: Quick depth -- 3 phases for 23 requirements
+- [v0.3.0]: Red/purple/blue team methodology -- audit first (no code changes), then fix, then E2E test
+- [v0.3.0]: Quick depth -- 3 phases for 23 requirements
 - [04-01]: Used --locked flag for cargo-audit install due to MSRV constraint
 - [04-01]: Default deny.toml kept for comprehensive audit baseline (not production config)
 - [04-02]: 30 findings total: 4 HIGH, 12 MEDIUM, 7 LOW, 2 INFO -- zero CRITICAL
