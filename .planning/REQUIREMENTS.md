@@ -69,35 +69,35 @@ Requirements for security hardening and YC demo readiness.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CMD-01 | Pending | Pending |
-| CMD-02 | Pending | Pending |
-| CMD-03 | Pending | Pending |
-| SIG-01 | Pending | Pending |
-| SIG-02 | Pending | Pending |
-| SIG-03 | Pending | Pending |
-| LLM-01 | Pending | Pending |
-| LLM-02 | Pending | Pending |
-| LLM-03 | Pending | Pending |
-| LLM-04 | Pending | Pending |
-| PATH-01 | Pending | Pending |
-| PATH-02 | Pending | Pending |
-| PATH-03 | Pending | Pending |
-| TEST-01 | Pending | Pending |
-| TEST-02 | Pending | Pending |
-| TEST-03 | Pending | Pending |
-| TEST-04 | Pending | Pending |
-| TEST-05 | Pending | Pending |
-| TEST-06 | Pending | Pending |
-| TEST-07 | Pending | Pending |
-| TEST-08 | Pending | Pending |
-| DEP-01 | Pending | Pending |
-| DEP-02 | Pending | Pending |
+| CMD-01 | Phase 5 | Pending |
+| CMD-02 | Phase 5 | Pending |
+| CMD-03 | Phase 4 | Pending |
+| SIG-01 | Phase 5 | Pending |
+| SIG-02 | Phase 5 | Pending |
+| SIG-03 | Phase 5 | Pending |
+| LLM-01 | Phase 5 | Pending |
+| LLM-02 | Phase 5 | Pending |
+| LLM-03 | Phase 5 | Pending |
+| LLM-04 | Phase 5 | Pending |
+| PATH-01 | Phase 5 | Pending |
+| PATH-02 | Phase 5 | Pending |
+| PATH-03 | Phase 5 | Pending |
+| TEST-01 | Phase 6 | Pending |
+| TEST-02 | Phase 6 | Pending |
+| TEST-03 | Phase 6 | Pending |
+| TEST-04 | Phase 6 | Pending |
+| TEST-05 | Phase 6 | Pending |
+| TEST-06 | Phase 6 | Pending |
+| TEST-07 | Phase 6 | Pending |
+| TEST-08 | Phase 6 | Pending |
+| DEP-01 | Phase 4 | Pending |
+| DEP-02 | Phase 4 | Pending |
 
 **Coverage:**
 - v1.1 requirements: 23 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 23
+- Mapped to phases: 23
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-15*
-*Last updated: 2026-03-15 after initial definition*
+*Last updated: 2026-03-15 after roadmap creation*
