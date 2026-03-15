@@ -9,8 +9,8 @@ Requirements for security hardening and YC demo readiness.
 
 ### Command Execution Safety
 
-- [ ] **CMD-01**: All shell commands use `Command::new()` with explicit args array, never shell interpolation
-- [ ] **CMD-02**: LLM prompt content passed via stdin pipe instead of CLI argument to avoid arg-length limits and shell metacharacter risks
+- [x] **CMD-01**: All shell commands use `Command::new()` with explicit args array, never shell interpolation
+- [x] **CMD-02**: LLM prompt content passed via stdin pipe instead of CLI argument to avoid arg-length limits and shell metacharacter risks
 - [x] **CMD-03**: Audit all `std::process::Command` and `tokio::process::Command` calls for argument safety
 
 ### Signal & PID Safety
@@ -69,8 +69,8 @@ Requirements for security hardening and YC demo readiness.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CMD-01 | Phase 5 | Pending |
-| CMD-02 | Phase 5 | Pending |
+| CMD-01 | Phase 5 | Complete |
+| CMD-02 | Phase 5 | Complete |
 | CMD-03 | Phase 4 | Complete |
 | SIG-01 | Phase 5 | Pending |
 | SIG-02 | Phase 5 | Pending |
