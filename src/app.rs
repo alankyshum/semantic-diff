@@ -4,7 +4,7 @@ use crate::grouper::{GroupingStatus, SemanticGroup};
 use crate::highlight::HighlightCache;
 use crate::ui::file_tree::TreeNodeId;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
 use tokio::sync::mpsc;
 use tui_tree_widget::TreeState;
@@ -67,6 +67,8 @@ pub struct UiState {
     pub collapsed: HashSet<NodeId>,
     /// Terminal viewport height, updated each frame.
     pub viewport_height: u16,
+    /// Width of the diff view panel (Cell for interior mutability during render).
+    pub diff_view_width: Cell<u16>,
 }
 
 /// An item in the flattened visible list.
@@ -124,6 +126,7 @@ impl App {
                 scroll_offset: 0,
                 collapsed: HashSet::new(),
                 viewport_height: 24, // will be updated on first draw
+                diff_view_width: Cell::new(80),
             },
             highlight_cache,
             should_quit: false,
@@ -707,16 +710,105 @@ impl App {
         }
     }
 
-    /// Adjust scroll offset to keep the selected item visible.
-    fn adjust_scroll(&mut self) {
-        let selected = self.ui_state.selected_index as u16;
-        let viewport = self.ui_state.viewport_height;
-
-        if selected < self.ui_state.scroll_offset {
-            self.ui_state.scroll_offset = selected;
-        } else if selected >= self.ui_state.scroll_offset + viewport {
-            self.ui_state.scroll_offset = selected - viewport + 1;
+    /// Estimate the character width of a visible item's rendered line.
+    fn item_char_width(&self, item: &VisibleItem) -> usize {
+        match item {
+            VisibleItem::FileHeader { file_idx } => {
+                let file = &self.diff_data.files[*file_idx];
+                let name = if file.is_rename {
+                    format!(
+                        "renamed: {} -> {}",
+                        file.source_file.trim_start_matches("a/"),
+                        file.target_file.trim_start_matches("b/")
+                    )
+                } else {
+                    file.target_file.trim_start_matches("b/").to_string()
+                };
+                // " v " + name + " " + "+N" + " -N"
+                3 + name.len()
+                    + 1
+                    + format!("+{}", file.added_count).len()
+                    + format!(" -{}", file.removed_count).len()
+            }
+            VisibleItem::HunkHeader { file_idx, hunk_idx } => {
+                let hunk = &self.diff_data.files[*file_idx].hunks[*hunk_idx];
+                // "   v " + header
+                5 + hunk.header.len()
+            }
+            VisibleItem::DiffLine {
+                file_idx,
+                hunk_idx,
+                line_idx,
+            } => {
+                let line =
+                    &self.diff_data.files[*file_idx].hunks[*hunk_idx].lines[*line_idx];
+                // gutter (10) + prefix (2) + content
+                12 + line.content.len()
+            }
         }
+    }
+
+    /// Calculate the visual row count for an item given the available width.
+    pub fn item_visual_rows(&self, item: &VisibleItem, width: u16) -> usize {
+        if width == 0 {
+            return 1;
+        }
+        let char_width = self.item_char_width(item);
+        char_width.div_ceil(width as usize).max(1)
+    }
+
+    /// Adjust scroll offset to keep the selected item visible,
+    /// accounting for line wrapping.
+    fn adjust_scroll(&mut self) {
+        let width = self.ui_state.diff_view_width.get();
+        let viewport = self.ui_state.viewport_height as usize;
+        let items = self.visible_items();
+        let selected = self.ui_state.selected_index;
+
+        if items.is_empty() || viewport == 0 {
+            self.ui_state.scroll_offset = 0;
+            return;
+        }
+
+        let scroll = self.ui_state.scroll_offset as usize;
+
+        // Selected is above viewport
+        if selected < scroll {
+            self.ui_state.scroll_offset = selected as u16;
+            return;
+        }
+
+        // Check if selected fits within viewport from current scroll
+        let mut rows = 0usize;
+        for (i, item) in items.iter().enumerate().take(selected + 1).skip(scroll) {
+            rows += self.item_visual_rows(item, width);
+            if rows > viewport && i < selected {
+                break;
+            }
+        }
+
+        if rows <= viewport {
+            return;
+        }
+
+        // Selected is below viewport — find scroll that shows it at bottom
+        let selected_height = self.item_visual_rows(&items[selected], width);
+        if selected_height >= viewport {
+            self.ui_state.scroll_offset = selected as u16;
+            return;
+        }
+
+        let mut remaining = viewport - selected_height;
+        let mut new_scroll = selected;
+        for i in (0..selected).rev() {
+            let h = self.item_visual_rows(&items[i], width);
+            if h > remaining {
+                break;
+            }
+            remaining -= h;
+            new_scroll = i;
+        }
+        self.ui_state.scroll_offset = new_scroll as u16;
     }
 
     /// Compute the list of visible items respecting collapsed state, active filter,

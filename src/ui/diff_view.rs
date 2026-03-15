@@ -11,15 +11,25 @@ pub fn render_diff(app: &App, frame: &mut Frame, area: Rect) {
     let scroll = app.ui_state.scroll_offset as usize;
     let viewport_height = area.height as usize;
 
+    // Store width so adjust_scroll can account for wrapping
+    app.ui_state.diff_view_width.set(area.width);
+
     let mut lines: Vec<Line> = Vec::new();
+    let mut visual_rows_used = 0usize;
 
-    // Only render items visible in the viewport
-    let start = scroll;
-    let end = (scroll + viewport_height).min(items.len());
-
-    for (idx, item) in items.iter().enumerate().take(end).skip(start) {
+    for (idx, item) in items.iter().enumerate().skip(scroll) {
+        if visual_rows_used >= viewport_height {
+            break;
+        }
         let is_selected = idx == app.ui_state.selected_index;
         let line = render_item(app, item, is_selected);
+        let char_width: usize = line.spans.iter().map(|s| s.content.len()).sum();
+        let wrapped_rows = if area.width > 0 && char_width > 0 {
+            char_width.div_ceil(area.width as usize)
+        } else {
+            1
+        };
+        visual_rows_used += wrapped_rows;
         lines.push(line);
     }
 
