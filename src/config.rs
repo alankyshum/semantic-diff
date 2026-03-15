@@ -98,11 +98,12 @@ impl Config {
 }
 
 /// Config file path: ~/.config/semantic-diff.json
-fn config_path() -> PathBuf {
-    dirs::home_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join(".config")
-        .join("semantic-diff.json")
+/// Returns None if home directory cannot be determined (refuses to fall back to cwd).
+fn config_path() -> Option<PathBuf> {
+    // Explicitly refuse to use cwd as home directory fallback.
+    // This prevents a malicious repo from injecting config via .config/semantic-diff.json
+    let home = dirs::home_dir()?;
+    Some(home.join(".config").join("semantic-diff.json"))
 }
 
 /// Default config file content with comments explaining each option.
@@ -129,8 +130,15 @@ const DEFAULT_CONFIG: &str = r#"{
 "#;
 
 /// Load config from disk. Creates a default commented config if none exists.
+/// Returns default config if home directory cannot be determined.
 pub fn load() -> Config {
-    let path = config_path();
+    let path = match config_path() {
+        Some(p) => p,
+        None => {
+            tracing::warn!("Could not determine home directory, using default config");
+            return Config::default_config();
+        }
+    };
 
     // Create default config if it doesn't exist
     if !path.exists() {

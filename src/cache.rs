@@ -35,9 +35,18 @@ pub fn diff_hash(raw_diff: &str) -> u64 {
 }
 
 /// Try to load cached grouping for the given diff hash.
-/// Returns None if no cache, hash mismatch, or parse error.
+/// Returns None if no cache, hash mismatch, parse error, or oversized file.
 pub fn load(hash: u64) -> Option<Vec<SemanticGroup>> {
     let path = cache_path()?;
+
+    // Reject oversized cache files (FINDING-16: prevent OOM from crafted cache)
+    let metadata = std::fs::metadata(&path).ok()?;
+    if metadata.len() > 1_048_576 {
+        // 1MB limit
+        tracing::warn!("Cache file too large ({} bytes), ignoring", metadata.len());
+        return None;
+    }
+
     let content = std::fs::read_to_string(&path).ok()?;
     let entry: CacheEntry = serde_json::from_str(&content).ok()?;
 
@@ -102,7 +111,7 @@ pub fn save(hash: u64, groups: &[SemanticGroup]) {
 }
 
 /// Path to the cache file: .git/semantic-diff-cache.json
-/// Returns None if not in a git repo.
+/// Returns None if not in a git repo or if git-dir is outside the repo root.
 fn cache_path() -> Option<PathBuf> {
     let output = std::process::Command::new("git")
         .args(["rev-parse", "--git-dir"])
@@ -112,6 +121,22 @@ fn cache_path() -> Option<PathBuf> {
         return None;
     }
     let git_dir = String::from_utf8(output.stdout).ok()?.trim().to_string();
+    let git_path = PathBuf::from(&git_dir);
+
+    // Validate: git-dir should be within or adjacent to the current working directory.
+    // This prevents crafted .git files from redirecting cache writes to arbitrary locations.
+    let cwd = std::env::current_dir().ok()?;
+    let canonical_git = std::fs::canonicalize(&git_path).unwrap_or(git_path.clone());
+    let canonical_cwd = std::fs::canonicalize(&cwd).unwrap_or(cwd);
+    if !canonical_git.starts_with(&canonical_cwd) {
+        tracing::warn!(
+            "git-dir {} is outside repo root {}, refusing to use cache",
+            canonical_git.display(),
+            canonical_cwd.display()
+        );
+        return None;
+    }
+
     Some(PathBuf::from(git_dir).join("semantic-diff-cache.json"))
 }
 
