@@ -1,0 +1,4334 @@
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/adler2-2.0.1/Cargo.toml:38:12
+   │
+38 │ license = "0BSD OR MIT OR Apache-2.0"
+   │            ━━━━────━━━────━━━━━━━━━━
+   │            │       │      │
+   │            │       │      rejected: license is not explicitly allowed
+   │            │       rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ 0BSD - BSD Zero Clause License:
+   ├   - OSI approved
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ adler2 v2.0.1
+     └── miniz_oxide v0.8.9
+         └── flate2 v1.1.9
+             └── syntect v5.3.0
+                 └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aho-corasick-1.1.4/Cargo.toml:40:12
+   │
+40 │ license = "Unlicense OR MIT"
+   │            ━━━━━━━━━────━━━
+   │            │            │
+   │            │            rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ Unlicense - The Unlicense:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ aho-corasick v1.1.4
+     ├── regex v1.12.3
+     │   └── unidiff v0.4.0
+     │       └── semantic-diff v0.2.3
+     └── regex-automata v0.4.14
+         ├── matchers v0.2.0
+         │   └── tracing-subscriber v0.3.23
+         │       └── semantic-diff v0.2.3 (*)
+         ├── regex v1.12.3 (*)
+         └── tracing-subscriber v0.3.23 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/allocator-api2-0.2.21/Cargo.toml:27:12
+   │
+27 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ allocator-api2 v0.2.21
+     └── hashbrown v0.16.1
+         ├── indexmap v2.13.0
+         │   └── plist v1.8.0
+         │       └── syntect v5.3.0
+         │           └── semantic-diff v0.2.3
+         ├── kasuari v0.4.11
+         │   └── ratatui-core v0.1.0
+         │       ├── ratatui v0.30.0
+         │       │   └── semantic-diff v0.2.3 (*)
+         │       ├── ratatui-crossterm v0.1.0
+         │       │   └── ratatui v0.30.0 (*)
+         │       ├── ratatui-macros v0.7.0
+         │       │   └── ratatui v0.30.0 (*)
+         │       ├── ratatui-widgets v0.3.0
+         │       │   ├── ratatui v0.30.0 (*)
+         │       │   ├── ratatui-macros v0.7.0 (*)
+         │       │   └── tui-tree-widget v0.24.0
+         │       │       └── semantic-diff v0.2.3 (*)
+         │       └── tui-tree-widget v0.24.0 (*)
+         ├── lru v0.16.3
+         │   └── ratatui-core v0.1.0 (*)
+         ├── ratatui-core v0.1.0 (*)
+         └── ratatui-widgets v0.3.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anstream-1.0.0/Cargo.toml:42:12
+   │
+42 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ anstream v1.0.0
+     └── clap_builder v4.6.0
+         └── clap v4.6.0
+             └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anstyle-1.0.14/Cargo.toml:41:12
+   │
+41 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ anstyle v1.0.14
+     ├── anstream v1.0.0
+     │   └── clap_builder v4.6.0
+     │       └── clap v4.6.0
+     │           └── semantic-diff v0.2.3
+     ├── anstyle-wincon v3.0.11
+     │   └── anstream v1.0.0 (*)
+     └── clap_builder v4.6.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anstyle-parse-1.0.0/Cargo.toml:41:12
+   │
+41 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ anstyle-parse v1.0.0
+     └── anstream v1.0.0
+         └── clap_builder v4.6.0
+             └── clap v4.6.0
+                 └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anstyle-query-1.1.5/Cargo.toml:42:12
+   │
+42 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ anstyle-query v1.1.5
+     └── anstream v1.0.0
+         └── clap_builder v4.6.0
+             └── clap v4.6.0
+                 └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anstyle-wincon-3.0.11/Cargo.toml:41:12
+   │
+41 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ anstyle-wincon v3.0.11
+     └── anstream v1.0.0
+         └── clap_builder v4.6.0
+             └── clap v4.6.0
+                 └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anyhow-1.0.102/Cargo.toml:35:12
+   │
+35 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ anyhow v1.0.102
+     └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/base64-0.22.1/Cargo.toml:29:12
+   │
+29 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ base64 v0.22.1
+     └── plist v1.8.0
+         └── syntect v5.3.0
+             └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bincode-1.3.3/Cargo.toml:24:12
+   │
+24 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ bincode v1.3.3
+     └── syntect v5.3.0
+         └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.11.0/Cargo.toml:41:12
+   │
+41 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ bitflags v2.11.0
+     ├── crossterm v0.29.0
+     │   ├── ratatui-crossterm v0.1.0
+     │   │   └── ratatui v0.30.0
+     │   │       └── semantic-diff v0.2.3
+     │   └── semantic-diff v0.2.3 (*)
+     ├── line-clipping v0.3.5
+     │   └── ratatui-widgets v0.3.0
+     │       ├── ratatui v0.30.0 (*)
+     │       ├── ratatui-macros v0.7.0
+     │       │   └── ratatui v0.30.0 (*)
+     │       └── tui-tree-widget v0.24.0
+     │           └── semantic-diff v0.2.3 (*)
+     ├── onig v6.5.1
+     │   └── syntect v5.3.0
+     │       └── semantic-diff v0.2.3 (*)
+     ├── ratatui-core v0.1.0
+     │   ├── ratatui v0.30.0 (*)
+     │   ├── ratatui-crossterm v0.1.0 (*)
+     │   ├── ratatui-macros v0.7.0 (*)
+     │   ├── ratatui-widgets v0.3.0 (*)
+     │   └── tui-tree-widget v0.24.0 (*)
+     ├── ratatui-widgets v0.3.0 (*)
+     ├── redox_syscall v0.5.18
+     │   └── parking_lot_core v0.9.12
+     │       └── parking_lot v0.12.5
+     │           ├── crossterm v0.29.0 (*)
+     │           └── tokio v1.50.0
+     │               └── semantic-diff v0.2.3 (*)
+     └── rustix v1.1.4
+         └── crossterm v0.29.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.11.1/Cargo.toml:38:12
+   │
+38 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ bytes v1.11.1
+     └── tokio v1.50.0
+         └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/castaway-0.2.4/Cargo.toml:34:12
+   │
+34 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ castaway v0.2.4
+     └── compact_str v0.9.0
+         └── ratatui-core v0.1.0
+             ├── ratatui v0.30.0
+             │   └── semantic-diff v0.2.3
+             ├── ratatui-crossterm v0.1.0
+             │   └── ratatui v0.30.0 (*)
+             ├── ratatui-macros v0.7.0
+             │   └── ratatui v0.30.0 (*)
+             ├── ratatui-widgets v0.3.0
+             │   ├── ratatui v0.30.0 (*)
+             │   ├── ratatui-macros v0.7.0 (*)
+             │   └── tui-tree-widget v0.24.0
+             │       └── semantic-diff v0.2.3 (*)
+             └── tui-tree-widget v0.24.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cc-1.2.56/Cargo.toml:39:12
+   │
+39 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ cc v1.2.56
+     └── (build) onig_sys v69.9.1
+         └── onig v6.5.1
+             └── syntect v5.3.0
+                 └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cfg-if-1.0.4/Cargo.toml:30:12
+   │
+30 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ cfg-if v1.0.4
+     ├── compact_str v0.9.0
+     │   └── ratatui-core v0.1.0
+     │       ├── ratatui v0.30.0
+     │       │   └── semantic-diff v0.2.3
+     │       ├── ratatui-crossterm v0.1.0
+     │       │   └── ratatui v0.30.0 (*)
+     │       ├── ratatui-macros v0.7.0
+     │       │   └── ratatui v0.30.0 (*)
+     │       ├── ratatui-widgets v0.3.0
+     │       │   ├── ratatui v0.30.0 (*)
+     │       │   ├── ratatui-macros v0.7.0 (*)
+     │       │   └── tui-tree-widget v0.24.0
+     │       │       └── semantic-diff v0.2.3 (*)
+     │       └── tui-tree-widget v0.24.0 (*)
+     ├── crc32fast v1.5.0
+     │   └── flate2 v1.1.9
+     │       └── syntect v5.3.0
+     │           └── semantic-diff v0.2.3 (*)
+     ├── encoding_rs v0.8.35
+     │   └── unidiff v0.4.0
+     │       └── semantic-diff v0.2.3 (*)
+     ├── getrandom v0.2.17
+     │   └── redox_users v0.5.2
+     │       └── dirs-sys v0.5.0
+     │           └── dirs v6.0.0
+     │               └── semantic-diff v0.2.3 (*)
+     ├── parking_lot_core v0.9.12
+     │   └── parking_lot v0.12.5
+     │       ├── crossterm v0.29.0
+     │       │   ├── ratatui-crossterm v0.1.0 (*)
+     │       │   └── semantic-diff v0.2.3 (*)
+     │       └── tokio v1.50.0
+     │           └── semantic-diff v0.2.3 (*)
+     ├── ratatui-crossterm v0.1.0 (*)
+     └── thread_local v1.1.9
+         └── tracing-subscriber v0.3.23
+             └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/clap-4.6.0/Cargo.toml:41:12
+   │
+41 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ clap v4.6.0
+     └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/clap_builder-4.6.0/Cargo.toml:41:12
+   │
+41 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ clap_builder v4.6.0
+     └── clap v4.6.0
+         └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/clap_derive-4.6.0/Cargo.toml:44:12
+   │
+44 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ clap_derive v4.6.0
+     └── clap v4.6.0
+         └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/clap_lex-1.1.0/Cargo.toml:41:12
+   │
+41 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ clap_lex v1.1.0
+     └── clap_builder v4.6.0
+         └── clap v4.6.0
+             └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/colorchoice-1.0.5/Cargo.toml:42:12
+   │
+42 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ colorchoice v1.0.5
+     └── anstream v1.0.0
+         └── clap_builder v4.6.0
+             └── clap v4.6.0
+                 └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/compact_str-0.9.0/Cargo.toml:39:12
+   │
+39 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ compact_str v0.9.0
+     └── ratatui-core v0.1.0
+         ├── ratatui v0.30.0
+         │   └── semantic-diff v0.2.3
+         ├── ratatui-crossterm v0.1.0
+         │   └── ratatui v0.30.0 (*)
+         ├── ratatui-macros v0.7.0
+         │   └── ratatui v0.30.0 (*)
+         ├── ratatui-widgets v0.3.0
+         │   ├── ratatui v0.30.0 (*)
+         │   ├── ratatui-macros v0.7.0 (*)
+         │   └── tui-tree-widget v0.24.0
+         │       └── semantic-diff v0.2.3 (*)
+         └── tui-tree-widget v0.24.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/convert_case-0.10.0/Cargo.toml:31:12
+   │
+31 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ convert_case v0.10.0
+     └── derive_more-impl v2.1.1
+         └── derive_more v2.1.1
+             └── crossterm v0.29.0
+                 ├── ratatui-crossterm v0.1.0
+                 │   └── ratatui v0.30.0
+                 │       └── semantic-diff v0.2.3
+                 └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crc32fast-1.5.0/Cargo.toml:40:12
+   │
+40 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ crc32fast v1.5.0
+     └── flate2 v1.1.9
+         └── syntect v5.3.0
+             └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crossterm-0.29.0/Cargo.toml:42:12
+   │
+42 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ crossterm v0.29.0
+     ├── ratatui-crossterm v0.1.0
+     │   └── ratatui v0.30.0
+     │       └── semantic-diff v0.2.3
+     └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crossterm_winapi-0.9.1/Cargo.toml:31:12
+   │
+31 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ crossterm_winapi v0.9.1
+     └── crossterm v0.29.0
+         ├── ratatui-crossterm v0.1.0
+         │   └── ratatui v0.30.0
+         │       └── semantic-diff v0.2.3
+         └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/darling-0.23.0/Cargo.toml:35:12
+   │
+35 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ darling v0.23.0
+     └── instability v0.3.11
+         ├── ratatui v0.30.0
+         │   └── semantic-diff v0.2.3
+         ├── ratatui-crossterm v0.1.0
+         │   └── ratatui v0.30.0 (*)
+         └── ratatui-widgets v0.3.0
+             ├── ratatui v0.30.0 (*)
+             ├── ratatui-macros v0.7.0
+             │   └── ratatui v0.30.0 (*)
+             └── tui-tree-widget v0.24.0
+                 └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/darling_core-0.23.0/Cargo.toml:29:12
+   │
+29 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ darling_core v0.23.0
+     ├── darling v0.23.0
+     │   └── instability v0.3.11
+     │       ├── ratatui v0.30.0
+     │       │   └── semantic-diff v0.2.3
+     │       ├── ratatui-crossterm v0.1.0
+     │       │   └── ratatui v0.30.0 (*)
+     │       └── ratatui-widgets v0.3.0
+     │           ├── ratatui v0.30.0 (*)
+     │           ├── ratatui-macros v0.7.0
+     │           │   └── ratatui v0.30.0 (*)
+     │           └── tui-tree-widget v0.24.0
+     │               └── semantic-diff v0.2.3 (*)
+     └── darling_macro v0.23.0
+         └── darling v0.23.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/darling_macro-0.23.0/Cargo.toml:29:12
+   │
+29 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ darling_macro v0.23.0
+     └── darling v0.23.0
+         └── instability v0.3.11
+             ├── ratatui v0.30.0
+             │   └── semantic-diff v0.2.3
+             ├── ratatui-crossterm v0.1.0
+             │   └── ratatui v0.30.0 (*)
+             └── ratatui-widgets v0.3.0
+                 ├── ratatui v0.30.0 (*)
+                 ├── ratatui-macros v0.7.0
+                 │   └── ratatui v0.30.0 (*)
+                 └── tui-tree-widget v0.24.0
+                     └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/deranged-0.5.8/Cargo.toml:36:12
+   │
+36 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ deranged v0.5.8
+     └── time v0.3.47
+         ├── plist v1.8.0
+         │   └── syntect v5.3.0
+         │       └── semantic-diff v0.2.3
+         └── ratatui-widgets v0.3.0
+             ├── ratatui v0.30.0
+             │   └── semantic-diff v0.2.3 (*)
+             ├── ratatui-macros v0.7.0
+             │   └── ratatui v0.30.0 (*)
+             └── tui-tree-widget v0.24.0
+                 └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/derive_more-2.1.1/Cargo.toml:49:12
+   │
+49 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ derive_more v2.1.1
+     └── crossterm v0.29.0
+         ├── ratatui-crossterm v0.1.0
+         │   └── ratatui v0.30.0
+         │       └── semantic-diff v0.2.3
+         └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/derive_more-impl-2.1.1/Cargo.toml:34:12
+   │
+34 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ derive_more-impl v2.1.1
+     └── derive_more v2.1.1
+         └── crossterm v0.29.0
+             ├── ratatui-crossterm v0.1.0
+             │   └── ratatui v0.30.0
+             │       └── semantic-diff v0.2.3
+             └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dirs-6.0.0/Cargo.toml:31:12
+   │
+31 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ dirs v6.0.0
+     └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dirs-sys-0.5.0/Cargo.toml:24:12
+   │
+24 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ dirs-sys v0.5.0
+     └── dirs v6.0.0
+         └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/document-features-0.2.12/Cargo.toml:34:12
+   │
+34 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ document-features v0.2.12
+     └── crossterm v0.29.0
+         ├── ratatui-crossterm v0.1.0
+         │   └── ratatui v0.30.0
+         │       └── semantic-diff v0.2.3
+         └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/either-1.15.0/Cargo.toml:37:12
+   │
+37 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ either v1.15.0
+     └── itertools v0.14.0
+         ├── ratatui-core v0.1.0
+         │   ├── ratatui v0.30.0
+         │   │   └── semantic-diff v0.2.3
+         │   ├── ratatui-crossterm v0.1.0
+         │   │   └── ratatui v0.30.0 (*)
+         │   ├── ratatui-macros v0.7.0
+         │   │   └── ratatui v0.30.0 (*)
+         │   ├── ratatui-widgets v0.3.0
+         │   │   ├── ratatui v0.30.0 (*)
+         │   │   ├── ratatui-macros v0.7.0 (*)
+         │   │   └── tui-tree-widget v0.24.0
+         │   │       └── semantic-diff v0.2.3 (*)
+         │   └── tui-tree-widget v0.24.0 (*)
+         ├── ratatui-widgets v0.3.0 (*)
+         └── unicode-truncate v2.0.1
+             └── ratatui-core v0.1.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/encoding_rs-0.8.35/Cargo.toml:39:13
+   │
+39 │ license = "(Apache-2.0 OR MIT) AND BSD-3-Clause"
+   │            ─━━━━━━━━━━────━━━──────━━━━━━━━━━━━
+   │             │             │        │
+   │             │             │        rejected: license is not explicitly allowed
+   │             │             rejected: license is not explicitly allowed
+   │             rejected: license is not explicitly allowed
+   │
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ BSD-3-Clause - BSD 3-Clause "New" or "Revised" License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ encoding_rs v0.8.35
+     └── unidiff v0.4.0
+         └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/equivalent-1.0.2/Cargo.toml:32:12
+   │
+32 │ license = "Apache-2.0 OR MIT"
+   │            ━━━━━━━━━━────━━━
+   │            │             │
+   │            │             rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ equivalent v1.0.2
+     ├── hashbrown v0.16.1
+     │   ├── indexmap v2.13.0
+     │   │   └── plist v1.8.0
+     │   │       └── syntect v5.3.0
+     │   │           └── semantic-diff v0.2.3
+     │   ├── kasuari v0.4.11
+     │   │   └── ratatui-core v0.1.0
+     │   │       ├── ratatui v0.30.0
+     │   │       │   └── semantic-diff v0.2.3 (*)
+     │   │       ├── ratatui-crossterm v0.1.0
+     │   │       │   └── ratatui v0.30.0 (*)
+     │   │       ├── ratatui-macros v0.7.0
+     │   │       │   └── ratatui v0.30.0 (*)
+     │   │       ├── ratatui-widgets v0.3.0
+     │   │       │   ├── ratatui v0.30.0 (*)
+     │   │       │   ├── ratatui-macros v0.7.0 (*)
+     │   │       │   └── tui-tree-widget v0.24.0
+     │   │       │       └── semantic-diff v0.2.3 (*)
+     │   │       └── tui-tree-widget v0.24.0 (*)
+     │   ├── lru v0.16.3
+     │   │   └── ratatui-core v0.1.0 (*)
+     │   ├── ratatui-core v0.1.0 (*)
+     │   └── ratatui-widgets v0.3.0 (*)
+     └── indexmap v2.13.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/errno-0.3.14/Cargo.toml:34:12
+   │
+34 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ errno v0.3.14
+     ├── rustix v1.1.4
+     │   └── crossterm v0.29.0
+     │       ├── ratatui-crossterm v0.1.0
+     │       │   └── ratatui v0.30.0
+     │       │       └── semantic-diff v0.2.3
+     │       └── semantic-diff v0.2.3 (*)
+     └── signal-hook-registry v1.4.8
+         ├── signal-hook v0.3.18
+         │   ├── crossterm v0.29.0 (*)
+         │   └── signal-hook-mio v0.2.5
+         │       └── crossterm v0.29.0 (*)
+         └── tokio v1.50.0
+             └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/find-msvc-tools-0.1.9/Cargo.toml:28:12
+   │
+28 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ find-msvc-tools v0.1.9
+     └── cc v1.2.56
+         └── (build) onig_sys v69.9.1
+             └── onig v6.5.1
+                 └── syntect v5.3.0
+                     └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/flate2-1.1.9/Cargo.toml:47:12
+   │
+47 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ flate2 v1.1.9
+     └── syntect v5.3.0
+         └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fnv-1.0.7/Cargo.toml:20:12
+   │
+20 │ license = "Apache-2.0 / MIT"
+   │            ━━━━━━━━━━───━━━
+   │            │            │
+   │            │            rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ fnv v1.0.7
+     └── syntect v5.3.0
+         └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/foldhash-0.2.0/Cargo.toml:40:12
+   │
+40 │ license = "Zlib"
+   │            ━━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ Zlib - zlib License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ foldhash v0.2.0
+     └── hashbrown v0.16.1
+         ├── indexmap v2.13.0
+         │   └── plist v1.8.0
+         │       └── syntect v5.3.0
+         │           └── semantic-diff v0.2.3
+         ├── kasuari v0.4.11
+         │   └── ratatui-core v0.1.0
+         │       ├── ratatui v0.30.0
+         │       │   └── semantic-diff v0.2.3 (*)
+         │       ├── ratatui-crossterm v0.1.0
+         │       │   └── ratatui v0.30.0 (*)
+         │       ├── ratatui-macros v0.7.0
+         │       │   └── ratatui v0.30.0 (*)
+         │       ├── ratatui-widgets v0.3.0
+         │       │   ├── ratatui v0.30.0 (*)
+         │       │   ├── ratatui-macros v0.7.0 (*)
+         │       │   └── tui-tree-widget v0.24.0
+         │       │       └── semantic-diff v0.2.3 (*)
+         │       └── tui-tree-widget v0.24.0 (*)
+         ├── lru v0.16.3
+         │   └── ratatui-core v0.1.0 (*)
+         ├── ratatui-core v0.1.0 (*)
+         └── ratatui-widgets v0.3.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-0.3.32/Cargo.toml:35:12
+   │
+35 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ futures v0.3.32
+     └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-channel-0.3.32/Cargo.toml:28:12
+   │
+28 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ futures-channel v0.3.32
+     ├── futures v0.3.32
+     │   └── semantic-diff v0.2.3
+     └── futures-util v0.3.32
+         ├── futures v0.3.32 (*)
+         └── futures-executor v0.3.32
+             └── futures v0.3.32 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-core-0.3.32/Cargo.toml:28:12
+   │
+28 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ futures-core v0.3.32
+     ├── crossterm v0.29.0
+     │   ├── ratatui-crossterm v0.1.0
+     │   │   └── ratatui v0.30.0
+     │   │       └── semantic-diff v0.2.3
+     │   └── semantic-diff v0.2.3 (*)
+     ├── futures v0.3.32
+     │   └── semantic-diff v0.2.3 (*)
+     ├── futures-channel v0.3.32
+     │   ├── futures v0.3.32 (*)
+     │   └── futures-util v0.3.32
+     │       ├── futures v0.3.32 (*)
+     │       └── futures-executor v0.3.32
+     │           └── futures v0.3.32 (*)
+     ├── futures-executor v0.3.32 (*)
+     └── futures-util v0.3.32 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-executor-0.3.32/Cargo.toml:28:12
+   │
+28 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ futures-executor v0.3.32
+     └── futures v0.3.32
+         └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-io-0.3.32/Cargo.toml:28:12
+   │
+28 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ futures-io v0.3.32
+     ├── futures v0.3.32
+     │   └── semantic-diff v0.2.3
+     └── futures-util v0.3.32
+         ├── futures v0.3.32 (*)
+         └── futures-executor v0.3.32
+             └── futures v0.3.32 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-macro-0.3.32/Cargo.toml:28:12
+   │
+28 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ futures-macro v0.3.32
+     └── futures-util v0.3.32
+         ├── futures v0.3.32
+         │   └── semantic-diff v0.2.3
+         └── futures-executor v0.3.32
+             └── futures v0.3.32 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-sink-0.3.32/Cargo.toml:28:12
+   │
+28 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ futures-sink v0.3.32
+     ├── futures v0.3.32
+     │   └── semantic-diff v0.2.3
+     ├── futures-channel v0.3.32
+     │   ├── futures v0.3.32 (*)
+     │   └── futures-util v0.3.32
+     │       ├── futures v0.3.32 (*)
+     │       └── futures-executor v0.3.32
+     │           └── futures v0.3.32 (*)
+     └── futures-util v0.3.32 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-task-0.3.32/Cargo.toml:28:12
+   │
+28 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ futures-task v0.3.32
+     ├── futures v0.3.32
+     │   └── semantic-diff v0.2.3
+     ├── futures-executor v0.3.32
+     │   └── futures v0.3.32 (*)
+     └── futures-util v0.3.32
+         ├── futures v0.3.32 (*)
+         └── futures-executor v0.3.32 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.32/Cargo.toml:28:12
+   │
+28 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ futures-util v0.3.32
+     ├── futures v0.3.32
+     │   └── semantic-diff v0.2.3
+     └── futures-executor v0.3.32
+         └── futures v0.3.32 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.17/Cargo.toml:31:12
+   │
+31 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ getrandom v0.2.17
+     └── redox_users v0.5.2
+         └── dirs-sys v0.5.0
+             └── dirs v6.0.0
+                 └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hashbrown-0.16.1/Cargo.toml:40:12
+   │
+40 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ hashbrown v0.16.1
+     ├── indexmap v2.13.0
+     │   └── plist v1.8.0
+     │       └── syntect v5.3.0
+     │           └── semantic-diff v0.2.3
+     ├── kasuari v0.4.11
+     │   └── ratatui-core v0.1.0
+     │       ├── ratatui v0.30.0
+     │       │   └── semantic-diff v0.2.3 (*)
+     │       ├── ratatui-crossterm v0.1.0
+     │       │   └── ratatui v0.30.0 (*)
+     │       ├── ratatui-macros v0.7.0
+     │       │   └── ratatui v0.30.0 (*)
+     │       ├── ratatui-widgets v0.3.0
+     │       │   ├── ratatui v0.30.0 (*)
+     │       │   ├── ratatui-macros v0.7.0 (*)
+     │       │   └── tui-tree-widget v0.24.0
+     │       │       └── semantic-diff v0.2.3 (*)
+     │       └── tui-tree-widget v0.24.0 (*)
+     ├── lru v0.16.3
+     │   └── ratatui-core v0.1.0 (*)
+     ├── ratatui-core v0.1.0 (*)
+     └── ratatui-widgets v0.3.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/heck-0.5.0/Cargo.toml:33:12
+   │
+33 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ heck v0.5.0
+     ├── clap_derive v4.6.0
+     │   └── clap v4.6.0
+     │       └── semantic-diff v0.2.3
+     └── strum_macros v0.27.2
+         └── strum v0.27.2
+             ├── ratatui-core v0.1.0
+             │   ├── ratatui v0.30.0
+             │   │   └── semantic-diff v0.2.3 (*)
+             │   ├── ratatui-crossterm v0.1.0
+             │   │   └── ratatui v0.30.0 (*)
+             │   ├── ratatui-macros v0.7.0
+             │   │   └── ratatui v0.30.0 (*)
+             │   ├── ratatui-widgets v0.3.0
+             │   │   ├── ratatui v0.30.0 (*)
+             │   │   ├── ratatui-macros v0.7.0 (*)
+             │   │   └── tui-tree-widget v0.24.0
+             │   │       └── semantic-diff v0.2.3 (*)
+             │   └── tui-tree-widget v0.24.0 (*)
+             └── ratatui-widgets v0.3.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ident_case-1.0.1/Cargo.toml:20:12
+   │
+20 │ license = "MIT/Apache-2.0"
+   │            ━━━─━━━━━━━━━━
+   │            │   │
+   │            │   rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ ident_case v1.0.1
+     └── darling_core v0.23.0
+         ├── darling v0.23.0
+         │   └── instability v0.3.11
+         │       ├── ratatui v0.30.0
+         │       │   └── semantic-diff v0.2.3
+         │       ├── ratatui-crossterm v0.1.0
+         │       │   └── ratatui v0.30.0 (*)
+         │       └── ratatui-widgets v0.3.0
+         │           ├── ratatui v0.30.0 (*)
+         │           ├── ratatui-macros v0.7.0
+         │           │   └── ratatui v0.30.0 (*)
+         │           └── tui-tree-widget v0.24.0
+         │               └── semantic-diff v0.2.3 (*)
+         └── darling_macro v0.23.0
+             └── darling v0.23.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/indexmap-2.13.0/Cargo.toml:34:12
+   │
+34 │ license = "Apache-2.0 OR MIT"
+   │            ━━━━━━━━━━────━━━
+   │            │             │
+   │            │             rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ indexmap v2.13.0
+     └── plist v1.8.0
+         └── syntect v5.3.0
+             └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/indoc-2.0.7/Cargo.toml:41:12
+   │
+41 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ indoc v2.0.7
+     ├── instability v0.3.11
+     │   ├── ratatui v0.30.0
+     │   │   └── semantic-diff v0.2.3
+     │   ├── ratatui-crossterm v0.1.0
+     │   │   └── ratatui v0.30.0 (*)
+     │   └── ratatui-widgets v0.3.0
+     │       ├── ratatui v0.30.0 (*)
+     │       ├── ratatui-macros v0.7.0
+     │       │   └── ratatui v0.30.0 (*)
+     │       └── tui-tree-widget v0.24.0
+     │           └── semantic-diff v0.2.3 (*)
+     ├── ratatui-core v0.1.0
+     │   ├── ratatui v0.30.0 (*)
+     │   ├── ratatui-crossterm v0.1.0 (*)
+     │   ├── ratatui-macros v0.7.0 (*)
+     │   ├── ratatui-widgets v0.3.0 (*)
+     │   └── tui-tree-widget v0.24.0 (*)
+     └── ratatui-widgets v0.3.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/instability-0.3.11/Cargo.toml:30:12
+   │
+30 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ instability v0.3.11
+     ├── ratatui v0.30.0
+     │   └── semantic-diff v0.2.3
+     ├── ratatui-crossterm v0.1.0
+     │   └── ratatui v0.30.0 (*)
+     └── ratatui-widgets v0.3.0
+         ├── ratatui v0.30.0 (*)
+         ├── ratatui-macros v0.7.0
+         │   └── ratatui v0.30.0 (*)
+         └── tui-tree-widget v0.24.0
+             └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/is_terminal_polyfill-1.70.2/Cargo.toml:37:12
+   │
+37 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ is_terminal_polyfill v1.70.2
+     └── anstream v1.0.0
+         └── clap_builder v4.6.0
+             └── clap v4.6.0
+                 └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/itertools-0.14.0/Cargo.toml:39:12
+   │
+39 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ itertools v0.14.0
+     ├── ratatui-core v0.1.0
+     │   ├── ratatui v0.30.0
+     │   │   └── semantic-diff v0.2.3
+     │   ├── ratatui-crossterm v0.1.0
+     │   │   └── ratatui v0.30.0 (*)
+     │   ├── ratatui-macros v0.7.0
+     │   │   └── ratatui v0.30.0 (*)
+     │   ├── ratatui-widgets v0.3.0
+     │   │   ├── ratatui v0.30.0 (*)
+     │   │   ├── ratatui-macros v0.7.0 (*)
+     │   │   └── tui-tree-widget v0.24.0
+     │   │       └── semantic-diff v0.2.3 (*)
+     │   └── tui-tree-widget v0.24.0 (*)
+     ├── ratatui-widgets v0.3.0 (*)
+     └── unicode-truncate v2.0.1
+         └── ratatui-core v0.1.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/itoa-1.0.17/Cargo.toml:37:12
+   │
+37 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ itoa v1.0.17
+     ├── compact_str v0.9.0
+     │   └── ratatui-core v0.1.0
+     │       ├── ratatui v0.30.0
+     │       │   └── semantic-diff v0.2.3
+     │       ├── ratatui-crossterm v0.1.0
+     │       │   └── ratatui v0.30.0 (*)
+     │       ├── ratatui-macros v0.7.0
+     │       │   └── ratatui v0.30.0 (*)
+     │       ├── ratatui-widgets v0.3.0
+     │       │   ├── ratatui v0.30.0 (*)
+     │       │   ├── ratatui-macros v0.7.0 (*)
+     │       │   └── tui-tree-widget v0.24.0
+     │       │       └── semantic-diff v0.2.3 (*)
+     │       └── tui-tree-widget v0.24.0 (*)
+     ├── serde_json v1.0.149
+     │   ├── semantic-diff v0.2.3 (*)
+     │   └── syntect v5.3.0
+     │       └── semantic-diff v0.2.3 (*)
+     └── time v0.3.47
+         ├── plist v1.8.0
+         │   └── syntect v5.3.0 (*)
+         └── ratatui-widgets v0.3.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/kasuari-0.4.11/Cargo.toml:47:12
+   │
+47 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ kasuari v0.4.11
+     └── ratatui-core v0.1.0
+         ├── ratatui v0.30.0
+         │   └── semantic-diff v0.2.3
+         ├── ratatui-crossterm v0.1.0
+         │   └── ratatui v0.30.0 (*)
+         ├── ratatui-macros v0.7.0
+         │   └── ratatui v0.30.0 (*)
+         ├── ratatui-widgets v0.3.0
+         │   ├── ratatui v0.30.0 (*)
+         │   ├── ratatui-macros v0.7.0 (*)
+         │   └── tui-tree-widget v0.24.0
+         │       └── semantic-diff v0.2.3 (*)
+         └── tui-tree-widget v0.24.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lazy_static-1.5.0/Cargo.toml:30:12
+   │
+30 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ lazy_static v1.5.0
+     └── sharded-slab v0.1.7
+         └── tracing-subscriber v0.3.23
+             └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.183/Cargo.toml:45:12
+   │
+45 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ libc v0.2.183
+     ├── dirs-sys v0.5.0
+     │   └── dirs v6.0.0
+     │       └── semantic-diff v0.2.3
+     ├── errno v0.3.14
+     │   ├── rustix v1.1.4
+     │   │   └── crossterm v0.29.0
+     │   │       ├── ratatui-crossterm v0.1.0
+     │   │       │   └── ratatui v0.30.0
+     │   │       │       └── semantic-diff v0.2.3 (*)
+     │   │       └── semantic-diff v0.2.3 (*)
+     │   └── signal-hook-registry v1.4.8
+     │       ├── signal-hook v0.3.18
+     │       │   ├── crossterm v0.29.0 (*)
+     │       │   └── signal-hook-mio v0.2.5
+     │       │       └── crossterm v0.29.0 (*)
+     │       └── tokio v1.50.0
+     │           └── semantic-diff v0.2.3 (*)
+     ├── getrandom v0.2.17
+     │   └── redox_users v0.5.2
+     │       └── dirs-sys v0.5.0 (*)
+     ├── libredox v0.1.14
+     │   └── redox_users v0.5.2 (*)
+     ├── mio v1.1.1
+     │   ├── crossterm v0.29.0 (*)
+     │   ├── signal-hook-mio v0.2.5 (*)
+     │   └── tokio v1.50.0 (*)
+     ├── num_threads v0.1.7
+     │   └── time v0.3.47
+     │       ├── plist v1.8.0
+     │       │   └── syntect v5.3.0
+     │       │       └── semantic-diff v0.2.3 (*)
+     │       └── ratatui-widgets v0.3.0
+     │           ├── ratatui v0.30.0 (*)
+     │           ├── ratatui-macros v0.7.0
+     │           │   └── ratatui v0.30.0 (*)
+     │           └── tui-tree-widget v0.24.0
+     │               └── semantic-diff v0.2.3 (*)
+     ├── onig v6.5.1
+     │   └── syntect v5.3.0 (*)
+     ├── parking_lot_core v0.9.12
+     │   └── parking_lot v0.12.5
+     │       ├── crossterm v0.29.0 (*)
+     │       └── tokio v1.50.0 (*)
+     ├── rustix v1.1.4 (*)
+     ├── signal-hook v0.3.18 (*)
+     ├── signal-hook-mio v0.2.5 (*)
+     ├── signal-hook-registry v1.4.8 (*)
+     ├── socket2 v0.6.3
+     │   └── tokio v1.50.0 (*)
+     ├── time v0.3.47 (*)
+     ├── tokio v1.50.0 (*)
+     └── which v8.0.2
+         └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libredox-0.1.14/Cargo.toml:26:12
+   │
+26 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ libredox v0.1.14
+     └── redox_users v0.5.2
+         └── dirs-sys v0.5.0
+             └── dirs v6.0.0
+                 └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/line-clipping-0.3.5/Cargo.toml:36:12
+   │
+36 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ line-clipping v0.3.5
+     └── ratatui-widgets v0.3.0
+         ├── ratatui v0.30.0
+         │   └── semantic-diff v0.2.3
+         ├── ratatui-macros v0.7.0
+         │   └── ratatui v0.30.0 (*)
+         └── tui-tree-widget v0.24.0
+             └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linked-hash-map-0.5.6/Cargo.toml:28:12
+   │
+28 │ license = "MIT/Apache-2.0"
+   │            ━━━─━━━━━━━━━━
+   │            │   │
+   │            │   rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ linked-hash-map v0.5.6
+     └── yaml-rust v0.4.5
+         └── syntect v5.3.0
+             └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linux-raw-sys-0.12.1/Cargo.toml:37:12
+   │
+37 │ license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+   │            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━────━━━━━━━━━━────━━━
+   │            │                                 │             │
+   │            │                                 │             rejected: license is not explicitly allowed
+   │            │                                 rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ linux-raw-sys v0.12.1
+     └── rustix v1.1.4
+         └── crossterm v0.29.0
+             ├── ratatui-crossterm v0.1.0
+             │   └── ratatui v0.30.0
+             │       └── semantic-diff v0.2.3
+             └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/litrs-1.0.0/Cargo.toml:44:12
+   │
+44 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ litrs v1.0.0
+     └── document-features v0.2.12
+         └── crossterm v0.29.0
+             ├── ratatui-crossterm v0.1.0
+             │   └── ratatui v0.30.0
+             │       └── semantic-diff v0.2.3
+             └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lock_api-0.4.14/Cargo.toml:36:12
+   │
+36 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ lock_api v0.4.14
+     └── parking_lot v0.12.5
+         ├── crossterm v0.29.0
+         │   ├── ratatui-crossterm v0.1.0
+         │   │   └── ratatui v0.30.0
+         │   │       └── semantic-diff v0.2.3
+         │   └── semantic-diff v0.2.3 (*)
+         └── tokio v1.50.0
+             └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.29/Cargo.toml:32:12
+   │
+32 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ log v0.4.29
+     ├── mio v1.1.1
+     │   ├── crossterm v0.29.0
+     │   │   ├── ratatui-crossterm v0.1.0
+     │   │   │   └── ratatui v0.30.0
+     │   │   │       └── semantic-diff v0.2.3
+     │   │   └── semantic-diff v0.2.3 (*)
+     │   ├── signal-hook-mio v0.2.5
+     │   │   └── crossterm v0.29.0 (*)
+     │   └── tokio v1.50.0
+     │       └── semantic-diff v0.2.3 (*)
+     └── tracing-log v0.2.0
+         └── tracing-subscriber v0.3.23
+             └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lru-0.16.3/Cargo.toml:29:12
+   │
+29 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ lru v0.16.3
+     └── ratatui-core v0.1.0
+         ├── ratatui v0.30.0
+         │   └── semantic-diff v0.2.3
+         ├── ratatui-crossterm v0.1.0
+         │   └── ratatui v0.30.0 (*)
+         ├── ratatui-macros v0.7.0
+         │   └── ratatui v0.30.0 (*)
+         ├── ratatui-widgets v0.3.0
+         │   ├── ratatui v0.30.0 (*)
+         │   ├── ratatui-macros v0.7.0 (*)
+         │   └── tui-tree-widget v0.24.0
+         │       └── semantic-diff v0.2.3 (*)
+         └── tui-tree-widget v0.24.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/matchers-0.2.0/Cargo.toml:30:12
+   │
+30 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ matchers v0.2.0
+     └── tracing-subscriber v0.3.23
+         └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/memchr-2.8.0/Cargo.toml:48:12
+   │
+48 │ license = "Unlicense OR MIT"
+   │            ━━━━━━━━━────━━━
+   │            │            │
+   │            │            rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ Unlicense - The Unlicense:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ memchr v2.8.0
+     ├── aho-corasick v1.1.4
+     │   ├── regex v1.12.3
+     │   │   └── unidiff v0.4.0
+     │   │       └── semantic-diff v0.2.3
+     │   └── regex-automata v0.4.14
+     │       ├── matchers v0.2.0
+     │       │   └── tracing-subscriber v0.3.23
+     │       │       └── semantic-diff v0.2.3 (*)
+     │       ├── regex v1.12.3 (*)
+     │       └── tracing-subscriber v0.3.23 (*)
+     ├── futures-util v0.3.32
+     │   ├── futures v0.3.32
+     │   │   └── semantic-diff v0.2.3 (*)
+     │   └── futures-executor v0.3.32
+     │       └── futures v0.3.32 (*)
+     ├── quick-xml v0.38.4
+     │   └── plist v1.8.0
+     │       └── syntect v5.3.0
+     │           └── semantic-diff v0.2.3 (*)
+     ├── regex v1.12.3 (*)
+     ├── regex-automata v0.4.14 (*)
+     └── serde_json v1.0.149
+         ├── semantic-diff v0.2.3 (*)
+         └── syntect v5.3.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/miniz_oxide-0.8.9/Cargo.toml:42:12
+   │
+42 │ license = "MIT OR Zlib OR Apache-2.0"
+   │            ━━━────━━━━────━━━━━━━━━━
+   │            │      │       │
+   │            │      │       rejected: license is not explicitly allowed
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Zlib - zlib License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ miniz_oxide v0.8.9
+     └── flate2 v1.1.9
+         └── syntect v5.3.0
+             └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mio-1.1.1/Cargo.toml:45:12
+   │
+45 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ mio v1.1.1
+     ├── crossterm v0.29.0
+     │   ├── ratatui-crossterm v0.1.0
+     │   │   └── ratatui v0.30.0
+     │   │       └── semantic-diff v0.2.3
+     │   └── semantic-diff v0.2.3 (*)
+     ├── signal-hook-mio v0.2.5
+     │   └── crossterm v0.29.0 (*)
+     └── tokio v1.50.0
+         └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nu-ansi-term-0.50.3/Cargo.toml:31:12
+   │
+31 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ nu-ansi-term v0.50.3
+     └── tracing-subscriber v0.3.23
+         └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/num-conv-0.2.0/Cargo.toml:46:12
+   │
+46 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ num-conv v0.2.0
+     └── time v0.3.47
+         ├── plist v1.8.0
+         │   └── syntect v5.3.0
+         │       └── semantic-diff v0.2.3
+         └── ratatui-widgets v0.3.0
+             ├── ratatui v0.30.0
+             │   └── semantic-diff v0.2.3 (*)
+             ├── ratatui-macros v0.7.0
+             │   └── ratatui v0.30.0 (*)
+             └── tui-tree-widget v0.24.0
+                 └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/num_threads-0.1.7/Cargo.toml:26:12
+   │
+26 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ num_threads v0.1.7
+     └── time v0.3.47
+         ├── plist v1.8.0
+         │   └── syntect v5.3.0
+         │       └── semantic-diff v0.2.3
+         └── ratatui-widgets v0.3.0
+             ├── ratatui v0.30.0
+             │   └── semantic-diff v0.2.3 (*)
+             ├── ratatui-macros v0.7.0
+             │   └── ratatui v0.30.0 (*)
+             └── tui-tree-widget v0.24.0
+                 └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/once_cell-1.21.4/Cargo.toml:41:12
+   │
+41 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ once_cell v1.21.4
+     ├── onig v6.5.1
+     │   └── syntect v5.3.0
+     │       └── semantic-diff v0.2.3
+     ├── syntect v5.3.0 (*)
+     ├── tracing-core v0.1.36
+     │   ├── tracing v0.1.44
+     │   │   ├── semantic-diff v0.2.3 (*)
+     │   │   └── tracing-subscriber v0.3.23
+     │   │       └── semantic-diff v0.2.3 (*)
+     │   ├── tracing-log v0.2.0
+     │   │   └── tracing-subscriber v0.3.23 (*)
+     │   └── tracing-subscriber v0.3.23 (*)
+     ├── tracing-log v0.2.0 (*)
+     └── tracing-subscriber v0.3.23 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/once_cell_polyfill-1.70.2/Cargo.toml:37:12
+   │
+37 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ once_cell_polyfill v1.70.2
+     └── anstyle-wincon v3.0.11
+         └── anstream v1.0.0
+             └── clap_builder v4.6.0
+                 └── clap v4.6.0
+                     └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/Cargo.toml:35:12
+   │
+35 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ onig v6.5.1
+     └── syntect v5.3.0
+         └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig_sys-69.9.1/Cargo.toml:40:12
+   │
+40 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ onig_sys v69.9.1
+     └── onig v6.5.1
+         └── syntect v5.3.0
+             └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/option-ext-0.2.0/Cargo.toml:21:12
+   │
+21 │ license = "MPL-2.0"
+   │            ━━━━━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MPL-2.0 - Mozilla Public License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├   - Copyleft
+   ├ option-ext v0.2.0
+     └── dirs-sys v0.5.0
+         └── dirs v6.0.0
+             └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/parking_lot-0.12.5/Cargo.toml:34:12
+   │
+34 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ parking_lot v0.12.5
+     ├── crossterm v0.29.0
+     │   ├── ratatui-crossterm v0.1.0
+     │   │   └── ratatui v0.30.0
+     │   │       └── semantic-diff v0.2.3
+     │   └── semantic-diff v0.2.3 (*)
+     └── tokio v1.50.0
+         └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/parking_lot_core-0.9.12/Cargo.toml:34:12
+   │
+34 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ parking_lot_core v0.9.12
+     └── parking_lot v0.12.5
+         ├── crossterm v0.29.0
+         │   ├── ratatui-crossterm v0.1.0
+         │   │   └── ratatui v0.30.0
+         │   │       └── semantic-diff v0.2.3
+         │   └── semantic-diff v0.2.3 (*)
+         └── tokio v1.50.0
+             └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pin-project-lite-0.2.17/Cargo.toml:41:12
+   │
+41 │ license = "Apache-2.0 OR MIT"
+   │            ━━━━━━━━━━────━━━
+   │            │             │
+   │            │             rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ pin-project-lite v0.2.17
+     ├── futures-util v0.3.32
+     │   ├── futures v0.3.32
+     │   │   └── semantic-diff v0.2.3
+     │   └── futures-executor v0.3.32
+     │       └── futures v0.3.32 (*)
+     ├── tokio v1.50.0
+     │   └── semantic-diff v0.2.3 (*)
+     └── tracing v0.1.44
+         ├── semantic-diff v0.2.3 (*)
+         └── tracing-subscriber v0.3.23
+             └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pkg-config-0.3.32/Cargo.toml:31:12
+   │
+31 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ pkg-config v0.3.32
+     └── (build) onig_sys v69.9.1
+         └── onig v6.5.1
+             └── syntect v5.3.0
+                 └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/plist-1.8.0/Cargo.toml:37:12
+   │
+37 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ plist v1.8.0
+     └── syntect v5.3.0
+         └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/powerfmt-0.2.0/Cargo.toml:36:12
+   │
+36 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ powerfmt v0.2.0
+     ├── deranged v0.5.8
+     │   └── time v0.3.47
+     │       ├── plist v1.8.0
+     │       │   └── syntect v5.3.0
+     │       │       └── semantic-diff v0.2.3
+     │       └── ratatui-widgets v0.3.0
+     │           ├── ratatui v0.30.0
+     │           │   └── semantic-diff v0.2.3 (*)
+     │           ├── ratatui-macros v0.7.0
+     │           │   └── ratatui v0.30.0 (*)
+     │           └── tui-tree-widget v0.24.0
+     │               └── semantic-diff v0.2.3 (*)
+     └── time v0.3.47 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proc-macro2-1.0.106/Cargo.toml:35:12
+   │
+35 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ proc-macro2 v1.0.106
+     ├── clap_derive v4.6.0
+     │   └── clap v4.6.0
+     │       └── semantic-diff v0.2.3
+     ├── darling_core v0.23.0
+     │   ├── darling v0.23.0
+     │   │   └── instability v0.3.11
+     │   │       ├── ratatui v0.30.0
+     │   │       │   └── semantic-diff v0.2.3 (*)
+     │   │       ├── ratatui-crossterm v0.1.0
+     │   │       │   └── ratatui v0.30.0 (*)
+     │   │       └── ratatui-widgets v0.3.0
+     │   │           ├── ratatui v0.30.0 (*)
+     │   │           ├── ratatui-macros v0.7.0
+     │   │           │   └── ratatui v0.30.0 (*)
+     │   │           └── tui-tree-widget v0.24.0
+     │   │               └── semantic-diff v0.2.3 (*)
+     │   └── darling_macro v0.23.0
+     │       └── darling v0.23.0 (*)
+     ├── derive_more-impl v2.1.1
+     │   └── derive_more v2.1.1
+     │       └── crossterm v0.29.0
+     │           ├── ratatui-crossterm v0.1.0 (*)
+     │           └── semantic-diff v0.2.3 (*)
+     ├── futures-macro v0.3.32
+     │   └── futures-util v0.3.32
+     │       ├── futures v0.3.32
+     │       │   └── semantic-diff v0.2.3 (*)
+     │       └── futures-executor v0.3.32
+     │           └── futures v0.3.32 (*)
+     ├── instability v0.3.11 (*)
+     ├── quote v1.0.45
+     │   ├── clap_derive v4.6.0 (*)
+     │   ├── darling_core v0.23.0 (*)
+     │   ├── darling_macro v0.23.0 (*)
+     │   ├── derive_more-impl v2.1.1 (*)
+     │   ├── futures-macro v0.3.32 (*)
+     │   ├── instability v0.3.11 (*)
+     │   ├── serde_derive v1.0.228
+     │   │   ├── serde v1.0.228
+     │   │   │   ├── bincode v1.3.3
+     │   │   │   │   └── syntect v5.3.0
+     │   │   │   │       └── semantic-diff v0.2.3 (*)
+     │   │   │   ├── plist v1.8.0
+     │   │   │   │   └── syntect v5.3.0 (*)
+     │   │   │   ├── semantic-diff v0.2.3 (*)
+     │   │   │   └── syntect v5.3.0 (*)
+     │   │   └── syntect v5.3.0 (*)
+     │   ├── strum_macros v0.27.2
+     │   │   └── strum v0.27.2
+     │   │       ├── ratatui-core v0.1.0
+     │   │       │   ├── ratatui v0.30.0 (*)
+     │   │       │   ├── ratatui-crossterm v0.1.0 (*)
+     │   │       │   ├── ratatui-macros v0.7.0 (*)
+     │   │       │   ├── ratatui-widgets v0.3.0 (*)
+     │   │       │   └── tui-tree-widget v0.24.0 (*)
+     │   │       └── ratatui-widgets v0.3.0 (*)
+     │   ├── syn v2.0.117
+     │   │   ├── clap_derive v4.6.0 (*)
+     │   │   ├── darling_core v0.23.0 (*)
+     │   │   ├── darling_macro v0.23.0 (*)
+     │   │   ├── derive_more-impl v2.1.1 (*)
+     │   │   ├── futures-macro v0.3.32 (*)
+     │   │   ├── instability v0.3.11 (*)
+     │   │   ├── serde_derive v1.0.228 (*)
+     │   │   ├── strum_macros v0.27.2 (*)
+     │   │   ├── thiserror-impl v2.0.18
+     │   │   │   └── thiserror v2.0.18
+     │   │   │       ├── kasuari v0.4.11
+     │   │   │       │   └── ratatui-core v0.1.0 (*)
+     │   │   │       ├── ratatui-core v0.1.0 (*)
+     │   │   │       ├── redox_users v0.5.2
+     │   │   │       │   └── dirs-sys v0.5.0
+     │   │   │       │       └── dirs v6.0.0
+     │   │   │       │           └── semantic-diff v0.2.3 (*)
+     │   │   │       └── syntect v5.3.0 (*)
+     │   │   ├── tokio-macros v2.6.1
+     │   │   │   └── tokio v1.50.0
+     │   │   │       └── semantic-diff v0.2.3 (*)
+     │   │   └── tracing-attributes v0.1.31
+     │   │       └── tracing v0.1.44
+     │   │           ├── semantic-diff v0.2.3 (*)
+     │   │           └── tracing-subscriber v0.3.23
+     │   │               └── semantic-diff v0.2.3 (*)
+     │   ├── thiserror-impl v2.0.18 (*)
+     │   ├── tokio-macros v2.6.1 (*)
+     │   └── tracing-attributes v0.1.31 (*)
+     ├── serde_derive v1.0.228 (*)
+     ├── strum_macros v0.27.2 (*)
+     ├── syn v2.0.117 (*)
+     ├── thiserror-impl v2.0.18 (*)
+     ├── tokio-macros v2.6.1 (*)
+     └── tracing-attributes v0.1.31 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-xml-0.38.4/Cargo.toml:44:12
+   │
+44 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ quick-xml v0.38.4
+     └── plist v1.8.0
+         └── syntect v5.3.0
+             └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quote-1.0.45/Cargo.toml:32:12
+   │
+32 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ quote v1.0.45
+     ├── clap_derive v4.6.0
+     │   └── clap v4.6.0
+     │       └── semantic-diff v0.2.3
+     ├── darling_core v0.23.0
+     │   ├── darling v0.23.0
+     │   │   └── instability v0.3.11
+     │   │       ├── ratatui v0.30.0
+     │   │       │   └── semantic-diff v0.2.3 (*)
+     │   │       ├── ratatui-crossterm v0.1.0
+     │   │       │   └── ratatui v0.30.0 (*)
+     │   │       └── ratatui-widgets v0.3.0
+     │   │           ├── ratatui v0.30.0 (*)
+     │   │           ├── ratatui-macros v0.7.0
+     │   │           │   └── ratatui v0.30.0 (*)
+     │   │           └── tui-tree-widget v0.24.0
+     │   │               └── semantic-diff v0.2.3 (*)
+     │   └── darling_macro v0.23.0
+     │       └── darling v0.23.0 (*)
+     ├── darling_macro v0.23.0 (*)
+     ├── derive_more-impl v2.1.1
+     │   └── derive_more v2.1.1
+     │       └── crossterm v0.29.0
+     │           ├── ratatui-crossterm v0.1.0 (*)
+     │           └── semantic-diff v0.2.3 (*)
+     ├── futures-macro v0.3.32
+     │   └── futures-util v0.3.32
+     │       ├── futures v0.3.32
+     │       │   └── semantic-diff v0.2.3 (*)
+     │       └── futures-executor v0.3.32
+     │           └── futures v0.3.32 (*)
+     ├── instability v0.3.11 (*)
+     ├── serde_derive v1.0.228
+     │   ├── serde v1.0.228
+     │   │   ├── bincode v1.3.3
+     │   │   │   └── syntect v5.3.0
+     │   │   │       └── semantic-diff v0.2.3 (*)
+     │   │   ├── plist v1.8.0
+     │   │   │   └── syntect v5.3.0 (*)
+     │   │   ├── semantic-diff v0.2.3 (*)
+     │   │   └── syntect v5.3.0 (*)
+     │   └── syntect v5.3.0 (*)
+     ├── strum_macros v0.27.2
+     │   └── strum v0.27.2
+     │       ├── ratatui-core v0.1.0
+     │       │   ├── ratatui v0.30.0 (*)
+     │       │   ├── ratatui-crossterm v0.1.0 (*)
+     │       │   ├── ratatui-macros v0.7.0 (*)
+     │       │   ├── ratatui-widgets v0.3.0 (*)
+     │       │   └── tui-tree-widget v0.24.0 (*)
+     │       └── ratatui-widgets v0.3.0 (*)
+     ├── syn v2.0.117
+     │   ├── clap_derive v4.6.0 (*)
+     │   ├── darling_core v0.23.0 (*)
+     │   ├── darling_macro v0.23.0 (*)
+     │   ├── derive_more-impl v2.1.1 (*)
+     │   ├── futures-macro v0.3.32 (*)
+     │   ├── instability v0.3.11 (*)
+     │   ├── serde_derive v1.0.228 (*)
+     │   ├── strum_macros v0.27.2 (*)
+     │   ├── thiserror-impl v2.0.18
+     │   │   └── thiserror v2.0.18
+     │   │       ├── kasuari v0.4.11
+     │   │       │   └── ratatui-core v0.1.0 (*)
+     │   │       ├── ratatui-core v0.1.0 (*)
+     │   │       ├── redox_users v0.5.2
+     │   │       │   └── dirs-sys v0.5.0
+     │   │       │       └── dirs v6.0.0
+     │   │       │           └── semantic-diff v0.2.3 (*)
+     │   │       └── syntect v5.3.0 (*)
+     │   ├── tokio-macros v2.6.1
+     │   │   └── tokio v1.50.0
+     │   │       └── semantic-diff v0.2.3 (*)
+     │   └── tracing-attributes v0.1.31
+     │       └── tracing v0.1.44
+     │           ├── semantic-diff v0.2.3 (*)
+     │           └── tracing-subscriber v0.3.23
+     │               └── semantic-diff v0.2.3 (*)
+     ├── thiserror-impl v2.0.18 (*)
+     ├── tokio-macros v2.6.1 (*)
+     └── tracing-attributes v0.1.31 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ratatui-0.30.0/Cargo.toml:45:12
+   │
+45 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ ratatui v0.30.0
+     └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ratatui-core-0.1.0/Cargo.toml:48:12
+   │
+48 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ ratatui-core v0.1.0
+     ├── ratatui v0.30.0
+     │   └── semantic-diff v0.2.3
+     ├── ratatui-crossterm v0.1.0
+     │   └── ratatui v0.30.0 (*)
+     ├── ratatui-macros v0.7.0
+     │   └── ratatui v0.30.0 (*)
+     ├── ratatui-widgets v0.3.0
+     │   ├── ratatui v0.30.0 (*)
+     │   ├── ratatui-macros v0.7.0 (*)
+     │   └── tui-tree-widget v0.24.0
+     │       └── semantic-diff v0.2.3 (*)
+     └── tui-tree-widget v0.24.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ratatui-crossterm-0.1.0/Cargo.toml:45:12
+   │
+45 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ ratatui-crossterm v0.1.0
+     └── ratatui v0.30.0
+         └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ratatui-macros-0.7.0/Cargo.toml:33:12
+   │
+33 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ ratatui-macros v0.7.0
+     └── ratatui v0.30.0
+         └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ratatui-widgets-0.3.0/Cargo.toml:45:12
+   │
+45 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ ratatui-widgets v0.3.0
+     ├── ratatui v0.30.0
+     │   └── semantic-diff v0.2.3
+     ├── ratatui-macros v0.7.0
+     │   └── ratatui v0.30.0 (*)
+     └── tui-tree-widget v0.24.0
+         └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/redox_syscall-0.5.18/Cargo.toml:26:12
+   │
+26 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ redox_syscall v0.5.18
+     └── parking_lot_core v0.9.12
+         └── parking_lot v0.12.5
+             ├── crossterm v0.29.0
+             │   ├── ratatui-crossterm v0.1.0
+             │   │   └── ratatui v0.30.0
+             │   │       └── semantic-diff v0.2.3
+             │   └── semantic-diff v0.2.3 (*)
+             └── tokio v1.50.0
+                 └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/redox_users-0.5.2/Cargo.toml:33:12
+   │
+33 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ redox_users v0.5.2
+     └── dirs-sys v0.5.0
+         └── dirs v6.0.0
+             └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.3/Cargo.toml:50:12
+   │
+50 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ regex v1.12.3
+     └── unidiff v0.4.0
+         └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-automata-0.4.14/Cargo.toml:54:12
+   │
+54 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ regex-automata v0.4.14
+     ├── matchers v0.2.0
+     │   └── tracing-subscriber v0.3.23
+     │       └── semantic-diff v0.2.3
+     ├── regex v1.12.3
+     │   └── unidiff v0.4.0
+     │       └── semantic-diff v0.2.3 (*)
+     └── tracing-subscriber v0.3.23 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-syntax-0.8.10/Cargo.toml:47:12
+   │
+47 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ regex-syntax v0.8.10
+     ├── regex v1.12.3
+     │   └── unidiff v0.4.0
+     │       └── semantic-diff v0.2.3
+     ├── regex-automata v0.4.14
+     │   ├── matchers v0.2.0
+     │   │   └── tracing-subscriber v0.3.23
+     │   │       └── semantic-diff v0.2.3 (*)
+     │   ├── regex v1.12.3 (*)
+     │   └── tracing-subscriber v0.3.23 (*)
+     └── syntect v5.3.0
+         └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rustc_version-0.4.1/Cargo.toml:29:12
+   │
+29 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ rustc_version v0.4.1
+     └── (build) derive_more-impl v2.1.1
+         └── derive_more v2.1.1
+             └── crossterm v0.29.0
+                 ├── ratatui-crossterm v0.1.0
+                 │   └── ratatui v0.30.0
+                 │       └── semantic-diff v0.2.3
+                 └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rustix-1.1.4/Cargo.toml:52:12
+   │
+52 │ license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+   │            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━────━━━━━━━━━━────━━━
+   │            │                                 │             │
+   │            │                                 │             rejected: license is not explicitly allowed
+   │            │                                 rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ rustix v1.1.4
+     └── crossterm v0.29.0
+         ├── ratatui-crossterm v0.1.0
+         │   └── ratatui v0.30.0
+         │       └── semantic-diff v0.2.3
+         └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rustversion-1.0.22/Cargo.toml:32:12
+   │
+32 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ rustversion v1.0.22
+     ├── castaway v0.2.4
+     │   └── compact_str v0.9.0
+     │       └── ratatui-core v0.1.0
+     │           ├── ratatui v0.30.0
+     │           │   └── semantic-diff v0.2.3
+     │           ├── ratatui-crossterm v0.1.0
+     │           │   └── ratatui v0.30.0 (*)
+     │           ├── ratatui-macros v0.7.0
+     │           │   └── ratatui v0.30.0 (*)
+     │           ├── ratatui-widgets v0.3.0
+     │           │   ├── ratatui v0.30.0 (*)
+     │           │   ├── ratatui-macros v0.7.0 (*)
+     │           │   └── tui-tree-widget v0.24.0
+     │           │       └── semantic-diff v0.2.3 (*)
+     │           └── tui-tree-widget v0.24.0 (*)
+     ├── compact_str v0.9.0 (*)
+     └── (build) indoc v2.0.7
+         ├── instability v0.3.11
+         │   ├── ratatui v0.30.0 (*)
+         │   ├── ratatui-crossterm v0.1.0 (*)
+         │   └── ratatui-widgets v0.3.0 (*)
+         ├── ratatui-core v0.1.0 (*)
+         └── ratatui-widgets v0.3.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ryu-1.0.23/Cargo.toml:37:12
+   │
+37 │ license = "Apache-2.0 OR BSL-1.0"
+   │            ━━━━━━━━━━────━━━━━━━
+   │            │             │
+   │            │             rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ BSL-1.0 - Boost Software License 1.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ ryu v1.0.23
+     └── compact_str v0.9.0
+         └── ratatui-core v0.1.0
+             ├── ratatui v0.30.0
+             │   └── semantic-diff v0.2.3
+             ├── ratatui-crossterm v0.1.0
+             │   └── ratatui v0.30.0 (*)
+             ├── ratatui-macros v0.7.0
+             │   └── ratatui v0.30.0 (*)
+             ├── ratatui-widgets v0.3.0
+             │   ├── ratatui v0.30.0 (*)
+             │   ├── ratatui-macros v0.7.0 (*)
+             │   └── tui-tree-widget v0.24.0
+             │       └── semantic-diff v0.2.3 (*)
+             └── tui-tree-widget v0.24.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/same-file-1.0.6/Cargo.toml:24:12
+   │
+24 │ license = "Unlicense/MIT"
+   │            ━━━━━━━━━─━━━
+   │            │         │
+   │            │         rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ Unlicense - The Unlicense:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ same-file v1.0.6
+     └── walkdir v2.5.0
+         └── syntect v5.3.0
+             └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/scopeguard-1.2.0/Cargo.toml:35:12
+   │
+35 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ scopeguard v1.2.0
+     └── lock_api v0.4.14
+         └── parking_lot v0.12.5
+             ├── crossterm v0.29.0
+             │   ├── ratatui-crossterm v0.1.0
+             │   │   └── ratatui v0.30.0
+             │   │       └── semantic-diff v0.2.3
+             │   └── semantic-diff v0.2.3 (*)
+             └── tokio v1.50.0
+                 └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+  ┌─ /Users/kshum/Documents/gitproj/semantic-diff/Cargo.toml:6:12
+  │
+6 │ license = "MIT"
+  │            ━━━
+  │            │
+  │            rejected: license is not explicitly allowed
+  │
+  ├ MIT - MIT License:
+  ├   - OSI approved
+  ├   - FSF Free/Libre
+  ├ semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/semver-1.0.27/Cargo.toml:33:12
+   │
+33 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ semver v1.0.27
+     └── rustc_version v0.4.1
+         └── (build) derive_more-impl v2.1.1
+             └── derive_more v2.1.1
+                 └── crossterm v0.29.0
+                     ├── ratatui-crossterm v0.1.0
+                     │   └── ratatui v0.30.0
+                     │       └── semantic-diff v0.2.3
+                     └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/Cargo.toml:41:12
+   │
+41 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ serde v1.0.228
+     ├── bincode v1.3.3
+     │   └── syntect v5.3.0
+     │       └── semantic-diff v0.2.3
+     ├── plist v1.8.0
+     │   └── syntect v5.3.0 (*)
+     ├── semantic-diff v0.2.3 (*)
+     └── syntect v5.3.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde_core-1.0.228/Cargo.toml:41:12
+   │
+41 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ serde_core v1.0.228
+     ├── serde v1.0.228
+     │   ├── bincode v1.3.3
+     │   │   └── syntect v5.3.0
+     │   │       └── semantic-diff v0.2.3
+     │   ├── plist v1.8.0
+     │   │   └── syntect v5.3.0 (*)
+     │   ├── semantic-diff v0.2.3 (*)
+     │   └── syntect v5.3.0 (*)
+     └── serde_json v1.0.149
+         ├── semantic-diff v0.2.3 (*)
+         └── syntect v5.3.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde_derive-1.0.228/Cargo.toml:42:12
+   │
+42 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ serde_derive v1.0.228
+     ├── serde v1.0.228
+     │   ├── bincode v1.3.3
+     │   │   └── syntect v5.3.0
+     │   │       └── semantic-diff v0.2.3
+     │   ├── plist v1.8.0
+     │   │   └── syntect v5.3.0 (*)
+     │   ├── semantic-diff v0.2.3 (*)
+     │   └── syntect v5.3.0 (*)
+     └── syntect v5.3.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde_json-1.0.149/Cargo.toml:40:12
+   │
+40 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ serde_json v1.0.149
+     ├── semantic-diff v0.2.3
+     └── syntect v5.3.0
+         └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sharded-slab-0.1.7/Cargo.toml:35:12
+   │
+35 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ sharded-slab v0.1.7
+     └── tracing-subscriber v0.3.23
+         └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shlex-1.3.0/Cargo.toml:30:12
+   │
+30 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ shlex v1.3.0
+     └── cc v1.2.56
+         └── (build) onig_sys v69.9.1
+             └── onig v6.5.1
+                 └── syntect v5.3.0
+                     └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/signal-hook-0.3.18/Cargo.toml:34:12
+   │
+34 │ license = "Apache-2.0/MIT"
+   │            ━━━━━━━━━━─━━━
+   │            │          │
+   │            │          rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ signal-hook v0.3.18
+     ├── crossterm v0.29.0
+     │   ├── ratatui-crossterm v0.1.0
+     │   │   └── ratatui v0.30.0
+     │   │       └── semantic-diff v0.2.3
+     │   └── semantic-diff v0.2.3 (*)
+     └── signal-hook-mio v0.2.5
+         └── crossterm v0.29.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/signal-hook-mio-0.2.5/Cargo.toml:34:12
+   │
+34 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ signal-hook-mio v0.2.5
+     └── crossterm v0.29.0
+         ├── ratatui-crossterm v0.1.0
+         │   └── ratatui v0.30.0
+         │       └── semantic-diff v0.2.3
+         └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/signal-hook-registry-1.4.8/Cargo.toml:34:12
+   │
+34 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ signal-hook-registry v1.4.8
+     ├── signal-hook v0.3.18
+     │   ├── crossterm v0.29.0
+     │   │   ├── ratatui-crossterm v0.1.0
+     │   │   │   └── ratatui v0.30.0
+     │   │   │       └── semantic-diff v0.2.3
+     │   │   └── semantic-diff v0.2.3 (*)
+     │   └── signal-hook-mio v0.2.5
+     │       └── crossterm v0.29.0 (*)
+     └── tokio v1.50.0
+         └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/simd-adler32-0.3.8/Cargo.toml:37:12
+   │
+37 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ simd-adler32 v0.3.8
+     └── miniz_oxide v0.8.9
+         └── flate2 v1.1.9
+             └── syntect v5.3.0
+                 └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/similar-2.7.0/Cargo.toml:38:12
+   │
+38 │ license = "Apache-2.0"
+   │            ━━━━━━━━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ similar v2.7.0
+     └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/slab-0.4.12/Cargo.toml:37:12
+   │
+37 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ slab v0.4.12
+     └── futures-util v0.3.32
+         ├── futures v0.3.32
+         │   └── semantic-diff v0.2.3
+         └── futures-executor v0.3.32
+             └── futures v0.3.32 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/smallvec-1.15.1/Cargo.toml:34:12
+   │
+34 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ smallvec v1.15.1
+     ├── parking_lot_core v0.9.12
+     │   └── parking_lot v0.12.5
+     │       ├── crossterm v0.29.0
+     │       │   ├── ratatui-crossterm v0.1.0
+     │       │   │   └── ratatui v0.30.0
+     │       │   │       └── semantic-diff v0.2.3
+     │       │   └── semantic-diff v0.2.3 (*)
+     │       └── tokio v1.50.0
+     │           └── semantic-diff v0.2.3 (*)
+     └── tracing-subscriber v0.3.23
+         └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.6.3/Cargo.toml:50:12
+   │
+50 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ socket2 v0.6.3
+     └── tokio v1.50.0
+         └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/static_assertions-1.1.0/Cargo.toml:24:12
+   │
+24 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ static_assertions v1.1.0
+     └── compact_str v0.9.0
+         └── ratatui-core v0.1.0
+             ├── ratatui v0.30.0
+             │   └── semantic-diff v0.2.3
+             ├── ratatui-crossterm v0.1.0
+             │   └── ratatui v0.30.0 (*)
+             ├── ratatui-macros v0.7.0
+             │   └── ratatui v0.30.0 (*)
+             ├── ratatui-widgets v0.3.0
+             │   ├── ratatui v0.30.0 (*)
+             │   ├── ratatui-macros v0.7.0 (*)
+             │   └── tui-tree-widget v0.24.0
+             │       └── semantic-diff v0.2.3 (*)
+             └── tui-tree-widget v0.24.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/strsim-0.11.1/Cargo.toml:39:12
+   │
+39 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ strsim v0.11.1
+     ├── clap_builder v4.6.0
+     │   └── clap v4.6.0
+     │       └── semantic-diff v0.2.3
+     └── darling_core v0.23.0
+         ├── darling v0.23.0
+         │   └── instability v0.3.11
+         │       ├── ratatui v0.30.0
+         │       │   └── semantic-diff v0.2.3 (*)
+         │       ├── ratatui-crossterm v0.1.0
+         │       │   └── ratatui v0.30.0 (*)
+         │       └── ratatui-widgets v0.3.0
+         │           ├── ratatui v0.30.0 (*)
+         │           ├── ratatui-macros v0.7.0
+         │           │   └── ratatui v0.30.0 (*)
+         │           └── tui-tree-widget v0.24.0
+         │               └── semantic-diff v0.2.3 (*)
+         └── darling_macro v0.23.0
+             └── darling v0.23.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/strum-0.27.2/Cargo.toml:38:12
+   │
+38 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ strum v0.27.2
+     ├── ratatui-core v0.1.0
+     │   ├── ratatui v0.30.0
+     │   │   └── semantic-diff v0.2.3
+     │   ├── ratatui-crossterm v0.1.0
+     │   │   └── ratatui v0.30.0 (*)
+     │   ├── ratatui-macros v0.7.0
+     │   │   └── ratatui v0.30.0 (*)
+     │   ├── ratatui-widgets v0.3.0
+     │   │   ├── ratatui v0.30.0 (*)
+     │   │   ├── ratatui-macros v0.7.0 (*)
+     │   │   └── tui-tree-widget v0.24.0
+     │   │       └── semantic-diff v0.2.3 (*)
+     │   └── tui-tree-widget v0.24.0 (*)
+     └── ratatui-widgets v0.3.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/strum_macros-0.27.2/Cargo.toml:38:12
+   │
+38 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ strum_macros v0.27.2
+     └── strum v0.27.2
+         ├── ratatui-core v0.1.0
+         │   ├── ratatui v0.30.0
+         │   │   └── semantic-diff v0.2.3
+         │   ├── ratatui-crossterm v0.1.0
+         │   │   └── ratatui v0.30.0 (*)
+         │   ├── ratatui-macros v0.7.0
+         │   │   └── ratatui v0.30.0 (*)
+         │   ├── ratatui-widgets v0.3.0
+         │   │   ├── ratatui v0.30.0 (*)
+         │   │   ├── ratatui-macros v0.7.0 (*)
+         │   │   └── tui-tree-widget v0.24.0
+         │   │       └── semantic-diff v0.2.3 (*)
+         │   └── tui-tree-widget v0.24.0 (*)
+         └── ratatui-widgets v0.3.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/syn-2.0.117/Cargo.toml:44:12
+   │
+44 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ syn v2.0.117
+     ├── clap_derive v4.6.0
+     │   └── clap v4.6.0
+     │       └── semantic-diff v0.2.3
+     ├── darling_core v0.23.0
+     │   ├── darling v0.23.0
+     │   │   └── instability v0.3.11
+     │   │       ├── ratatui v0.30.0
+     │   │       │   └── semantic-diff v0.2.3 (*)
+     │   │       ├── ratatui-crossterm v0.1.0
+     │   │       │   └── ratatui v0.30.0 (*)
+     │   │       └── ratatui-widgets v0.3.0
+     │   │           ├── ratatui v0.30.0 (*)
+     │   │           ├── ratatui-macros v0.7.0
+     │   │           │   └── ratatui v0.30.0 (*)
+     │   │           └── tui-tree-widget v0.24.0
+     │   │               └── semantic-diff v0.2.3 (*)
+     │   └── darling_macro v0.23.0
+     │       └── darling v0.23.0 (*)
+     ├── darling_macro v0.23.0 (*)
+     ├── derive_more-impl v2.1.1
+     │   └── derive_more v2.1.1
+     │       └── crossterm v0.29.0
+     │           ├── ratatui-crossterm v0.1.0 (*)
+     │           └── semantic-diff v0.2.3 (*)
+     ├── futures-macro v0.3.32
+     │   └── futures-util v0.3.32
+     │       ├── futures v0.3.32
+     │       │   └── semantic-diff v0.2.3 (*)
+     │       └── futures-executor v0.3.32
+     │           └── futures v0.3.32 (*)
+     ├── instability v0.3.11 (*)
+     ├── serde_derive v1.0.228
+     │   ├── serde v1.0.228
+     │   │   ├── bincode v1.3.3
+     │   │   │   └── syntect v5.3.0
+     │   │   │       └── semantic-diff v0.2.3 (*)
+     │   │   ├── plist v1.8.0
+     │   │   │   └── syntect v5.3.0 (*)
+     │   │   ├── semantic-diff v0.2.3 (*)
+     │   │   └── syntect v5.3.0 (*)
+     │   └── syntect v5.3.0 (*)
+     ├── strum_macros v0.27.2
+     │   └── strum v0.27.2
+     │       ├── ratatui-core v0.1.0
+     │       │   ├── ratatui v0.30.0 (*)
+     │       │   ├── ratatui-crossterm v0.1.0 (*)
+     │       │   ├── ratatui-macros v0.7.0 (*)
+     │       │   ├── ratatui-widgets v0.3.0 (*)
+     │       │   └── tui-tree-widget v0.24.0 (*)
+     │       └── ratatui-widgets v0.3.0 (*)
+     ├── thiserror-impl v2.0.18
+     │   └── thiserror v2.0.18
+     │       ├── kasuari v0.4.11
+     │       │   └── ratatui-core v0.1.0 (*)
+     │       ├── ratatui-core v0.1.0 (*)
+     │       ├── redox_users v0.5.2
+     │       │   └── dirs-sys v0.5.0
+     │       │       └── dirs v6.0.0
+     │       │           └── semantic-diff v0.2.3 (*)
+     │       └── syntect v5.3.0 (*)
+     ├── tokio-macros v2.6.1
+     │   └── tokio v1.50.0
+     │       └── semantic-diff v0.2.3 (*)
+     └── tracing-attributes v0.1.31
+         └── tracing v0.1.44
+             ├── semantic-diff v0.2.3 (*)
+             └── tracing-subscriber v0.3.23
+                 └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/syntect-5.3.0/Cargo.toml:44:12
+   │
+44 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ syntect v5.3.0
+     └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/Cargo.toml:36:12
+   │
+36 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ thiserror v2.0.18
+     ├── kasuari v0.4.11
+     │   └── ratatui-core v0.1.0
+     │       ├── ratatui v0.30.0
+     │       │   └── semantic-diff v0.2.3
+     │       ├── ratatui-crossterm v0.1.0
+     │       │   └── ratatui v0.30.0 (*)
+     │       ├── ratatui-macros v0.7.0
+     │       │   └── ratatui v0.30.0 (*)
+     │       ├── ratatui-widgets v0.3.0
+     │       │   ├── ratatui v0.30.0 (*)
+     │       │   ├── ratatui-macros v0.7.0 (*)
+     │       │   └── tui-tree-widget v0.24.0
+     │       │       └── semantic-diff v0.2.3 (*)
+     │       └── tui-tree-widget v0.24.0 (*)
+     ├── ratatui-core v0.1.0 (*)
+     ├── redox_users v0.5.2
+     │   └── dirs-sys v0.5.0
+     │       └── dirs v6.0.0
+     │           └── semantic-diff v0.2.3 (*)
+     └── syntect v5.3.0
+         └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-impl-2.0.18/Cargo.toml:26:12
+   │
+26 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ thiserror-impl v2.0.18
+     └── thiserror v2.0.18
+         ├── kasuari v0.4.11
+         │   └── ratatui-core v0.1.0
+         │       ├── ratatui v0.30.0
+         │       │   └── semantic-diff v0.2.3
+         │       ├── ratatui-crossterm v0.1.0
+         │       │   └── ratatui v0.30.0 (*)
+         │       ├── ratatui-macros v0.7.0
+         │       │   └── ratatui v0.30.0 (*)
+         │       ├── ratatui-widgets v0.3.0
+         │       │   ├── ratatui v0.30.0 (*)
+         │       │   ├── ratatui-macros v0.7.0 (*)
+         │       │   └── tui-tree-widget v0.24.0
+         │       │       └── semantic-diff v0.2.3 (*)
+         │       └── tui-tree-widget v0.24.0 (*)
+         ├── ratatui-core v0.1.0 (*)
+         ├── redox_users v0.5.2
+         │   └── dirs-sys v0.5.0
+         │       └── dirs v6.0.0
+         │           └── semantic-diff v0.2.3 (*)
+         └── syntect v5.3.0
+             └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thread_local-1.1.9/Cargo.toml:32:12
+   │
+32 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ thread_local v1.1.9
+     └── tracing-subscriber v0.3.23
+         └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/time-0.3.47/Cargo.toml:47:12
+   │
+47 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ time v0.3.47
+     ├── plist v1.8.0
+     │   └── syntect v5.3.0
+     │       └── semantic-diff v0.2.3
+     └── ratatui-widgets v0.3.0
+         ├── ratatui v0.30.0
+         │   └── semantic-diff v0.2.3 (*)
+         ├── ratatui-macros v0.7.0
+         │   └── ratatui v0.30.0 (*)
+         └── tui-tree-widget v0.24.0
+             └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/time-core-0.1.8/Cargo.toml:36:12
+   │
+36 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ time-core v0.1.8
+     └── time v0.3.47
+         ├── plist v1.8.0
+         │   └── syntect v5.3.0
+         │       └── semantic-diff v0.2.3
+         └── ratatui-widgets v0.3.0
+             ├── ratatui v0.30.0
+             │   └── semantic-diff v0.2.3 (*)
+             ├── ratatui-macros v0.7.0
+             │   └── ratatui v0.30.0 (*)
+             └── tui-tree-widget v0.24.0
+                 └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.50.0/Cargo.toml:40:12
+   │
+40 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ tokio v1.50.0
+     └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-macros-2.6.1/Cargo.toml:30:12
+   │
+30 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ tokio-macros v2.6.1
+     └── tokio v1.50.0
+         └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tracing-0.1.44/Cargo.toml:44:12
+   │
+44 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ tracing v0.1.44
+     ├── semantic-diff v0.2.3
+     └── tracing-subscriber v0.3.23
+         └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tracing-attributes-0.1.31/Cargo.toml:45:12
+   │
+45 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ tracing-attributes v0.1.31
+     └── tracing v0.1.44
+         ├── semantic-diff v0.2.3
+         └── tracing-subscriber v0.3.23
+             └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tracing-core-0.1.36/Cargo.toml:39:12
+   │
+39 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ tracing-core v0.1.36
+     ├── tracing v0.1.44
+     │   ├── semantic-diff v0.2.3
+     │   └── tracing-subscriber v0.3.23
+     │       └── semantic-diff v0.2.3 (*)
+     ├── tracing-log v0.2.0
+     │   └── tracing-subscriber v0.3.23 (*)
+     └── tracing-subscriber v0.3.23 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tracing-log-0.2.0/Cargo.toml:32:12
+   │
+32 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ tracing-log v0.2.0
+     └── tracing-subscriber v0.3.23
+         └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tracing-subscriber-0.3.23/Cargo.toml:44:12
+   │
+44 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ tracing-subscriber v0.3.23
+     └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tui-tree-widget-0.24.0/Cargo.toml:39:12
+   │
+39 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ tui-tree-widget v0.24.0
+     └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/unicode-ident-1.0.24/Cargo.toml:36:13
+   │
+36 │ license = "(MIT OR Apache-2.0) AND Unicode-3.0"
+   │            ─━━━────━━━━━━━━━━──────━━━━━━━━━━━
+   │             │      │               │
+   │             │      │               rejected: license is not explicitly allowed
+   │             │      rejected: license is not explicitly allowed
+   │             rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Unicode-3.0 - Unicode License v3:
+   ├   - OSI approved
+   ├ unicode-ident v1.0.24
+     ├── proc-macro2 v1.0.106
+     │   ├── clap_derive v4.6.0
+     │   │   └── clap v4.6.0
+     │   │       └── semantic-diff v0.2.3
+     │   ├── darling_core v0.23.0
+     │   │   ├── darling v0.23.0
+     │   │   │   └── instability v0.3.11
+     │   │   │       ├── ratatui v0.30.0
+     │   │   │       │   └── semantic-diff v0.2.3 (*)
+     │   │   │       ├── ratatui-crossterm v0.1.0
+     │   │   │       │   └── ratatui v0.30.0 (*)
+     │   │   │       └── ratatui-widgets v0.3.0
+     │   │   │           ├── ratatui v0.30.0 (*)
+     │   │   │           ├── ratatui-macros v0.7.0
+     │   │   │           │   └── ratatui v0.30.0 (*)
+     │   │   │           └── tui-tree-widget v0.24.0
+     │   │   │               └── semantic-diff v0.2.3 (*)
+     │   │   └── darling_macro v0.23.0
+     │   │       └── darling v0.23.0 (*)
+     │   ├── derive_more-impl v2.1.1
+     │   │   └── derive_more v2.1.1
+     │   │       └── crossterm v0.29.0
+     │   │           ├── ratatui-crossterm v0.1.0 (*)
+     │   │           └── semantic-diff v0.2.3 (*)
+     │   ├── futures-macro v0.3.32
+     │   │   └── futures-util v0.3.32
+     │   │       ├── futures v0.3.32
+     │   │       │   └── semantic-diff v0.2.3 (*)
+     │   │       └── futures-executor v0.3.32
+     │   │           └── futures v0.3.32 (*)
+     │   ├── instability v0.3.11 (*)
+     │   ├── quote v1.0.45
+     │   │   ├── clap_derive v4.6.0 (*)
+     │   │   ├── darling_core v0.23.0 (*)
+     │   │   ├── darling_macro v0.23.0 (*)
+     │   │   ├── derive_more-impl v2.1.1 (*)
+     │   │   ├── futures-macro v0.3.32 (*)
+     │   │   ├── instability v0.3.11 (*)
+     │   │   ├── serde_derive v1.0.228
+     │   │   │   ├── serde v1.0.228
+     │   │   │   │   ├── bincode v1.3.3
+     │   │   │   │   │   └── syntect v5.3.0
+     │   │   │   │   │       └── semantic-diff v0.2.3 (*)
+     │   │   │   │   ├── plist v1.8.0
+     │   │   │   │   │   └── syntect v5.3.0 (*)
+     │   │   │   │   ├── semantic-diff v0.2.3 (*)
+     │   │   │   │   └── syntect v5.3.0 (*)
+     │   │   │   └── syntect v5.3.0 (*)
+     │   │   ├── strum_macros v0.27.2
+     │   │   │   └── strum v0.27.2
+     │   │   │       ├── ratatui-core v0.1.0
+     │   │   │       │   ├── ratatui v0.30.0 (*)
+     │   │   │       │   ├── ratatui-crossterm v0.1.0 (*)
+     │   │   │       │   ├── ratatui-macros v0.7.0 (*)
+     │   │   │       │   ├── ratatui-widgets v0.3.0 (*)
+     │   │   │       │   └── tui-tree-widget v0.24.0 (*)
+     │   │   │       └── ratatui-widgets v0.3.0 (*)
+     │   │   ├── syn v2.0.117
+     │   │   │   ├── clap_derive v4.6.0 (*)
+     │   │   │   ├── darling_core v0.23.0 (*)
+     │   │   │   ├── darling_macro v0.23.0 (*)
+     │   │   │   ├── derive_more-impl v2.1.1 (*)
+     │   │   │   ├── futures-macro v0.3.32 (*)
+     │   │   │   ├── instability v0.3.11 (*)
+     │   │   │   ├── serde_derive v1.0.228 (*)
+     │   │   │   ├── strum_macros v0.27.2 (*)
+     │   │   │   ├── thiserror-impl v2.0.18
+     │   │   │   │   └── thiserror v2.0.18
+     │   │   │   │       ├── kasuari v0.4.11
+     │   │   │   │       │   └── ratatui-core v0.1.0 (*)
+     │   │   │   │       ├── ratatui-core v0.1.0 (*)
+     │   │   │   │       ├── redox_users v0.5.2
+     │   │   │   │       │   └── dirs-sys v0.5.0
+     │   │   │   │       │       └── dirs v6.0.0
+     │   │   │   │       │           └── semantic-diff v0.2.3 (*)
+     │   │   │   │       └── syntect v5.3.0 (*)
+     │   │   │   ├── tokio-macros v2.6.1
+     │   │   │   │   └── tokio v1.50.0
+     │   │   │   │       └── semantic-diff v0.2.3 (*)
+     │   │   │   └── tracing-attributes v0.1.31
+     │   │   │       └── tracing v0.1.44
+     │   │   │           ├── semantic-diff v0.2.3 (*)
+     │   │   │           └── tracing-subscriber v0.3.23
+     │   │   │               └── semantic-diff v0.2.3 (*)
+     │   │   ├── thiserror-impl v2.0.18 (*)
+     │   │   ├── tokio-macros v2.6.1 (*)
+     │   │   └── tracing-attributes v0.1.31 (*)
+     │   ├── serde_derive v1.0.228 (*)
+     │   ├── strum_macros v0.27.2 (*)
+     │   ├── syn v2.0.117 (*)
+     │   ├── thiserror-impl v2.0.18 (*)
+     │   ├── tokio-macros v2.6.1 (*)
+     │   └── tracing-attributes v0.1.31 (*)
+     └── syn v2.0.117 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/unicode-segmentation-1.12.0/Cargo.toml:44:12
+   │
+44 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ unicode-segmentation v1.12.0
+     ├── convert_case v0.10.0
+     │   └── derive_more-impl v2.1.1
+     │       └── derive_more v2.1.1
+     │           └── crossterm v0.29.0
+     │               ├── ratatui-crossterm v0.1.0
+     │               │   └── ratatui v0.30.0
+     │               │       └── semantic-diff v0.2.3
+     │               └── semantic-diff v0.2.3 (*)
+     ├── ratatui-core v0.1.0
+     │   ├── ratatui v0.30.0 (*)
+     │   ├── ratatui-crossterm v0.1.0 (*)
+     │   ├── ratatui-macros v0.7.0
+     │   │   └── ratatui v0.30.0 (*)
+     │   ├── ratatui-widgets v0.3.0
+     │   │   ├── ratatui v0.30.0 (*)
+     │   │   ├── ratatui-macros v0.7.0 (*)
+     │   │   └── tui-tree-widget v0.24.0
+     │   │       └── semantic-diff v0.2.3 (*)
+     │   └── tui-tree-widget v0.24.0 (*)
+     ├── ratatui-widgets v0.3.0 (*)
+     └── unicode-truncate v2.0.1
+         └── ratatui-core v0.1.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/unicode-truncate-2.0.1/Cargo.toml:37:12
+   │
+37 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ unicode-truncate v2.0.1
+     └── ratatui-core v0.1.0
+         ├── ratatui v0.30.0
+         │   └── semantic-diff v0.2.3
+         ├── ratatui-crossterm v0.1.0
+         │   └── ratatui v0.30.0 (*)
+         ├── ratatui-macros v0.7.0
+         │   └── ratatui v0.30.0 (*)
+         ├── ratatui-widgets v0.3.0
+         │   ├── ratatui v0.30.0 (*)
+         │   ├── ratatui-macros v0.7.0 (*)
+         │   └── tui-tree-widget v0.24.0
+         │       └── semantic-diff v0.2.3 (*)
+         └── tui-tree-widget v0.24.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/unicode-width-0.2.2/Cargo.toml:45:12
+   │
+45 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ unicode-width v0.2.2
+     ├── ratatui-core v0.1.0
+     │   ├── ratatui v0.30.0
+     │   │   └── semantic-diff v0.2.3
+     │   ├── ratatui-crossterm v0.1.0
+     │   │   └── ratatui v0.30.0 (*)
+     │   ├── ratatui-macros v0.7.0
+     │   │   └── ratatui v0.30.0 (*)
+     │   ├── ratatui-widgets v0.3.0
+     │   │   ├── ratatui v0.30.0 (*)
+     │   │   ├── ratatui-macros v0.7.0 (*)
+     │   │   └── tui-tree-widget v0.24.0
+     │   │       └── semantic-diff v0.2.3 (*)
+     │   └── tui-tree-widget v0.24.0 (*)
+     ├── ratatui-widgets v0.3.0 (*)
+     ├── tui-tree-widget v0.24.0 (*)
+     └── unicode-truncate v2.0.1
+         └── ratatui-core v0.1.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/unidiff-0.4.0/Cargo.toml:34:12
+   │
+34 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ unidiff v0.4.0
+     └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/utf8parse-0.2.2/Cargo.toml:37:12
+   │
+37 │ license = "Apache-2.0 OR MIT"
+   │            ━━━━━━━━━━────━━━
+   │            │             │
+   │            │             rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ utf8parse v0.2.2
+     ├── anstream v1.0.0
+     │   └── clap_builder v4.6.0
+     │       └── clap v4.6.0
+     │           └── semantic-diff v0.2.3
+     └── anstyle-parse v1.0.0
+         └── anstream v1.0.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/walkdir-2.5.0/Cargo.toml:33:12
+   │
+33 │ license = "Unlicense/MIT"
+   │            ━━━━━━━━━─━━━
+   │            │         │
+   │            │         rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ Unlicense - The Unlicense:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ walkdir v2.5.0
+     └── syntect v5.3.0
+         └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasi-0.11.1+wasi-snapshot-preview1/Cargo.toml:34:12
+   │
+34 │ license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+   │            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━────━━━━━━━━━━────━━━
+   │            │                                 │             │
+   │            │                                 │             rejected: license is not explicitly allowed
+   │            │                                 rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ wasi v0.11.1+wasi-snapshot-preview1
+     ├── getrandom v0.2.17
+     │   └── redox_users v0.5.2
+     │       └── dirs-sys v0.5.0
+     │           └── dirs v6.0.0
+     │               └── semantic-diff v0.2.3
+     └── mio v1.1.1
+         ├── crossterm v0.29.0
+         │   ├── ratatui-crossterm v0.1.0
+         │   │   └── ratatui v0.30.0
+         │   │       └── semantic-diff v0.2.3 (*)
+         │   └── semantic-diff v0.2.3 (*)
+         ├── signal-hook-mio v0.2.5
+         │   └── crossterm v0.29.0 (*)
+         └── tokio v1.50.0
+             └── semantic-diff v0.2.3 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/which-8.0.2/Cargo.toml:37:12
+   │
+37 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ which v8.0.2
+     └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/winapi-0.3.9/Cargo.toml:24:12
+   │
+24 │ license = "MIT/Apache-2.0"
+   │            ━━━─━━━━━━━━━━
+   │            │   │
+   │            │   rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ winapi v0.3.9
+     ├── crossterm v0.29.0
+     │   ├── ratatui-crossterm v0.1.0
+     │   │   └── ratatui v0.30.0
+     │   │       └── semantic-diff v0.2.3
+     │   └── semantic-diff v0.2.3 (*)
+     └── crossterm_winapi v0.9.1
+         └── crossterm v0.29.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/winapi-i686-pc-windows-gnu-0.4.0/Cargo.toml:21:12
+   │
+21 │ license = "MIT/Apache-2.0"
+   │            ━━━─━━━━━━━━━━
+   │            │   │
+   │            │   rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ winapi-i686-pc-windows-gnu v0.4.0
+     └── winapi v0.3.9
+         ├── crossterm v0.29.0
+         │   ├── ratatui-crossterm v0.1.0
+         │   │   └── ratatui v0.30.0
+         │   │       └── semantic-diff v0.2.3
+         │   └── semantic-diff v0.2.3 (*)
+         └── crossterm_winapi v0.9.1
+             └── crossterm v0.29.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/winapi-util-0.1.11/Cargo.toml:37:12
+   │
+37 │ license = "Unlicense OR MIT"
+   │            ━━━━━━━━━────━━━
+   │            │            │
+   │            │            rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ Unlicense - The Unlicense:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ winapi-util v0.1.11
+     ├── same-file v1.0.6
+     │   └── walkdir v2.5.0
+     │       └── syntect v5.3.0
+     │           └── semantic-diff v0.2.3
+     └── walkdir v2.5.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/winapi-x86_64-pc-windows-gnu-0.4.0/Cargo.toml:21:12
+   │
+21 │ license = "MIT/Apache-2.0"
+   │            ━━━─━━━━━━━━━━
+   │            │   │
+   │            │   rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ winapi-x86_64-pc-windows-gnu v0.4.0
+     └── winapi v0.3.9
+         ├── crossterm v0.29.0
+         │   ├── ratatui-crossterm v0.1.0
+         │   │   └── ratatui v0.30.0
+         │   │       └── semantic-diff v0.2.3
+         │   └── semantic-diff v0.2.3 (*)
+         └── crossterm_winapi v0.9.1
+             └── crossterm v0.29.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-link-0.2.1/Cargo.toml:26:12
+   │
+26 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ windows-link v0.2.1
+     ├── parking_lot_core v0.9.12
+     │   └── parking_lot v0.12.5
+     │       ├── crossterm v0.29.0
+     │       │   ├── ratatui-crossterm v0.1.0
+     │       │   │   └── ratatui v0.30.0
+     │       │   │       └── semantic-diff v0.2.3
+     │       │   └── semantic-diff v0.2.3 (*)
+     │       └── tokio v1.50.0
+     │           └── semantic-diff v0.2.3 (*)
+     └── windows-sys v0.61.2
+         ├── anstyle-query v1.1.5
+         │   └── anstream v1.0.0
+         │       └── clap_builder v4.6.0
+         │           └── clap v4.6.0
+         │               └── semantic-diff v0.2.3 (*)
+         ├── anstyle-wincon v3.0.11
+         │   └── anstream v1.0.0 (*)
+         ├── dirs-sys v0.5.0
+         │   └── dirs v6.0.0
+         │       └── semantic-diff v0.2.3 (*)
+         ├── errno v0.3.14
+         │   ├── rustix v1.1.4
+         │   │   └── crossterm v0.29.0 (*)
+         │   └── signal-hook-registry v1.4.8
+         │       ├── signal-hook v0.3.18
+         │       │   ├── crossterm v0.29.0 (*)
+         │       │   └── signal-hook-mio v0.2.5
+         │       │       └── crossterm v0.29.0 (*)
+         │       └── tokio v1.50.0 (*)
+         ├── mio v1.1.1
+         │   ├── crossterm v0.29.0 (*)
+         │   ├── signal-hook-mio v0.2.5 (*)
+         │   └── tokio v1.50.0 (*)
+         ├── nu-ansi-term v0.50.3
+         │   └── tracing-subscriber v0.3.23
+         │       └── semantic-diff v0.2.3 (*)
+         ├── rustix v1.1.4 (*)
+         ├── socket2 v0.6.3
+         │   └── tokio v1.50.0 (*)
+         ├── tokio v1.50.0 (*)
+         └── winapi-util v0.1.11
+             ├── same-file v1.0.6
+             │   └── walkdir v2.5.0
+             │       └── syntect v5.3.0
+             │           └── semantic-diff v0.2.3 (*)
+             └── walkdir v2.5.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/windows-sys-0.61.2/Cargo.toml:26:12
+   │
+26 │ license = "MIT OR Apache-2.0"
+   │            ━━━────━━━━━━━━━━
+   │            │      │
+   │            │      rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ windows-sys v0.61.2
+     ├── anstyle-query v1.1.5
+     │   └── anstream v1.0.0
+     │       └── clap_builder v4.6.0
+     │           └── clap v4.6.0
+     │               └── semantic-diff v0.2.3
+     ├── anstyle-wincon v3.0.11
+     │   └── anstream v1.0.0 (*)
+     ├── dirs-sys v0.5.0
+     │   └── dirs v6.0.0
+     │       └── semantic-diff v0.2.3 (*)
+     ├── errno v0.3.14
+     │   ├── rustix v1.1.4
+     │   │   └── crossterm v0.29.0
+     │   │       ├── ratatui-crossterm v0.1.0
+     │   │       │   └── ratatui v0.30.0
+     │   │       │       └── semantic-diff v0.2.3 (*)
+     │   │       └── semantic-diff v0.2.3 (*)
+     │   └── signal-hook-registry v1.4.8
+     │       ├── signal-hook v0.3.18
+     │       │   ├── crossterm v0.29.0 (*)
+     │       │   └── signal-hook-mio v0.2.5
+     │       │       └── crossterm v0.29.0 (*)
+     │       └── tokio v1.50.0
+     │           └── semantic-diff v0.2.3 (*)
+     ├── mio v1.1.1
+     │   ├── crossterm v0.29.0 (*)
+     │   ├── signal-hook-mio v0.2.5 (*)
+     │   └── tokio v1.50.0 (*)
+     ├── nu-ansi-term v0.50.3
+     │   └── tracing-subscriber v0.3.23
+     │       └── semantic-diff v0.2.3 (*)
+     ├── rustix v1.1.4 (*)
+     ├── socket2 v0.6.3
+     │   └── tokio v1.50.0 (*)
+     ├── tokio v1.50.0 (*)
+     └── winapi-util v0.1.11
+         ├── same-file v1.0.6
+         │   └── walkdir v2.5.0
+         │       └── syntect v5.3.0
+         │           └── semantic-diff v0.2.3 (*)
+         └── walkdir v2.5.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/yaml-rust-0.4.5/Cargo.toml:22:12
+   │
+22 │ license = "MIT/Apache-2.0"
+   │            ━━━─━━━━━━━━━━
+   │            │   │
+   │            │   rejected: license is not explicitly allowed
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ Apache-2.0 - Apache License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ yaml-rust v0.4.5
+     └── syntect v5.3.0
+         └── semantic-diff v0.2.3
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ /Users/kshum/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zmij-1.0.21/Cargo.toml:34:12
+   │
+34 │ license = "MIT"
+   │            ━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MIT - MIT License:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├ zmij v1.0.21
+     └── serde_json v1.0.149
+         ├── semantic-diff v0.2.3
+         └── syntect v5.3.0
+             └── semantic-diff v0.2.3 (*)
+
+error[unmaintained]: Bincode is unmaintained
+   ┌─ /Users/kshum/Documents/gitproj/semantic-diff/Cargo.lock:11:1
+   │
+11 │ bincode 1.3.3 registry+https://github.com/rust-lang/crates.io-index
+   │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ unmaintained advisory detected
+   │
+   ├ ID: RUSTSEC-2025-0141
+   ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2025-0141
+   ├ Due to a doxxing and harassment incident, the bincode team has taken the decision to cease development permanently.
+     
+     The team considers version 1.3.3 a complete version of bincode that is not in need of any updates.
+     
+     ## Alternatives to consider
+     
+     * [wincode](https://crates.io/crates/wincode)
+     * [postcard](https://crates.io/crates/postcard)
+     * [bitcode](https://crates.io/crates/bitcode)
+     * [rkyv](https://crates.io/crates/rkyv)
+   ├ Announcement: https://git.sr.ht/~stygianentity/bincode/tree/v3.0/item/README.md
+   ├ Solution: No safe upgrade is available!
+   ├ bincode v1.3.3
+     └── syntect v5.3.0
+         └── semantic-diff v0.2.3
+
+error[unmaintained]: yaml-rust is unmaintained.
+    ┌─ /Users/kshum/Documents/gitproj/semantic-diff/Cargo.lock:161:1
+    │
+161 │ yaml-rust 0.4.5 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ unmaintained advisory detected
+    │
+    ├ ID: RUSTSEC-2024-0320
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2024-0320
+    ├ The maintainer seems [unreachable](https://github.com/chyh1990/yaml-rust/issues/197).
+      
+      Many issues and pull requests have been submitted over the years
+      without any [response](https://github.com/chyh1990/yaml-rust/issues/160).
+      
+      ## Alternatives
+      
+      Consider switching to the actively maintained `yaml-rust2` fork of the original project:
+      
+      - [yaml-rust2](https://github.com/Ethiraric/yaml-rust2)
+      - [yaml-rust2 @ crates.io](https://crates.io/crates/yaml-rust2)
+    ├ Announcement: https://github.com/rustsec/advisory-db/issues/1921
+    ├ Solution: No safe upgrade is available!
+    ├ yaml-rust v0.4.5
+      └── syntect v5.3.0
+          └── semantic-diff v0.2.3
+
+advisories FAILED, bans ok, licenses FAILED, sources ok
+
+
+=== ADVISORIES CHECK ===
+advisories FAILED
+
+
+=== LICENSES CHECK ===
+licenses FAILED
+
+
+=== BANS CHECK ===
+bans ok
+
+
+=== SOURCES CHECK ===
+sources ok
