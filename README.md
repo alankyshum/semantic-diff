@@ -1,5 +1,8 @@
 # semantic-diff
 
+[![Crates.io](https://img.shields.io/crates/v/semantic-diff)](https://crates.io/crates/semantic-diff)
+[![Homebrew](https://img.shields.io/homebrew/v/semantic-diff?tap=alankyshum/tap)](https://github.com/alankyshum/homebrew-tap)
+
 A terminal diff viewer with AI-powered semantic grouping. Built with Rust and [ratatui](https://ratatui.rs).
 
 Groups your git changes by *meaning* — not just by file path. Designed to run as a cmux split pane alongside Claude Code, giving real-time visibility into what's being changed and why.
