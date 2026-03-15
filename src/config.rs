@@ -347,4 +347,41 @@ mod tests {
         assert_eq!(raw.claude.model.as_deref(), Some("sonnet"));
         assert_eq!(raw.copilot.model.as_deref(), Some("sonnet"));
     }
+
+    #[test]
+    fn test_config_path_returns_option_not_cwd() {
+        // config_path() should return Some with a path under home, never "."
+        let path = config_path();
+        match path {
+            Some(p) => {
+                let path_str = p.to_string_lossy();
+                assert!(
+                    !path_str.starts_with("./"),
+                    "config_path should not fall back to cwd, got: {}",
+                    path_str
+                );
+                assert!(
+                    path_str.contains(".config/semantic-diff.json"),
+                    "config_path should end with .config/semantic-diff.json, got: {}",
+                    path_str
+                );
+            }
+            None => {
+                // None is acceptable if HOME is not set
+            }
+        }
+    }
+
+    #[test]
+    fn test_config_path_no_dot_fallback() {
+        // Verify config_path never returns a path starting with "."
+        let path = config_path();
+        if let Some(p) = path {
+            assert_ne!(
+                p.components().next().map(|c| c.as_os_str().to_string_lossy().to_string()),
+                Some(".".to_string()),
+                "config_path must not use '.' as base directory"
+            );
+        }
+    }
 }
