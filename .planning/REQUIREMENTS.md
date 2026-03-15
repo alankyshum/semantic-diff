@@ -45,8 +45,8 @@ Requirements for security hardening and YC demo readiness.
 
 ### Dependency Audit
 
-- [ ] **DEP-01**: Run `cargo audit` and fix all known vulnerabilities in dependencies
-- [ ] **DEP-02**: Run `cargo deny` check for license compliance and duplicate dependencies
+- [x] **DEP-01**: Run `cargo audit` and fix all known vulnerabilities in dependencies
+- [x] **DEP-02**: Run `cargo deny` check for license compliance and duplicate dependencies
 
 ## Future Requirements
 
@@ -90,8 +90,8 @@ Requirements for security hardening and YC demo readiness.
 | TEST-06 | Phase 6 | Pending |
 | TEST-07 | Phase 6 | Pending |
 | TEST-08 | Phase 6 | Pending |
-| DEP-01 | Phase 4 | Pending |
-| DEP-02 | Phase 4 | Pending |
+| DEP-01 | Phase 4 | Complete |
+| DEP-02 | Phase 4 | Complete |
 
 **Coverage:**
 - v1.1 requirements: 23 total
