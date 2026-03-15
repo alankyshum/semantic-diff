@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Security & Demo Readiness
-status: in-progress
-last_updated: "2026-03-15T16:43:19Z"
+status: complete
+last_updated: "2026-03-15T16:47:00Z"
 progress:
   total_phases: 3
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 9
-  completed_plans: 8
+  completed_plans: 9
 ---
 
 # Project State
@@ -23,16 +23,16 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 ## Current Position
 
 Phase: 6 of 6 (Blue Team -- Testing)
-Plan: 2 of 3 in current phase
-Status: Plan 06-02 complete
-Last activity: 2026-03-15 -- Completed 06-02 (SIGUSR1 signal and stress tests)
+Plan: 3 of 3 in current phase
+Status: Phase 6 complete
+Last activity: 2026-03-15 -- Completed 06-03 (LLM integration tests)
 
-Progress: [██████████████████░░] 89%
+Progress: [████████████████████] 100%
 
 ## Performance Metrics
 
 **Velocity (v1.0):**
-- Total plans completed: 9
+- Total plans completed: 10
 - Total execution time: ~3 days
 
 ## Accumulated Context
@@ -67,6 +67,8 @@ Recent decisions affecting current work:
 - [06-02]: Used kill CLI command instead of libc crate for SIGUSR1 delivery
 - [06-02]: Created src/lib.rs exposing all modules for integration test access
 - [06-02]: Accepted non-TTY terminal init failure as expected in test environment
+- [06-03]: Used static Mutex for PATH serialization instead of serial_test crate
+- [06-03]: Tested LLM pipeline via serde deserialization rather than mock processes
 
 ### Pending Todos
 
@@ -79,5 +81,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-15
-Stopped at: Completed 06-02-PLAN.md (SIGUSR1 signal and stress tests)
+Stopped at: Completed 06-03-PLAN.md (LLM integration tests -- Phase 6 complete)
 Resume file: None

@@ -24,7 +24,7 @@ Full details: `milestones/v1.0-ROADMAP.md`
 
 - [ ] **Phase 4: Red Team -- Security & Dependency Audit** - Identify all vulnerabilities across command execution, signal handling, LLM output trust, path traversal, and dependencies
 - [ ] **Phase 5: Purple Team -- Security Hardening** - Fix all vulnerabilities identified in Phase 4 with defensive hardening across all attack surfaces
-- [ ] **Phase 6: Blue Team -- E2E Demo Testing** - Verify every v1.0 feature works end-to-end under real-world conditions including edge cases
+- [x] **Phase 6: Blue Team -- E2E Demo Testing** - Verify every v1.0 feature works end-to-end under real-world conditions including edge cases (completed 2026-03-15)
 
 ## Phase Details
 
@@ -68,7 +68,7 @@ Plans:
   2. An integration test sends SIGUSR1 and verifies the diff view updates without crashing or losing scroll state
   3. An integration test with a mock LLM response verifies semantic grouping appears in the sidebar with correct file assignments
   4. Edge case tests pass for: empty repo (graceful message), large diff (no OOM), binary files (placeholder), clauded unavailable (degradation), malformed LLM JSON (error handled)
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 Plans:
 - [ ] 06-01-PLAN.md -- Diff rendering, empty repo, and binary file integration tests (TEST-01, TEST-04, TEST-06)
 - [ ] 06-02-PLAN.md -- SIGUSR1 signal handling and large diff stress tests (TEST-02, TEST-05)
@@ -83,4 +83,4 @@ Plans:
 | 3. Semantic Grouping | v1.0 | 2/2 | Complete | 2026-03-15 |
 | 4. Red Team Audit | v1.1 | 0/2 | Planned | - |
 | 5. Purple Team Hardening | v1.1 | 0/4 | Planned | - |
-| 6. Blue Team E2E Testing | v1.1 | 0/3 | Not started | - |
+| 6. Blue Team E2E Testing | 3/3 | Complete   | 2026-03-15 | - |
