@@ -34,22 +34,18 @@ if [ -f "$SURFACEFILE" ]; then
 fi
 
 # No existing surface — create a new right split
-# Remember the current (left) pane so we can resize it after splitting
-LEFT_PANE=$(cmux identify --json 2>/dev/null | grep -o '"pane_ref" *: *"[^"]*"' | head -1 | grep -o 'pane:[0-9]*')
-
-# Capture the surface ref from cmux output
 OUTPUT=$(cmux new-split right 2>&1)
-# Extract surface and pane refs (e.g., "surface:42", "pane:42") from the output
 SURFACE=$(echo "$OUTPUT" | grep -o 'surface:[0-9]*' | head -1)
 
 if [ -n "$SURFACE" ]; then
     echo "$SURFACE" > "$SURFACEFILE"
 
-    # Resize: left pane (Claude Code) ~30% min 400px, right pane (diff) ~70%
-    # Shrink the left pane leftward so the right pane gets more space
-    if [ -n "$LEFT_PANE" ]; then
-        cmux resize-pane --pane "$LEFT_PANE" -L --amount 400 2>/dev/null
-    fi
+    # The new surface's pane number matches its surface number
+    RIGHT_PANE="pane:${SURFACE#surface:}"
+
+    # Resize: grow the right pane (diff) leftward so it gets ~70% of the screen.
+    # The left pane (Claude Code) keeps a min ~400px.
+    cmux resize-pane --pane "$RIGHT_PANE" -L --amount 400 2>/dev/null
 
     # Small delay to let the terminal initialize
     sleep 0.3
