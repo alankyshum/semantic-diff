@@ -37,7 +37,10 @@ Full details: `milestones/v1.0-ROADMAP.md`
   2. `cargo audit` runs clean or all known vulnerabilities are documented with severity and remediation path
   3. `cargo deny` check passes or all license/duplicate issues are documented
   4. A written audit report covers all four attack surfaces (command injection, signal/PID handling, LLM output trust, path traversal) with specific findings per surface
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 04-01-PLAN.md -- Run cargo audit and cargo deny, capture dependency audit results
+- [ ] 04-02-PLAN.md -- Compile comprehensive AUDIT-REPORT.md from all findings
 
 ### Phase 5: Purple Team -- Security Hardening
 **Goal**: Every identified vulnerability is fixed with defensive code changes across command execution, signal handling, LLM output parsing, and file path validation
@@ -69,6 +72,6 @@ Full details: `milestones/v1.0-ROADMAP.md`
 | 1. Diff Viewer | v1.0 | 3/3 | Complete | 2026-03-13 |
 | 2. Hook Integration | v1.0 | 2/2 | Complete | 2026-03-13 |
 | 3. Semantic Grouping | v1.0 | 2/2 | Complete | 2026-03-15 |
-| 4. Red Team Audit | v1.1 | 0/? | Not started | - |
+| 4. Red Team Audit | v1.1 | 0/2 | Planned | - |
 | 5. Purple Team Hardening | v1.1 | 0/? | Not started | - |
 | 6. Blue Team E2E Testing | v1.1 | 0/? | Not started | - |
