@@ -52,7 +52,12 @@ Plans:
   3. All LLM JSON deserialization is bounded by size limits, all string fields are length-validated, and path traversal in LLM responses is rejected
   4. All file paths from git diff output are validated against the repository root and symlinks are resolved before processing
   5. Config file path construction uses safe joins that cannot be tricked by malicious input
-**Plans**: TBD
+**Plans:** 4 plans
+Plans:
+- [ ] 05-01-PLAN.md -- Harden PID file and log file (secure directory, atomic write, ownership validation)
+- [ ] 05-02-PLAN.md -- Add path traversal validation to diff parser, config, and cache paths
+- [ ] 05-03-PLAN.md -- Pipe LLM prompts via stdin instead of CLI arguments
+- [ ] 05-04-PLAN.md -- Bound LLM response size, validate deserialization, fix UTF-8 truncation
 
 ### Phase 6: Blue Team -- E2E Demo Testing
 **Goal**: Every v1.0 feature is verified working end-to-end with automated integration tests, including all edge cases critical for demo reliability
@@ -73,5 +78,5 @@ Plans:
 | 2. Hook Integration | v1.0 | 2/2 | Complete | 2026-03-13 |
 | 3. Semantic Grouping | v1.0 | 2/2 | Complete | 2026-03-15 |
 | 4. Red Team Audit | v1.1 | 0/2 | Planned | - |
-| 5. Purple Team Hardening | v1.1 | 0/? | Not started | - |
+| 5. Purple Team Hardening | v1.1 | 0/4 | Planned | - |
 | 6. Blue Team E2E Testing | v1.1 | 0/? | Not started | - |
