@@ -15,9 +15,9 @@ Requirements for security hardening and YC demo readiness.
 
 ### Signal & PID Safety
 
-- [ ] **SIG-01**: PID file uses secure directory with restricted permissions (e.g., `$XDG_RUNTIME_DIR`) instead of world-writable `/tmp/`
-- [ ] **SIG-02**: PID file creation uses atomic write (write-to-temp + rename) to prevent TOCTOU races
-- [ ] **SIG-03**: PID file validates ownership before trusting (check if PID belongs to semantic-diff process)
+- [x] **SIG-01**: PID file uses secure directory with restricted permissions (e.g., `$XDG_RUNTIME_DIR`) instead of world-writable `/tmp/`
+- [x] **SIG-02**: PID file creation uses atomic write (write-to-temp + rename) to prevent TOCTOU races
+- [x] **SIG-03**: PID file validates ownership before trusting (check if PID belongs to semantic-diff process)
 
 ### LLM Output Trust
 
@@ -72,9 +72,9 @@ Requirements for security hardening and YC demo readiness.
 | CMD-01 | Phase 5 | Complete |
 | CMD-02 | Phase 5 | Complete |
 | CMD-03 | Phase 4 | Complete |
-| SIG-01 | Phase 5 | Pending |
-| SIG-02 | Phase 5 | Pending |
-| SIG-03 | Phase 5 | Pending |
+| SIG-01 | Phase 5 | Complete |
+| SIG-02 | Phase 5 | Complete |
+| SIG-03 | Phase 5 | Complete |
 | LLM-01 | Phase 5 | Pending |
 | LLM-02 | Phase 5 | Pending |
 | LLM-03 | Phase 5 | Pending |

@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Security & Demo Readiness
-status: in-progress
-last_updated: "2026-03-15T16:12:19Z"
+status: unknown
+last_updated: "2026-03-15T16:23:24.403Z"
 progress:
-  total_phases: 3
+  total_phases: 2
   completed_phases: 1
   total_plans: 6
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 # Project State
@@ -52,6 +52,9 @@ Recent decisions affecting current work:
 - [05-03]: Used tokio async stdin pipe (write_all) for LLM prompt delivery -- prevents process table exposure
 - [05-03]: Added stderr capture to both invoke functions for better error diagnostics
 - [05-03]: Structural source-code tests via include_str! to verify stdin pipe usage
+- [Phase 05-01]: Used XDG_RUNTIME_DIR with fallback to ~/.local/state/semantic-diff/ for PID and log files
+- [Phase 05-01]: Atomic PID write via temp+rename with create_new to prevent symlink following
+- [Phase 05-01]: PID ownership validated via ps (macOS) and /proc/pid/comm (Linux)
 
 ### Pending Todos
 
