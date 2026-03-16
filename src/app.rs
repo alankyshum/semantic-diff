@@ -2,6 +2,7 @@ use crate::diff::DiffData;
 use crate::grouper::llm::LlmBackend;
 use crate::grouper::{GroupingStatus, SemanticGroup};
 use crate::highlight::HighlightCache;
+use crate::theme::Theme;
 use crate::ui::file_tree::TreeNodeId;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::cell::{Cell, RefCell};
@@ -113,12 +114,15 @@ pub struct App {
     /// When a group is selected in the sidebar, filter the diff view to those (file, hunk) pairs.
     /// Key = file path (stripped), Value = set of hunk indices (empty = all hunks).
     pub tree_filter: Option<HunkFilter>,
+    /// Active theme (colors + syntect theme name), derived from config at startup.
+    pub theme: Theme,
 }
 
 impl App {
     /// Create a new App with parsed diff data and user config.
     pub fn new(diff_data: DiffData, config: &crate::config::Config) -> Self {
-        let highlight_cache = HighlightCache::new(&diff_data);
+        let theme = Theme::from_mode(config.theme_mode);
+        let highlight_cache = HighlightCache::new(&diff_data, theme.syntect_theme);
         Self {
             diff_data,
             ui_state: UiState {
@@ -146,6 +150,7 @@ impl App {
             focused_panel: FocusedPanel::DiffView,
             tree_state: RefCell::new(TreeState::default()),
             tree_filter: None,
+            theme,
         }
     }
 
@@ -251,7 +256,7 @@ impl App {
 
         // 3. Replace diff data and rebuild highlight cache
         self.diff_data = new_data;
-        self.highlight_cache = HighlightCache::new(&self.diff_data);
+        self.highlight_cache = HighlightCache::new(&self.diff_data, self.theme.syntect_theme);
 
         // 4. Rebuild collapsed set with new indices
         self.ui_state.collapsed.clear();

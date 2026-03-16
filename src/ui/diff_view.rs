@@ -41,7 +41,7 @@ pub fn render_diff(app: &App, frame: &mut Frame, area: Rect) {
 /// Render a single visible item as a Line.
 fn render_item(app: &App, item: &VisibleItem, is_selected: bool) -> Line<'static> {
     let sel_bg = if is_selected {
-        Color::Rgb(40, 40, 60)
+        app.theme.selection_bg
     } else {
         Color::Reset
     };
@@ -82,7 +82,7 @@ fn render_file_header(app: &App, file_idx: usize, sel_bg: Color) -> Line<'static
     let header_bg = if sel_bg != Color::Reset {
         sel_bg
     } else {
-        Color::Rgb(30, 30, 40)
+        app.theme.file_header_bg
     };
 
     let mut spans = vec![
@@ -106,7 +106,7 @@ fn render_file_header(app: &App, file_idx: usize, sel_bg: Color) -> Line<'static
                 spans.push(Span::styled(
                     before.to_string(),
                     Style::default()
-                        .fg(Color::White)
+                        .fg(app.theme.file_header_fg)
                         .bg(header_bg)
                         .add_modifier(Modifier::BOLD),
                 ));
@@ -114,15 +114,15 @@ fn render_file_header(app: &App, file_idx: usize, sel_bg: Color) -> Line<'static
             spans.push(Span::styled(
                 matched.to_string(),
                 Style::default()
-                    .fg(Color::Black)
-                    .bg(Color::Yellow)
+                    .fg(app.theme.search_match_fg)
+                    .bg(app.theme.search_match_bg)
                     .add_modifier(Modifier::BOLD),
             ));
             if !after.is_empty() {
                 spans.push(Span::styled(
                     after.to_string(),
                     Style::default()
-                        .fg(Color::White)
+                        .fg(app.theme.file_header_fg)
                         .bg(header_bg)
                         .add_modifier(Modifier::BOLD),
                 ));
@@ -131,7 +131,7 @@ fn render_file_header(app: &App, file_idx: usize, sel_bg: Color) -> Line<'static
             spans.push(Span::styled(
                 name_with_space,
                 Style::default()
-                    .fg(Color::White)
+                    .fg(app.theme.file_header_fg)
                     .bg(header_bg)
                     .add_modifier(Modifier::BOLD),
             ));
@@ -140,7 +140,7 @@ fn render_file_header(app: &App, file_idx: usize, sel_bg: Color) -> Line<'static
         spans.push(Span::styled(
             name_with_space,
             Style::default()
-                .fg(Color::White)
+                .fg(app.theme.file_header_fg)
                 .bg(header_bg)
                 .add_modifier(Modifier::BOLD),
         ));
@@ -199,13 +199,13 @@ fn render_diff_line(
     let line = &hunk.lines[line_idx];
 
     let (prefix, fg, bg) = match line.line_type {
-        LineType::Added => ("+", Color::Green, Color::Rgb(0, 40, 0)),
-        LineType::Removed => ("-", Color::Red, Color::Rgb(40, 0, 0)),
-        LineType::Context => (" ", Color::Reset, Color::Reset),
+        LineType::Added => ("+", Color::Green, app.theme.added_line_bg),
+        LineType::Removed => ("-", Color::Red, app.theme.removed_line_bg),
+        LineType::Context => (" ", app.theme.context_fg, app.theme.context_bg),
     };
 
     let final_bg = if is_selected {
-        Color::Rgb(40, 40, 60)
+        app.theme.selection_bg
     } else {
         bg
     };
@@ -218,7 +218,7 @@ fn render_diff_line(
         // Line number gutter
         Span::styled(
             gutter,
-            Style::default().fg(Color::DarkGray).bg(final_bg),
+            Style::default().fg(app.theme.gutter_fg).bg(final_bg),
         ),
         // +/- prefix
         Span::styled(
@@ -231,14 +231,14 @@ fn render_diff_line(
     if let Some(segments) = &line.inline_segments {
         // Inline diff mode: render segments with emphasis on changed parts
         let emphasis_bg = match line.line_type {
-            LineType::Added => Color::Rgb(0, 80, 0),   // brighter green for changed
-            LineType::Removed => Color::Rgb(80, 0, 0),  // brighter red for changed
+            LineType::Added => app.theme.added_emphasis_bg,
+            LineType::Removed => app.theme.removed_emphasis_bg,
             LineType::Context => final_bg,
         };
 
         for segment in segments {
             let seg_bg = if is_selected {
-                Color::Rgb(40, 40, 60)
+                app.theme.selection_bg
             } else {
                 match segment.tag {
                     SegmentTag::Changed => emphasis_bg,

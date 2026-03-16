@@ -13,10 +13,16 @@ pub struct HighlightCache {
 
 impl HighlightCache {
     /// Pre-compute syntax highlighting for all diff lines.
-    pub fn new(diff_data: &DiffData) -> Self {
+    /// `syntect_theme_name` should be a key present in syntect's default ThemeSet
+    /// (e.g. "base16-ocean.dark" or "base16-ocean.light").
+    pub fn new(diff_data: &DiffData, syntect_theme_name: &str) -> Self {
         let ss = SyntaxSet::load_defaults_newlines();
         let ts = ThemeSet::load_defaults();
-        let theme = &ts.themes["base16-ocean.dark"];
+        // Fall back to "base16-ocean.dark" if the requested theme is not found.
+        let theme = ts
+            .themes
+            .get(syntect_theme_name)
+            .unwrap_or_else(|| &ts.themes["base16-ocean.dark"]);
 
         let mut cache = HashMap::new();
 

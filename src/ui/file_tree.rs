@@ -139,7 +139,7 @@ fn build_grouped_tree<'a>(
                 Span::styled(
                     format!("{} ", group.label),
                     Style::default()
-                        .fg(Color::Cyan)
+                        .fg(app.theme.tree_group_fg)
                         .add_modifier(Modifier::BOLD),
                 ),
                 Span::styled(
@@ -225,9 +225,9 @@ pub fn render_tree(app: &App, frame: &mut Frame, area: Rect) {
     };
 
     let border_style = if app.focused_panel == FocusedPanel::FileTree {
-        Style::default().fg(Color::Cyan)
+        Style::default().fg(app.theme.tree_group_fg)
     } else {
-        Style::default().fg(Color::DarkGray)
+        Style::default().fg(app.theme.gutter_fg)
     };
 
     let tree = match Tree::new(&items) {
@@ -239,8 +239,8 @@ pub fn render_tree(app: &App, frame: &mut Frame, area: Rect) {
             )
             .highlight_style(
                 Style::default()
-                    .fg(Color::Black)
-                    .bg(Color::Cyan)
+                    .fg(app.theme.tree_highlight_fg)
+                    .bg(app.theme.tree_highlight_bg)
                     .add_modifier(Modifier::BOLD),
             )
             .highlight_symbol(">> ")

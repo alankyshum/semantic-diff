@@ -3,8 +3,9 @@ pub mod file_tree;
 pub mod summary;
 
 use crate::app::{App, InputMode};
+use crate::theme::Theme;
 use ratatui::layout::{Constraint, Layout, Rect};
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Clear, Paragraph};
 use ratatui::Frame;
@@ -42,12 +43,12 @@ pub fn draw(app: &App, frame: &mut Frame) {
 
     // Render help overlay on top if in Help mode
     if app.input_mode == InputMode::Help {
-        render_help_overlay(frame, area);
+        render_help_overlay(frame, area, &app.theme);
     }
 }
 
 /// Render the help overlay centered on screen.
-fn render_help_overlay(frame: &mut Frame, area: Rect) {
+fn render_help_overlay(frame: &mut Frame, area: Rect, theme: &Theme) {
     let shortcuts = vec![
         ("Navigation", vec![
             ("j/k, ↑/↓", "Move up/down"),
@@ -69,7 +70,7 @@ fn render_help_overlay(frame: &mut Frame, area: Rect) {
         lines.push(Line::from(Span::styled(
             format!("  {section}"),
             Style::default()
-                .fg(Color::Cyan)
+                .fg(theme.help_section_fg)
                 .add_modifier(Modifier::BOLD),
         )));
         for (key, desc) in keys {
@@ -77,17 +78,17 @@ fn render_help_overlay(frame: &mut Frame, area: Rect) {
                 Span::styled(
                     format!("    {key:<14}"),
                     Style::default()
-                        .fg(Color::Yellow)
+                        .fg(theme.help_key_fg)
                         .add_modifier(Modifier::BOLD),
                 ),
-                Span::styled(*desc, Style::default().fg(Color::White)),
+                Span::styled(*desc, Style::default().fg(theme.help_text_fg)),
             ]));
         }
         lines.push(Line::raw(""));
     }
     lines.push(Line::from(Span::styled(
         "  Press any key to close",
-        Style::default().fg(Color::DarkGray),
+        Style::default().fg(theme.help_dismiss_fg),
     )));
 
     let height = (lines.len() + 2).min(area.height as usize) as u16;
@@ -99,7 +100,7 @@ fn render_help_overlay(frame: &mut Frame, area: Rect) {
     frame.render_widget(Clear, popup_area);
     let block = Block::bordered()
         .title(" Shortcuts ")
-        .border_style(Style::default().fg(Color::Cyan));
+        .border_style(Style::default().fg(theme.help_section_fg));
     let paragraph = Paragraph::new(lines).block(block);
     frame.render_widget(paragraph, popup_area);
 }
@@ -110,17 +111,17 @@ fn render_search_bar(app: &App, frame: &mut Frame, area: ratatui::layout::Rect) 
         Span::styled(
             "/ ",
             Style::default()
-                .fg(Color::Yellow)
+                .fg(app.theme.help_key_fg)
                 .add_modifier(Modifier::BOLD),
         ),
         Span::styled(
             app.search_query.clone(),
-            Style::default().fg(Color::White),
+            Style::default().fg(app.theme.help_text_fg),
         ),
         Span::styled(
             "_",
             Style::default()
-                .fg(Color::White)
+                .fg(app.theme.help_text_fg)
                 .add_modifier(Modifier::SLOW_BLINK),
         ),
     ]);

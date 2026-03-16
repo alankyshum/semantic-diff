@@ -5,4 +5,5 @@ pub mod diff;
 pub mod grouper;
 pub mod highlight;
 pub mod signal;
+pub mod theme;
 pub mod ui;

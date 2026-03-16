@@ -1,4 +1,5 @@
 use crate::grouper::llm::LlmBackend;
+use crate::theme::ThemeMode;
 use serde::Deserialize;
 use std::path::PathBuf;
 
@@ -8,6 +9,7 @@ pub struct Config {
     pub preferred_ai_cli: Option<AiCli>,
     pub claude_model: String,
     pub copilot_model: String,
+    pub theme_mode: ThemeMode,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Deserialize)]
@@ -25,6 +27,7 @@ struct RawConfig {
     preferred_ai_cli: Option<AiCli>,
     claude: CliConfig,
     copilot: CliConfig,
+    theme: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -48,6 +51,7 @@ impl Config {
             preferred_ai_cli: None,
             claude_model: "sonnet".to_string(),
             copilot_model: "sonnet".to_string(),
+            theme_mode: ThemeMode::Auto,
         }
     }
 
@@ -126,6 +130,9 @@ const DEFAULT_CONFIG: &str = r#"{
     // Model to use: "sonnet", "opus", "haiku", "gemini-flash", "gemini-pro"
     "model": "sonnet"
   }
+
+  // Theme: "dark", "light", or "auto" (detects from terminal)
+  // "theme": "auto"
 }
 "#;
 
@@ -171,6 +178,11 @@ pub fn load() -> Config {
         preferred_ai_cli: raw.preferred_ai_cli,
         claude_model: resolve_model_for_claude(raw.claude.model.as_deref()),
         copilot_model: resolve_model_for_copilot(raw.copilot.model.as_deref()),
+        theme_mode: match raw.theme.as_deref() {
+            Some("light") => ThemeMode::Light,
+            Some("dark") => ThemeMode::Dark,
+            _ => ThemeMode::Auto,
+        },
     }
 }
 

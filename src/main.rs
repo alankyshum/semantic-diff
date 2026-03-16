@@ -6,6 +6,7 @@ mod event;
 mod grouper;
 mod highlight;
 mod signal;
+mod theme;
 mod ui;
 
 use anyhow::Result;
