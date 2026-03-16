@@ -179,6 +179,12 @@ chmod +x ~/.claude/hooks/refresh-semantic-diff.sh
 
 ## Changelog
 
+### v0.4.0
+
+- **Adaptive dark/light theme** — Auto-detects terminal background color via OSC 11 protocol (supports iTerm2, Ghostty, kitty, WezTerm, Alacritty, xterm, VS Code terminal). Falls back to `COLORFGBG` env var. Override with `"theme": "dark"` or `"light"` in config.
+- **Light theme** — Full light-background palette with pastel diff colors, dark text, and blue accents for readability on white/light terminals.
+- **Terminal detection guards** — Skips background detection in CI, piped stdin, and `TERM=dumb` environments for zero startup overhead.
+
 ### v0.3.0
 
 - **Security hardening** — Secure PID file management with atomic writes and ownership validation, path traversal protection in diff parser and config/cache paths, bounded LLM response reading with validated deserialization, UTF-8 safe truncation.
