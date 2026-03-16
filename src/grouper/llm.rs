@@ -130,6 +130,107 @@ pub async fn request_grouping(
     Ok(validated_groups)
 }
 
+/// Request incremental grouping: assign new/modified hunks to existing groups or create new ones.
+///
+/// The `summaries` parameter already contains the existing group context prepended
+/// (from `incremental_hunk_summaries`), so we just need a different system prompt.
+pub async fn request_incremental_grouping(
+    backend: LlmBackend,
+    model: &str,
+    summaries: &str,
+) -> anyhow::Result<Vec<SemanticGroup>> {
+    let model = model.to_string();
+    tokio::time::timeout(
+        Duration::from_secs(60),
+        request_incremental(backend, &model, summaries),
+    )
+    .await
+    .map_err(|_| anyhow::anyhow!("LLM timed out after 60s"))?
+}
+
+async fn request_incremental(
+    backend: LlmBackend,
+    model: &str,
+    hunk_summaries: &str,
+) -> anyhow::Result<Vec<SemanticGroup>> {
+    let prompt = format!(
+        "You are updating an existing grouping of code changes. \
+         New or modified files have been added to the working tree.\n\
+         Assign the NEW/MODIFIED hunks to the EXISTING groups listed above, or create new groups if they don't fit.\n\
+         Return ONLY valid JSON with assignments for the NEW/MODIFIED files only.\n\
+         Schema: {{\"groups\": [{{\"label\": \"short name\", \"description\": \"one sentence\", \
+         \"changes\": [{{\"file\": \"path\", \"hunks\": [0, 1]}}]}}]}}\n\
+         Rules:\n\
+         - Every hunk of every NEW/MODIFIED file must appear in exactly one group\n\
+         - Reuse existing group labels when the change fits that group's purpose\n\
+         - Create new groups only when a change serves a genuinely different purpose\n\
+         - Use the same label string (case-sensitive) when assigning to an existing group\n\
+         - The \"hunks\" array contains 0-based hunk indices\n\
+         - Do NOT include unchanged files in your response\n\n\
+         {hunk_summaries}",
+    );
+
+    let output = match backend {
+        LlmBackend::Claude => invoke_claude(&prompt, model).await?,
+        LlmBackend::Copilot => invoke_copilot(&prompt, model).await?,
+    };
+
+    let json_str = extract_json(&output)?;
+
+    if json_str.len() > MAX_JSON_SIZE {
+        anyhow::bail!(
+            "LLM JSON response too large ({} bytes, max {})",
+            json_str.len(),
+            MAX_JSON_SIZE
+        );
+    }
+
+    let response: GroupingResponse = serde_json::from_str(&json_str)?;
+
+    // Build set of valid files from the summaries (only the NEW/MODIFIED section)
+    let known_files: HashSet<&str> = hunk_summaries
+        .lines()
+        .filter_map(|line| {
+            let line = line.trim();
+            if let Some(rest) = line.strip_prefix("FILE: ") {
+                let end = rest.find(" (")?;
+                Some(&rest[..end])
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    let validated_groups: Vec<SemanticGroup> = response
+        .groups
+        .into_iter()
+        .take(MAX_GROUPS)
+        .map(|group| {
+            let valid_changes: Vec<super::GroupedChange> = group
+                .changes()
+                .into_iter()
+                .filter(|change| {
+                    let known = known_files.contains(change.file.as_str());
+                    let safe = !change.file.contains("..") && !change.file.starts_with('/');
+                    if !safe {
+                        tracing::warn!("Rejected LLM file path with traversal: {}", change.file);
+                    }
+                    known && safe
+                })
+                .take(MAX_CHANGES_PER_GROUP)
+                .collect();
+            SemanticGroup::new(
+                truncate_string(&group.label, MAX_LABEL_LEN),
+                truncate_string(&group.description, MAX_DESC_LEN),
+                valid_changes,
+            )
+        })
+        .filter(|group| !group.changes().is_empty())
+        .collect();
+
+    Ok(validated_groups)
+}
+
 /// Invoke the `claude` CLI and return the LLM response text.
 ///
 /// Pipes the prompt via stdin to avoid exposing code diffs in the process table.

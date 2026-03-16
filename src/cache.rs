@@ -1,6 +1,7 @@
 use crate::grouper::SemanticGroup;
 use serde::{Deserialize, Serialize};
 use std::collections::hash_map::DefaultHasher;
+use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
 
@@ -10,6 +11,12 @@ struct CacheEntry {
     /// Hash of the raw diff output — if this matches, the cache is valid.
     diff_hash: u64,
     groups: Vec<CachedGroup>,
+    /// HEAD commit hash when this cache was saved. Used for incremental grouping.
+    #[serde(default)]
+    head_commit: Option<String>,
+    /// Per-file content hashes. Key = file path, Value = hash of hunk content.
+    #[serde(default)]
+    file_hashes: HashMap<String, u64>,
 }
 
 /// Serializable version of SemanticGroup.
@@ -25,6 +32,18 @@ struct CachedGroup {
 struct CachedChange {
     file: String,
     hunks: Vec<usize>,
+}
+
+/// Return the current HEAD commit hash, or None if not in a git repo.
+pub fn get_head_commit() -> Option<String> {
+    let output = std::process::Command::new("git")
+        .args(["rev-parse", "HEAD"])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    Some(String::from_utf8(output.stdout).ok()?.trim().to_string())
 }
 
 /// Compute a fast hash of the raw diff string.
@@ -84,8 +103,13 @@ pub fn load(hash: u64) -> Option<Vec<SemanticGroup>> {
     )
 }
 
-/// Save grouping result to the cache file.
-pub fn save(hash: u64, groups: &[SemanticGroup]) {
+/// Save grouping result to the cache file with optional incremental state.
+pub fn save_with_state(
+    hash: u64,
+    groups: &[SemanticGroup],
+    head_commit: Option<&str>,
+    file_hashes: &HashMap<String, u64>,
+) {
     let Some(path) = cache_path() else { return };
 
     let entry = CacheEntry {
@@ -105,6 +129,8 @@ pub fn save(hash: u64, groups: &[SemanticGroup]) {
                     .collect(),
             })
             .collect(),
+        head_commit: head_commit.map(|s| s.to_string()),
+        file_hashes: file_hashes.clone(),
     };
 
     match serde_json::to_string(&entry) {
@@ -117,6 +143,63 @@ pub fn save(hash: u64, groups: &[SemanticGroup]) {
         }
         Err(e) => tracing::warn!("Failed to serialize cache: {}", e),
     }
+}
+
+/// Try to load cached grouping for the given HEAD commit (incremental mode).
+/// Returns the cached groups and file hashes so the caller can compute the delta.
+/// Returns None if no cache, HEAD mismatch, empty file hashes, parse error, or oversized file.
+pub fn load_incremental(
+    current_head: &str,
+) -> Option<(Vec<SemanticGroup>, HashMap<String, u64>)> {
+    let path = cache_path()?;
+
+    let metadata = std::fs::metadata(&path).ok()?;
+    if metadata.len() > 1_048_576 {
+        return None;
+    }
+
+    let content = std::fs::read_to_string(&path).ok()?;
+    let entry: CacheEntry = serde_json::from_str(&content).ok()?;
+
+    if entry.groups.len() > 50 {
+        return None;
+    }
+
+    // Match by HEAD commit, not diff hash.
+    let cached_head = entry.head_commit.as_deref()?;
+    if cached_head != current_head {
+        return None;
+    }
+
+    if entry.file_hashes.is_empty() {
+        return None;
+    }
+
+    tracing::info!(
+        "Incremental cache hit: {} groups, {} file hashes",
+        entry.groups.len(),
+        entry.file_hashes.len()
+    );
+
+    let groups = entry
+        .groups
+        .into_iter()
+        .map(|g| {
+            SemanticGroup::new(
+                g.label,
+                g.description,
+                g.changes
+                    .into_iter()
+                    .map(|c| crate::grouper::GroupedChange {
+                        file: c.file,
+                        hunks: c.hunks,
+                    })
+                    .collect(),
+            )
+        })
+        .collect();
+
+    Some((groups, entry.file_hashes))
 }
 
 /// Path to the cache file: .git/semantic-diff-cache.json
@@ -226,6 +309,8 @@ mod tests {
         let entry = CacheEntry {
             diff_hash: 99999,
             groups,
+            head_commit: None,
+            file_hashes: HashMap::new(),
         };
         // Validation check: > 50 groups should be rejected
         assert!(entry.groups.len() > 50);

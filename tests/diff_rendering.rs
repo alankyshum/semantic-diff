@@ -108,7 +108,7 @@ fn parse_known_diff_structure() {
 fn render_diff_in_test_backend() {
     let data = diff::parse(SAMPLE_DIFF);
     let config = Config::default_config();
-    let app = App::new(data, &config);
+    let app = App::new(data, &config, vec![]);
 
     // Create a terminal with TestBackend
     let backend = ratatui::backend::TestBackend::new(80, 24);

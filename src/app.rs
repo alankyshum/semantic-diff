@@ -37,19 +37,38 @@ pub enum Message {
     RefreshSignal,
     DebouncedRefresh,
     DiffParsed(DiffData, String), // parsed data + raw diff for cache hashing
-    GroupingComplete(Vec<SemanticGroup>),
+    GroupingComplete(Vec<SemanticGroup>, u64), // groups + diff_hash for cache saving
     GroupingFailed(String),
+    IncrementalGroupingComplete(
+        Vec<SemanticGroup>,
+        crate::grouper::DiffDelta,
+        HashMap<String, u64>,
+        u64,    // diff_hash
+        String, // head_commit
+    ),
 }
 
 
 /// Commands returned by update() for the main loop to execute.
+#[allow(dead_code)]
 pub enum Command {
-    SpawnDiffParse,
+    SpawnDiffParse { git_diff_args: Vec<String> },
     SpawnGrouping {
         backend: LlmBackend,
         model: String,
         summaries: String,
         diff_hash: u64,
+        head_commit: Option<String>,
+        file_hashes: HashMap<String, u64>,
+    },
+    SpawnIncrementalGrouping {
+        backend: LlmBackend,
+        model: String,
+        summaries: String,
+        diff_hash: u64,
+        head_commit: String,
+        file_hashes: HashMap<String, u64>,
+        delta: crate::grouper::DiffDelta,
     },
     Quit,
 }
@@ -116,11 +135,17 @@ pub struct App {
     pub tree_filter: Option<HunkFilter>,
     /// Active theme (colors + syntect theme name), derived from config at startup.
     pub theme: Theme,
+    /// HEAD commit hash when current groups were computed. Used for incremental grouping.
+    pub previous_head: Option<String>,
+    /// Per-file content hashes from the last grouping. Used to detect what changed.
+    pub previous_file_hashes: HashMap<String, u64>,
+    /// Git diff arguments from the CLI, used for refreshes.
+    pub git_diff_args: Vec<String>,
 }
 
 impl App {
-    /// Create a new App with parsed diff data and user config.
-    pub fn new(diff_data: DiffData, config: &crate::config::Config) -> Self {
+    /// Create a new App with parsed diff data, user config, and git diff arguments.
+    pub fn new(diff_data: DiffData, config: &crate::config::Config, git_diff_args: Vec<String>) -> Self {
         let theme = Theme::from_mode(config.theme_mode);
         let highlight_cache = HighlightCache::new(&diff_data, theme.syntect_theme);
         Self {
@@ -151,6 +176,9 @@ impl App {
             tree_state: RefCell::new(TreeState::default()),
             tree_filter: None,
             theme,
+            previous_head: None,
+            previous_file_hashes: HashMap::new(),
+            git_diff_args,
         }
     }
 
@@ -179,36 +207,136 @@ impl App {
             }
             Message::DebouncedRefresh => {
                 self.debounce_handle = None;
-                Some(Command::SpawnDiffParse)
+                Some(Command::SpawnDiffParse {
+                    git_diff_args: self.git_diff_args.clone(),
+                })
             }
             Message::DiffParsed(new_data, raw_diff) => {
                 self.apply_new_diff_data(new_data);
                 let hash = crate::cache::diff_hash(&raw_diff);
-                // Check cache first
+                let current_head = crate::cache::get_head_commit();
+
+                // Check exact diff hash cache first (handles identical re-triggers)
                 if let Some(cached) = crate::cache::load(hash) {
-                    self.semantic_groups = Some(cached);
+                    let mut groups = cached;
+                    crate::grouper::normalize_hunk_indices(&mut groups, &self.diff_data);
+                    self.semantic_groups = Some(groups);
                     self.grouping_status = GroupingStatus::Done;
                     self.grouping_handle = None;
-                    None
-                } else if let Some(backend) = self.llm_backend {
+                    // Update incremental state
+                    if let Some(ref head) = current_head {
+                        self.previous_head = Some(head.clone());
+                    }
+                    self.previous_file_hashes =
+                        crate::grouper::compute_all_file_hashes(&self.diff_data);
+                    return None;
+                }
+
+                // Try incremental path: same HEAD + have previous groups
+                let can_incremental = current_head.is_some()
+                    && self.previous_head.as_ref() == current_head.as_ref()
+                    && self.semantic_groups.is_some()
+                    && !self.previous_file_hashes.is_empty();
+
+                if can_incremental {
+                    let new_hashes = crate::grouper::compute_all_file_hashes(&self.diff_data);
+                    let delta =
+                        crate::grouper::compute_diff_delta(&new_hashes, &self.previous_file_hashes);
+
+                    if !delta.has_changes() {
+                        // Nothing changed — keep existing groups
+                        self.grouping_status = GroupingStatus::Done;
+                        return None;
+                    }
+
+                    if delta.is_only_removals() {
+                        // Only files removed — prune groups locally, no LLM needed
+                        let mut groups = self.semantic_groups.clone().unwrap_or_default();
+                        crate::grouper::remove_files_from_groups(&mut groups, &delta.removed_files);
+                        crate::grouper::normalize_hunk_indices(&mut groups, &self.diff_data);
+                        self.semantic_groups = Some(groups);
+                        self.grouping_status = GroupingStatus::Done;
+                        self.previous_file_hashes = new_hashes.clone();
+                        // Save updated cache
+                        if let Some(ref head) = current_head {
+                            crate::cache::save_with_state(
+                                hash,
+                                self.semantic_groups.as_ref().unwrap(),
+                                Some(head),
+                                &new_hashes,
+                            );
+                        }
+                        return None;
+                    }
+
+                    // New or modified files — spawn incremental LLM grouping
+                    if let Some(backend) = self.llm_backend {
+                        if let Some(handle) = self.grouping_handle.take() {
+                            handle.abort();
+                        }
+                        self.grouping_status = GroupingStatus::Loading;
+                        let existing = self.semantic_groups.as_ref().unwrap();
+                        let summaries = crate::grouper::incremental_hunk_summaries(
+                            &self.diff_data,
+                            &delta,
+                            existing,
+                        );
+                        tracing::info!(
+                            new = delta.new_files.len(),
+                            modified = delta.modified_files.len(),
+                            removed = delta.removed_files.len(),
+                            unchanged = delta.unchanged_files.len(),
+                            "Incremental grouping"
+                        );
+                        return Some(Command::SpawnIncrementalGrouping {
+                            backend,
+                            model: self.llm_model.clone(),
+                            summaries,
+                            diff_hash: hash,
+                            head_commit: current_head.unwrap(),
+                            file_hashes: new_hashes,
+                            delta,
+                        });
+                    }
+                }
+
+                // Fallback: full re-group
+                if let Some(backend) = self.llm_backend {
                     // Cancel in-flight grouping (ROB-05)
                     if let Some(handle) = self.grouping_handle.take() {
                         handle.abort();
                     }
                     self.grouping_status = GroupingStatus::Loading;
                     let summaries = crate::grouper::hunk_summaries(&self.diff_data);
+                    let file_hashes = crate::grouper::compute_all_file_hashes(&self.diff_data);
                     Some(Command::SpawnGrouping {
                         backend,
                         model: self.llm_model.clone(),
                         summaries,
                         diff_hash: hash,
+                        head_commit: current_head,
+                        file_hashes,
                     })
                 } else {
                     self.grouping_status = GroupingStatus::Idle;
                     None
                 }
             }
-            Message::GroupingComplete(groups) => {
+            Message::GroupingComplete(groups, diff_hash) => {
+                let mut groups = groups;
+                crate::grouper::normalize_hunk_indices(&mut groups, &self.diff_data);
+                // Update incremental state for next refresh
+                let current_head = crate::cache::get_head_commit();
+                let file_hashes = crate::grouper::compute_all_file_hashes(&self.diff_data);
+                // Save with full incremental state
+                crate::cache::save_with_state(
+                    diff_hash,
+                    &groups,
+                    current_head.as_deref(),
+                    &file_hashes,
+                );
+                self.previous_head = current_head;
+                self.previous_file_hashes = file_hashes;
                 self.semantic_groups = Some(groups);
                 self.grouping_status = GroupingStatus::Done;
                 self.grouping_handle = None;
@@ -218,6 +346,31 @@ impl App {
                 ts.select_first();
                 drop(ts);
                 // Clear any stale tree filter from the flat view
+                self.tree_filter = None;
+                None
+            }
+            Message::IncrementalGroupingComplete(new_assignments, delta, file_hashes, diff_hash, head_commit) => {
+                let existing = self.semantic_groups.as_ref().cloned().unwrap_or_default();
+                let mut merged =
+                    crate::grouper::merge_groups(&existing, &new_assignments, &delta);
+                crate::grouper::normalize_hunk_indices(&mut merged, &self.diff_data);
+                // Save merged groups to cache with incremental state
+                crate::cache::save_with_state(
+                    diff_hash,
+                    &merged,
+                    Some(&head_commit),
+                    &file_hashes,
+                );
+                self.semantic_groups = Some(merged);
+                self.grouping_status = GroupingStatus::Done;
+                self.grouping_handle = None;
+                self.previous_file_hashes = file_hashes;
+                self.previous_head = Some(head_commit);
+                // Reset tree state since structure changed
+                let mut ts = self.tree_state.borrow_mut();
+                *ts = TreeState::default();
+                ts.select_first();
+                drop(ts);
                 self.tree_filter = None;
                 None
             }
