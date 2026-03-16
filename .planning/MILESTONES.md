@@ -1,5 +1,14 @@
 # Milestones
 
+## v1.1 Security & Demo Readiness (Shipped: 2026-03-16)
+
+**Phases completed:** 3 phases, 9 plans, 0 tasks
+
+**Key accomplishments:**
+- (none recorded)
+
+---
+
 ## Milestone 1: MVP (Shipped: 2026-03-15)
 
 **Phases completed:** 3 phases, 7 plans
