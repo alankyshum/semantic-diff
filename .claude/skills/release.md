@@ -44,9 +44,33 @@ If previous releases have mismatches (e.g., GitHub release exists but no git tag
 
 Edit the `version = "..."` line in `Cargo.toml` to the new version. Skip if already correct.
 
-### 4. Add changelog entry to README
+### 4. Add changelog entry to README (MANDATORY — must be in the release commit)
 
-Read the changelog section in `README.md`. Add a new `### v<VERSION>` entry above the previous version with bullet points summarizing the changes. Use `git log --oneline <previous_tag>..HEAD` to see what changed.
+**This step MUST happen before the commit in Step 7.** The changelog is part of the release commit, not a follow-up.
+
+1. Find the previous release tag:
+```bash
+git tag -l 'v*' | sort -V | tail -1
+```
+
+2. Get all changes since the last tag:
+```bash
+git log --oneline <previous_tag>..HEAD
+```
+
+3. Read the `## Changelog` section in `README.md` and add a new `### v<VERSION>` entry **above** the previous version.
+
+4. Write human-readable bullet points grouped by theme (features, fixes, perf). Format:
+```markdown
+### v<VERSION>
+
+- **Feature name** — One-sentence description of what it does and why.
+- **Fix** — What was broken and how it's fixed.
+```
+
+5. Also update the config example block in README if any defaults or options changed.
+
+**The README.md changes must be staged along with Cargo.toml in Step 7's commit.**
 
 ### 5. Verify the build
 
@@ -79,10 +103,12 @@ Ensure the remote uses HTTPS (so `gh` handles auth):
 git remote set-url origin https://github.com/alankyshum/semantic-diff.git
 ```
 
-Commit the version bump and changelog (skip if no changes to commit):
+Commit the version bump, changelog, and any config doc updates together in a single release commit:
 ```bash
-cd /Users/kshum/Documents/gitproj/semantic-diff && git add Cargo.toml Cargo.lock README.md && git commit -m "chore: release v<VERSION>"
+cd /Users/kshum/Documents/gitproj/semantic-diff && git add Cargo.toml Cargo.lock README.md && git commit -m "chore: release v<VERSION> with changelog"
 ```
+
+**Verify README.md is included** — if `git diff --cached README.md` shows no changes, Step 4 was skipped. Go back and add the changelog entry before committing.
 
 Push to main:
 ```bash
