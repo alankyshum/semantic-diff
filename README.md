@@ -136,15 +136,17 @@ semantic-diff is designed to work as a live diff viewer alongside Claude Code.
 
 ### Setup
 
-1. Copy the hook script:
+1. Copy the hook script (an example is provided in `.claude/hooks.example/`):
 
 ```bash
 mkdir -p ~/.claude/hooks
-cp .claude/hooks/refresh-semantic-diff.sh ~/.claude/hooks/
+cp .claude/hooks.example/refresh-semantic-diff.sh ~/.claude/hooks/
 chmod +x ~/.claude/hooks/refresh-semantic-diff.sh
 ```
 
 2. Add to your Claude Code settings (`~/.claude/settings.local.json`):
+
+> **Note:** Add this to your **global** (`~/.claude/settings.local.json`) or **user-level** settings, not the project-level `.claude/settings.local.json`. Adding it to the project settings will cause the hook to trigger within the semantic-diff repo itself, repeatedly opening new semantic-diff instances.
 
 ```json
 {
