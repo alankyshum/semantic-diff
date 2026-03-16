@@ -76,15 +76,15 @@ async fn main() -> Result<()> {
         .args(&git_diff_args)
         .output()?;
 
-    let raw_diff = String::from_utf8_lossy(&output.stdout);
+    let raw_git_diff = String::from_utf8_lossy(&output.stdout);
 
-    if raw_diff.is_empty() {
+    // 4. Parse diff, including untracked files
+    let (diff_data, raw_diff) = diff::parse_with_untracked(&raw_git_diff);
+
+    if diff_data.files.is_empty() && diff_data.binary_files.is_empty() {
         eprintln!("No changes detected");
         return Ok(());
     }
-
-    // 4. Parse diff
-    let diff_data = diff::parse(&raw_diff);
     tracing::info!(
         files = diff_data.files.len(),
         binary = diff_data.binary_files.len(),
@@ -220,9 +220,10 @@ async fn main() -> Result<()> {
                                 .output()
                                 .await;
                             if let Ok(output) = output {
-                                let raw = String::from_utf8_lossy(&output.stdout).to_string();
-                                let data = crate::diff::parse(&raw);
-                                let _ = tx2.send(Message::DiffParsed(data, raw)).await;
+                                let raw_git = String::from_utf8_lossy(&output.stdout).to_string();
+                                let untracked = crate::diff::untracked::discover_untracked_files_async().await;
+                                let (data, combined) = crate::diff::parse_with_untracked_paths(&raw_git, &untracked);
+                                let _ = tx2.send(Message::DiffParsed(data, combined)).await;
                             }
                         });
                     }

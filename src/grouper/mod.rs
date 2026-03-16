@@ -102,44 +102,17 @@ pub fn hunk_summaries(diff_data: &DiffData) -> String {
     let mut out = String::new();
     for f in &diff_data.files {
         let path = f.target_file.trim_start_matches("b/");
-        let status = if f.is_rename {
-            format!("renamed from {}", f.source_file.trim_start_matches("a/"))
-        } else if f.added_count > 0 && f.removed_count == 0 {
-            "added".to_string()
-        } else if f.removed_count > 0 && f.added_count == 0 {
-            "deleted".to_string()
-        } else {
-            "modified".to_string()
-        };
+        let status = file_status(f);
         out.push_str(&format!(
             "FILE: {} ({}, +{} -{})\n",
             path, status, f.added_count, f.removed_count
         ));
 
-        for (hi, hunk) in f.hunks.iter().enumerate() {
-            out.push_str(&format!("  HUNK {}: {}\n", hi, hunk.header));
-
-            // Include a brief sample of changed lines (up to 4 lines) if under budget
-            if out.len() < MAX_SUMMARY_CHARS {
-                let mut shown = 0;
-                for line in &hunk.lines {
-                    if shown >= 4 {
-                        out.push_str("    ...\n");
-                        break;
-                    }
-                    match line.line_type {
-                        crate::diff::LineType::Added => {
-                            out.push_str(&format!("    + {}\n", truncate(&line.content, 60)));
-                            shown += 1;
-                        }
-                        crate::diff::LineType::Removed => {
-                            out.push_str(&format!("    - {}\n", truncate(&line.content, 60)));
-                            shown += 1;
-                        }
-                        _ => {}
-                    }
-                }
-            }
+        // For untracked files, use structural sampling instead of hunk-by-hunk
+        if f.is_untracked && out.len() < MAX_SUMMARY_CHARS {
+            out.push_str(&summarize_untracked_file(f));
+        } else {
+            append_hunk_samples(&mut out, f);
         }
 
         if out.len() >= MAX_SUMMARY_CHARS {
@@ -147,6 +120,104 @@ pub fn hunk_summaries(diff_data: &DiffData) -> String {
             break;
         }
     }
+    out
+}
+
+/// Classify a file's change status for LLM summaries.
+fn file_status(f: &crate::diff::DiffFile) -> String {
+    if f.is_untracked {
+        "untracked/new".to_string()
+    } else if f.is_rename {
+        format!("renamed from {}", f.source_file.trim_start_matches("a/"))
+    } else if f.added_count > 0 && f.removed_count == 0 {
+        "added".to_string()
+    } else if f.removed_count > 0 && f.added_count == 0 {
+        "deleted".to_string()
+    } else {
+        "modified".to_string()
+    }
+}
+
+/// Append standard hunk-by-hunk samples (up to 4 changed lines each) to the output.
+fn append_hunk_samples(out: &mut String, f: &crate::diff::DiffFile) {
+    for (hi, hunk) in f.hunks.iter().enumerate() {
+        out.push_str(&format!("  HUNK {}: {}\n", hi, hunk.header));
+
+        if out.len() < MAX_SUMMARY_CHARS {
+            let mut shown = 0;
+            for line in &hunk.lines {
+                if shown >= 4 {
+                    out.push_str("    ...\n");
+                    break;
+                }
+                match line.line_type {
+                    crate::diff::LineType::Added => {
+                        out.push_str(&format!("    + {}\n", truncate(&line.content, 60)));
+                        shown += 1;
+                    }
+                    crate::diff::LineType::Removed => {
+                        out.push_str(&format!("    - {}\n", truncate(&line.content, 60)));
+                        shown += 1;
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+}
+
+/// Structural sampling for untracked (new) files.
+///
+/// Instead of showing the first 4 lines (usually imports), samples from three
+/// regions of the file to give the LLM a representative view of the file's purpose:
+/// - Head: first N non-blank lines (imports, module declaration)
+/// - Mid: N lines from the middle (core logic)
+/// - Tail: last N non-blank lines (exports, closing code)
+///
+/// For short files (≤12 lines), shows all content lines.
+fn summarize_untracked_file(f: &crate::diff::DiffFile) -> String {
+    // Collect all content lines (flatten across hunks)
+    let all_lines: Vec<&str> = f
+        .hunks
+        .iter()
+        .flat_map(|h| h.lines.iter())
+        .filter(|l| l.line_type == crate::diff::LineType::Added)
+        .map(|l| l.content.as_str())
+        .collect();
+
+    let total = all_lines.len();
+    let mut out = String::new();
+
+    if total <= 12 {
+        // Short file — show everything
+        for line in &all_lines {
+            out.push_str(&format!("    + {}\n", truncate(line, 80)));
+        }
+        return out;
+    }
+
+    const SAMPLE: usize = 4;
+
+    // Head
+    out.push_str("  [head]\n");
+    for line in all_lines.iter().take(SAMPLE) {
+        out.push_str(&format!("    + {}\n", truncate(line, 80)));
+    }
+
+    // Mid
+    let mid_start = total / 2 - SAMPLE / 2;
+    out.push_str(&format!("  [mid ~line {}]\n", mid_start + 1));
+    for line in all_lines.iter().skip(mid_start).take(SAMPLE) {
+        out.push_str(&format!("    + {}\n", truncate(line, 80)));
+    }
+
+    // Tail
+    let tail_start = total.saturating_sub(SAMPLE);
+    out.push_str(&format!("  [tail ~line {}]\n", tail_start + 1));
+    for line in all_lines.iter().skip(tail_start) {
+        out.push_str(&format!("    + {}\n", truncate(line, 80)));
+    }
+
     out
 }
 
@@ -293,43 +364,16 @@ pub fn incremental_hunk_summaries(
             continue;
         }
 
-        let status = if f.is_rename {
-            format!("renamed from {}", f.source_file.trim_start_matches("a/"))
-        } else if f.added_count > 0 && f.removed_count == 0 {
-            "added".to_string()
-        } else if f.removed_count > 0 && f.added_count == 0 {
-            "deleted".to_string()
-        } else {
-            "modified".to_string()
-        };
+        let status = file_status(f);
         out.push_str(&format!(
             "FILE: {} ({}, +{} -{})\n",
             path, status, f.added_count, f.removed_count
         ));
 
-        for (hi, hunk) in f.hunks.iter().enumerate() {
-            out.push_str(&format!("  HUNK {}: {}\n", hi, hunk.header));
-
-            if out.len() < MAX_SUMMARY_CHARS {
-                let mut shown = 0;
-                for line in &hunk.lines {
-                    if shown >= 4 {
-                        out.push_str("    ...\n");
-                        break;
-                    }
-                    match line.line_type {
-                        crate::diff::LineType::Added => {
-                            out.push_str(&format!("    + {}\n", truncate(&line.content, 60)));
-                            shown += 1;
-                        }
-                        crate::diff::LineType::Removed => {
-                            out.push_str(&format!("    - {}\n", truncate(&line.content, 60)));
-                            shown += 1;
-                        }
-                        _ => {}
-                    }
-                }
-            }
+        if f.is_untracked && out.len() < MAX_SUMMARY_CHARS {
+            out.push_str(&summarize_untracked_file(f));
+        } else {
+            append_hunk_samples(&mut out, f);
         }
 
         if out.len() >= MAX_SUMMARY_CHARS {

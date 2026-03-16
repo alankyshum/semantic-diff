@@ -92,6 +92,17 @@ fn render_file_header(app: &App, file_idx: usize, sel_bg: Color) -> Line<'static
         ),
     ];
 
+    // Show [untracked] badge for untracked files
+    if file.is_untracked {
+        spans.push(Span::styled(
+            "[untracked] ".to_string(),
+            Style::default()
+                .fg(Color::Cyan)
+                .bg(header_bg)
+                .add_modifier(Modifier::DIM),
+        ));
+    }
+
     // Render filename with match highlighting if filter is active
     let name_with_space = format!("{name} ");
     if let Some(ref filter) = app.active_filter {

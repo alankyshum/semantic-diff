@@ -49,8 +49,8 @@ impl Config {
     pub fn default_config() -> Self {
         Self {
             preferred_ai_cli: None,
-            claude_model: "sonnet".to_string(),
-            copilot_model: "sonnet".to_string(),
+            claude_model: "haiku".to_string(),
+            copilot_model: "gemini-flash".to_string(),
             theme_mode: ThemeMode::Auto,
         }
     }
@@ -119,16 +119,16 @@ const DEFAULT_CONFIG: &str = r#"{
 
   // Claude CLI settings
   "claude": {
-    // Model to use: "sonnet", "opus", "haiku"
+    // Model to use: "haiku" (fast, default), "sonnet" (balanced), "opus" (powerful)
     // Cross-backend models are mapped automatically:
     //   gemini-flash -> haiku, gemini-pro -> sonnet
-    "model": "sonnet"
+    "model": "haiku"
   },
 
   // Copilot CLI settings
   "copilot": {
-    // Model to use: "sonnet", "opus", "haiku", "gemini-flash", "gemini-pro"
-    "model": "sonnet"
+    // Model to use: "gemini-flash" (fast, default), "sonnet", "opus", "haiku", "gemini-pro"
+    "model": "gemini-flash"
   }
 
   // Theme: "dark", "light", or "auto" (detects from terminal)
@@ -188,7 +188,7 @@ pub fn load() -> Config {
 
 /// Map any model name to the closest Claude CLI model.
 fn resolve_model_for_claude(model: Option<&str>) -> String {
-    let tier = model.map(model_tier).unwrap_or(ModelTier::Balanced);
+    let tier = model.map(model_tier).unwrap_or(ModelTier::Fast);
     match tier {
         ModelTier::Fast => "haiku",
         ModelTier::Balanced => "sonnet",
@@ -215,7 +215,7 @@ fn resolve_model_for_copilot(model: Option<&str>) -> String {
                 .to_string(),
             }
         }
-        None => "sonnet".to_string(),
+        None => "gemini-flash".to_string(),
     }
 }
 
@@ -348,7 +348,7 @@ mod tests {
         assert_eq!(resolve_model_for_claude(Some("sonnet")), "sonnet");
         assert_eq!(resolve_model_for_claude(Some("opus")), "opus");
         assert_eq!(resolve_model_for_claude(Some("gemini-pro")), "sonnet");
-        assert_eq!(resolve_model_for_claude(None), "sonnet");
+        assert_eq!(resolve_model_for_claude(None), "haiku");
     }
 
     #[test]
@@ -356,7 +356,7 @@ mod tests {
         assert_eq!(resolve_model_for_copilot(Some("gemini-flash")), "gemini-flash");
         assert_eq!(resolve_model_for_copilot(Some("sonnet")), "sonnet");
         assert_eq!(resolve_model_for_copilot(Some("haiku")), "haiku");
-        assert_eq!(resolve_model_for_copilot(None), "sonnet");
+        assert_eq!(resolve_model_for_copilot(None), "gemini-flash");
     }
 
     #[test]
@@ -364,8 +364,8 @@ mod tests {
         let stripped = strip_json_comments(DEFAULT_CONFIG);
         let raw: RawConfig = serde_json::from_str(&stripped).unwrap();
         assert!(raw.preferred_ai_cli.is_none());
-        assert_eq!(raw.claude.model.as_deref(), Some("sonnet"));
-        assert_eq!(raw.copilot.model.as_deref(), Some("sonnet"));
+        assert_eq!(raw.claude.model.as_deref(), Some("haiku"));
+        assert_eq!(raw.copilot.model.as_deref(), Some("gemini-flash"));
     }
 
     #[test]

@@ -82,6 +82,7 @@ pub fn parse(raw: &str) -> DiffData {
                 source_file: source,
                 target_file: target,
                 is_rename,
+                is_untracked: false,
                 hunks,
                 added_count: pf.added(),
                 removed_count: pf.removed(),
