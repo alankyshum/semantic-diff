@@ -1,6 +1,6 @@
 # Release semantic-diff
 
-Publish a new version of semantic-diff to crates.io, create a GitHub release with a curated changelog, and trigger the CI workflow that builds dual-arch macOS binaries and auto-updates the Homebrew tap.
+Publish a new version of semantic-diff with consistent versioning across all distribution channels: Cargo.toml, crates.io, GitHub release (with tag), and Homebrew tap.
 
 ## Usage
 
@@ -19,21 +19,42 @@ If no version argument provided, check current version and ask user:
 cd /Users/kshum/Documents/gitproj/semantic-diff && grep '^version' Cargo.toml
 ```
 
-### 2. Update Cargo.toml version
+### 2. Version consistency check (MANDATORY)
 
-Edit the `version = "..."` line in `Cargo.toml` to the new version.
+Before making any changes, audit all version sources and report mismatches:
 
-### 3. Add changelog entry to README
+```bash
+echo "=== Cargo.toml ===" && grep '^version' Cargo.toml
+echo "=== Git tags (local) ===" && git tag -l 'v*' | sort -V | tail -5
+echo "=== Git tags (remote) ===" && git ls-remote --tags origin 'refs/tags/v*' | awk '{print $2}' | sed 's|refs/tags/||' | sort -V | tail -5
+echo "=== GitHub releases ===" && gh release list --limit 5
+echo "=== crates.io ===" && cargo search semantic-diff --limit 1 2>/dev/null || echo "(unable to check)"
+```
+
+**All of these must align for the target version before the release is considered complete:**
+- `Cargo.toml` version matches `<VERSION>`
+- Git tag `v<VERSION>` exists locally and on remote
+- GitHub release `v<VERSION>` exists with curated notes
+- crates.io has `<VERSION>` published
+- CI workflow triggered (builds binaries + updates Homebrew tap)
+
+If previous releases have mismatches (e.g., GitHub release exists but no git tag, or crates.io is behind), **report them to the user** and offer to fix before proceeding with the new release.
+
+### 3. Update Cargo.toml version
+
+Edit the `version = "..."` line in `Cargo.toml` to the new version. Skip if already correct.
+
+### 4. Add changelog entry to README
 
 Read the changelog section in `README.md`. Add a new `### v<VERSION>` entry above the previous version with bullet points summarizing the changes. Use `git log --oneline <previous_tag>..HEAD` to see what changed.
 
-### 4. Verify the build
+### 5. Verify the build
 
 ```bash
 cd /Users/kshum/Documents/gitproj/semantic-diff && cargo build --release 2>&1
 ```
 
-### 5. Publish to crates.io
+### 6. Publish to crates.io
 
 ```bash
 cd /Users/kshum/Documents/gitproj/semantic-diff && cargo publish 2>&1
@@ -41,7 +62,7 @@ cd /Users/kshum/Documents/gitproj/semantic-diff && cargo publish 2>&1
 
 If this fails with an email verification error, tell the user to verify at https://crates.io/settings/profile.
 
-### 6. Commit, tag, and push
+### 7. Commit, tag, and push
 
 Ensure the active `gh` account is `alankyshum`:
 ```bash
@@ -58,7 +79,7 @@ Ensure the remote uses HTTPS (so `gh` handles auth):
 git remote set-url origin https://github.com/alankyshum/semantic-diff.git
 ```
 
-Commit the version bump and changelog:
+Commit the version bump and changelog (skip if no changes to commit):
 ```bash
 cd /Users/kshum/Documents/gitproj/semantic-diff && git add Cargo.toml Cargo.lock README.md && git commit -m "chore: release v<VERSION>"
 ```
@@ -68,7 +89,7 @@ Push to main:
 cd /Users/kshum/Documents/gitproj/semantic-diff && git push origin main
 ```
 
-### 7. Create GitHub release with curated changelog
+### 8. Create GitHub release with curated changelog
 
 Write release notes following this format — do NOT use `--generate-notes`:
 
@@ -100,7 +121,20 @@ EOF
 
 Group changes by theme (e.g. "Adaptive Theme", "Docs & Community", "Fixes") rather than listing raw commits. Use `git log --oneline <previous_tag>..v<VERSION>` to see all changes. Write human-readable descriptions, not commit messages.
 
-### 8. Monitor CI
+### 9. Post-release verification (MANDATORY)
+
+After GitHub release is created, verify all channels are consistent:
+
+```bash
+echo "=== Verify tag ===" && git fetch --tags && git tag -l "v<VERSION>"
+echo "=== Verify GitHub release ===" && gh release view "v<VERSION>" --json tagName,name --jq '.tagName + " " + .name'
+echo "=== Verify crates.io ===" && cargo search semantic-diff --limit 1
+echo "=== Verify CI triggered ===" && gh run list --limit 1
+```
+
+If any channel is missing or mismatched, fix it before proceeding.
+
+### 10. Monitor CI
 
 The release workflow (`.github/workflows/release.yml`) auto-triggers on tag push (created by `gh release create`). It will:
 1. Build `aarch64-apple-darwin` and `x86_64-apple-darwin` binaries
@@ -112,12 +146,15 @@ Watch the workflow:
 cd /Users/kshum/Documents/gitproj/semantic-diff && gh run list --limit 1
 ```
 
-### 9. Report
+### 11. Report
 
-Print summary with links:
-- crates.io: https://crates.io/crates/semantic-diff
-- GitHub release: https://github.com/alankyshum/semantic-diff/releases/tag/v<VERSION>
-- Homebrew: `brew install alankyshum/tap/semantic-diff`
+Print summary with links and verification status:
+- Cargo.toml: `<VERSION>` ✓
+- crates.io: https://crates.io/crates/semantic-diff ✓/✗
+- GitHub release: https://github.com/alankyshum/semantic-diff/releases/tag/v<VERSION> ✓/✗
+- Git tag: `v<VERSION>` ✓/✗
+- CI workflow: ✓/✗ (triggered / completed)
+- Homebrew: `brew install alankyshum/tap/semantic-diff` (updated by CI)
 
 ## Prerequisites
 
