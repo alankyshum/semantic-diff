@@ -179,6 +179,12 @@ chmod +x ~/.claude/hooks/refresh-semantic-diff.sh
 
 ## Changelog
 
+### v0.5.0
+
+- **Drop-in `git diff` replacement** — Use `semantic-diff` as a direct replacement for `git diff` with the same CLI arguments (`--staged`, `--cached`, revision ranges, path filters). Configure as `git config diff.external` for seamless integration.
+- **Incremental grouping** — Files are grouped progressively as LLM responses stream in, so you see organized results immediately instead of waiting for all files to be analyzed.
+- **Clippy lint fixes** — Clean up uninlined format args and `ptr_arg` warnings.
+
 ### v0.4.0
 
 - **Adaptive dark/light theme** — Auto-detects terminal background color via OSC 11 protocol (supports iTerm2, Ghostty, kitty, WezTerm, Alacritty, xterm, VS Code terminal). Falls back to `COLORFGBG` env var. Override with `"theme": "dark"` or `"light"` in config.
