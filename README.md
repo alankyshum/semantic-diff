@@ -118,14 +118,14 @@ On first run, a default config is created at `~/.config/semantic-diff.json`:
   // "preferred-ai-cli": "claude",
 
   "claude": {
-    // Model: "sonnet", "opus", "haiku"
+    // Model: "haiku" (fast, default), "sonnet" (balanced), "opus" (powerful)
     // Cross-backend models mapped automatically (gemini-flash → haiku)
-    "model": "sonnet"
+    "model": "haiku"
   },
 
   "copilot": {
-    // Model: "sonnet", "opus", "haiku", "gemini-flash", "gemini-pro"
-    "model": "sonnet"
+    // Model: "gemini-flash" (fast, default), "sonnet", "opus", "haiku", "gemini-pro"
+    "model": "gemini-flash"
   }
 }
 ```
@@ -178,6 +178,17 @@ chmod +x ~/.claude/hooks/refresh-semantic-diff.sh
 6. You see real-time, grouped changes without leaving the terminal
 
 ## Changelog
+
+### v0.6.0
+
+- **Untracked file support** — New (untracked) files are now discovered via `git ls-files --others --exclude-standard` and displayed alongside tracked changes. Shown with `[untracked]` badge in the diff view and `[U]` in the sidebar. Binary detection, 1MB size cap, and path traversal validation included.
+- **Smart path abbreviation** — Long file paths in the sidebar are automatically abbreviated to fit (e.g. `src/app/components/sales-assistant/routes.ts` → `s/a/c/s-a/routes.ts`). Filenames are always kept intact; only parent directories are shortened.
+- **Structural sampling for LLM** — Untracked files use head/mid/tail sampling (4 lines from each region) instead of showing just the first 4 lines, giving the LLM a better view of the file's purpose for grouping.
+- **Fast model defaults** — Default LLM model changed from `sonnet` to `haiku` (Claude) / `gemini-flash` (Copilot) for faster grouping. The classification task works well with fast models. Users can upgrade via `~/.config/semantic-diff.json`.
+
+### v0.5.1
+
+- **Fix** — Show only group-relevant hunks when selecting a file in the sidebar, instead of showing all hunks for that file.
 
 ### v0.5.0
 
