@@ -343,7 +343,7 @@ pub fn incremental_hunk_summaries(
 
 /// Post-process grouping results: fill in explicit hunk indices when `hunks` is empty
 /// and the file has multiple hunks, so the UI can filter hunks per group correctly.
-pub fn normalize_hunk_indices(groups: &mut Vec<SemanticGroup>, diff_data: &DiffData) {
+pub fn normalize_hunk_indices(groups: &mut [SemanticGroup], diff_data: &DiffData) {
     // Build a map from file path -> hunk count
     let hunk_counts: HashMap<String, usize> = diff_data
         .files

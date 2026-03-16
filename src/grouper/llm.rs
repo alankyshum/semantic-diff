@@ -269,7 +269,7 @@ async fn invoke_claude(prompt: &str, model: &str) -> anyhow::Result<String> {
 
     if bytes_read >= MAX_RESPONSE_BYTES {
         child.kill().await.ok();
-        anyhow::bail!("LLM response exceeded {} byte limit", MAX_RESPONSE_BYTES);
+        anyhow::bail!("LLM response exceeded {MAX_RESPONSE_BYTES} byte limit");
     }
 
     let status = child.wait().await?;
@@ -280,7 +280,7 @@ async fn invoke_claude(prompt: &str, model: &str) -> anyhow::Result<String> {
             stderr.read_to_end(&mut stderr_buf).await.ok();
         }
         let stderr_str = String::from_utf8_lossy(&stderr_buf);
-        anyhow::bail!("claude exited with status {}: {}", status, stderr_str);
+        anyhow::bail!("claude exited with status {status}: {stderr_str}");
     }
 
     let stdout_str = String::from_utf8(buf)?;
@@ -321,7 +321,7 @@ async fn invoke_copilot(prompt: &str, model: &str) -> anyhow::Result<String> {
 
     if bytes_read >= MAX_RESPONSE_BYTES {
         child.kill().await.ok();
-        anyhow::bail!("LLM response exceeded {} byte limit", MAX_RESPONSE_BYTES);
+        anyhow::bail!("LLM response exceeded {MAX_RESPONSE_BYTES} byte limit");
     }
 
     let status = child.wait().await?;
@@ -331,7 +331,7 @@ async fn invoke_copilot(prompt: &str, model: &str) -> anyhow::Result<String> {
             stderr.read_to_end(&mut stderr_buf).await.ok();
         }
         let stderr_str = String::from_utf8_lossy(&stderr_buf);
-        anyhow::bail!("copilot exited with status {}: {}", status, stderr_str);
+        anyhow::bail!("copilot exited with status {status}: {stderr_str}");
     }
 
     Ok(String::from_utf8(buf)?)
