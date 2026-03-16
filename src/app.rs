@@ -526,44 +526,45 @@ impl App {
         match key.code {
             KeyCode::Char('j') | KeyCode::Down => {
                 ts.key_down();
-                None
             }
             KeyCode::Char('k') | KeyCode::Up => {
                 ts.key_up();
-                None
             }
             KeyCode::Left => {
                 ts.key_left();
-                None
             }
             KeyCode::Right => {
                 ts.key_right();
-                None
             }
             KeyCode::Enter => {
-                let selected = ts.selected().to_vec();
-                drop(ts); // release borrow before mutating self
-                if let Some(last) = selected.last() {
-                    match last {
-                        TreeNodeId::File(path) => {
-                            self.select_tree_file(path);
-                        }
-                        TreeNodeId::Group(gi) => {
-                            self.select_tree_group(*gi);
-                        }
-                    }
-                }
-                None
+                ts.toggle_selected();
             }
             KeyCode::Char('g') => {
                 ts.select_first();
-                None
             }
             KeyCode::Char('G') => {
                 ts.select_last();
-                None
             }
-            _ => None,
+            _ => return None,
+        }
+
+        // After any navigation, sync the diff view to the selected tree node
+        let selected = ts.selected().to_vec();
+        drop(ts); // release borrow before mutating self
+        self.apply_tree_selection(&selected);
+        None
+    }
+
+    /// Update the diff view filter based on the currently selected tree node.
+    fn apply_tree_selection(&mut self, selected: &[TreeNodeId]) {
+        match selected.last() {
+            Some(TreeNodeId::File(group_idx, path)) => {
+                self.select_tree_file(path, *group_idx);
+            }
+            Some(TreeNodeId::Group(gi)) => {
+                self.select_tree_group(*gi);
+            }
+            None => {}
         }
     }
 
@@ -625,11 +626,11 @@ impl App {
         }
     }
 
-    /// Filter the diff view to the group containing the selected file, and scroll to it.
-    /// If the group is already active, just scroll to the file without toggling off.
-    fn select_tree_file(&mut self, path: &str) {
-        let filter = self.hunk_filter_for_file(path);
-        // Always apply the group filter (don't toggle — that's what group headers are for)
+    /// Filter the diff view to show only the hunks for the selected file within its group.
+    /// `group_idx` identifies which group the file was selected from (None = flat/ungrouped).
+    fn select_tree_file(&mut self, path: &str, group_idx: Option<usize>) {
+        let filter = self.hunk_filter_for_file(path, group_idx);
+        // Always apply the filter (don't toggle — that's what group headers are for)
         self.tree_filter = Some(filter);
         // Rebuild visible items and scroll to the selected file's header
         let items = self.visible_items();
@@ -652,37 +653,71 @@ impl App {
     fn select_tree_group(&mut self, group_idx: usize) {
         let filter = self.hunk_filter_for_group(group_idx);
         if filter.is_empty() {
-            self.tree_state.borrow_mut().toggle_selected();
             return;
         }
-        // Toggle: if already filtering to this group, clear it
-        if self.tree_filter.as_ref() == Some(&filter) {
-            self.tree_filter = None;
-        } else {
-            self.tree_filter = Some(filter);
-        }
+        self.tree_filter = Some(filter);
         self.ui_state.selected_index = 0;
         self.ui_state.scroll_offset = 0;
     }
 
-    /// Build a HunkFilter for the group containing `path`.
-    /// Falls back to showing just that file (all hunks) if no groups exist.
-    fn hunk_filter_for_file(&self, path: &str) -> HunkFilter {
+    /// Build a HunkFilter for a single file's hunks within a specific group.
+    /// Only shows the hunks relevant to that group, not the entire group's files.
+    fn hunk_filter_for_file(&self, path: &str, group_idx: Option<usize>) -> HunkFilter {
         if let Some(groups) = &self.semantic_groups {
-            for (gi, group) in groups.iter().enumerate() {
-                let has_file = group.changes().iter().any(|c| {
-                    c.file == path || path.ends_with(c.file.as_str()) || c.file.ends_with(path)
-                });
-                if has_file {
-                    return self.hunk_filter_for_group(gi);
+            if let Some(gi) = group_idx {
+                if gi >= groups.len() {
+                    // "Other" group — extract only this file's ungrouped hunks
+                    return self.hunk_filter_for_file_in_other(path);
+                }
+                if let Some(group) = groups.get(gi) {
+                    if let Some(filter) = self.hunk_filter_for_file_in_group(path, group) {
+                        return filter;
+                    }
                 }
             }
-            // File is in the "Other" group — collect ungrouped file/hunks
-            return self.hunk_filter_for_other();
+            // Fallback (no group_idx or file not found in specified group):
+            // search all groups for the first match
+            for group in groups.iter() {
+                if let Some(filter) = self.hunk_filter_for_file_in_group(path, group) {
+                    return filter;
+                }
+            }
+            return self.hunk_filter_for_file_in_other(path);
         }
-        // No semantic groups — filter to just this file (all hunks)
+        // No semantic groups — show all hunks for this file
         let mut filter = HunkFilter::new();
         filter.insert(path.to_string(), HashSet::new());
+        filter
+    }
+
+    /// Build a single-file HunkFilter from a specific group's changes.
+    fn hunk_filter_for_file_in_group(
+        &self,
+        path: &str,
+        group: &crate::grouper::SemanticGroup,
+    ) -> Option<HunkFilter> {
+        for change in &group.changes() {
+            if let Some(diff_path) = self.resolve_diff_path(&change.file) {
+                if diff_path == path {
+                    let mut filter = HunkFilter::new();
+                    let hunk_set: HashSet<usize> = change.hunks.iter().copied().collect();
+                    filter.insert(diff_path, hunk_set);
+                    return Some(filter);
+                }
+            }
+        }
+        None
+    }
+
+    /// Build a single-file HunkFilter from the "Other" (ungrouped) hunks.
+    fn hunk_filter_for_file_in_other(&self, path: &str) -> HunkFilter {
+        let other = self.hunk_filter_for_other();
+        let mut filter = HunkFilter::new();
+        if let Some(hunk_set) = other.get(path) {
+            filter.insert(path.to_string(), hunk_set.clone());
+        } else {
+            filter.insert(path.to_string(), HashSet::new());
+        }
         filter
     }
 

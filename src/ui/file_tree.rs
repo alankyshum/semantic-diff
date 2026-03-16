@@ -8,17 +8,19 @@ use ratatui::Frame;
 use tui_tree_widget::{Tree, TreeItem};
 
 /// Identifier for tree nodes.
+/// Files include an optional group index to disambiguate the same file in multiple groups.
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub enum TreeNodeId {
     Group(usize),
-    File(String),
+    File(Option<usize>, String), // (group_index, path)
 }
 
 impl std::fmt::Display for TreeNodeId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             TreeNodeId::Group(i) => write!(f, "group-{i}"),
-            TreeNodeId::File(path) => write!(f, "file-{path}"),
+            TreeNodeId::File(Some(gi), path) => write!(f, "file-{gi}-{path}"),
+            TreeNodeId::File(None, path) => write!(f, "file-{path}"),
         }
     }
 }
@@ -50,7 +52,7 @@ fn build_flat_tree<'a>(app: &App) -> Vec<TreeItem<'a, TreeNodeId>> {
                     Style::default().fg(Color::Red),
                 ),
             ]);
-            TreeItem::new_leaf(TreeNodeId::File(path), line)
+            TreeItem::new_leaf(TreeNodeId::File(None, path), line)
         })
         .collect()
 }
@@ -130,7 +132,7 @@ fn build_grouped_tree<'a>(
                         Style::default().fg(Color::Red),
                     ),
                 ]);
-                children.push(TreeItem::new_leaf(TreeNodeId::File(path), line));
+                children.push(TreeItem::new_leaf(TreeNodeId::File(Some(gi), path), line));
             }
         }
 
@@ -194,7 +196,7 @@ fn build_grouped_tree<'a>(
                     Style::default().fg(Color::Red),
                 ),
             ]);
-            other_children.push(TreeItem::new_leaf(TreeNodeId::File(path), line));
+            other_children.push(TreeItem::new_leaf(TreeNodeId::File(Some(groups.len()), path), line));
         }
     }
 
