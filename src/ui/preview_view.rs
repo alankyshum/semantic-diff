@@ -42,7 +42,7 @@ pub fn render_preview(app: &App, frame: &mut Frame, area: Rect) -> Vec<PendingIm
         }
     };
 
-    let blocks = crate::preview::markdown::parse_markdown(&file_content);
+    let blocks = crate::preview::markdown::parse_markdown(&file_content, area.width);
     let can_render_images = matches!(app.image_support, ImageSupport::Supported(_));
 
     // Build segments
@@ -274,7 +274,8 @@ impl Segment {
                 lines
                     .iter()
                     .map(|line| {
-                        let char_width: usize = line.spans.iter().map(|s| s.content.len()).sum();
+                        let char_width: usize =
+                            line.spans.iter().map(|s| s.content.chars().count()).sum();
                         if char_width == 0 {
                             1
                         } else {

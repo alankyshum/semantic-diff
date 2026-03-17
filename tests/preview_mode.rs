@@ -343,7 +343,7 @@ graph TD
 [Link](https://example.com)
 "#;
 
-    let blocks = parse_markdown(md);
+    let blocks = parse_markdown(md, 120);
     assert!(!blocks.is_empty(), "Should produce blocks");
 
     let has_text = blocks.iter().any(|b| matches!(b, PreviewBlock::Text(_)));
