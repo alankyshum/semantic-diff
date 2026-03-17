@@ -1,162 +1,171 @@
-# Feature Research: Security Audit & Demo Testing
+# Feature Landscape: Markdown Preview in Terminal Diff Viewer
 
-**Domain:** Security hardening and E2E testing for a Rust CLI/TUI app
-**Researched:** 2026-03-15
-**Confidence:** HIGH (based on direct source code analysis of all attack surfaces)
+**Domain:** Terminal markdown preview with mermaid diagram rendering, embedded in a Rust TUI diff viewer
+**Researched:** 2026-03-16
+**Confidence:** HIGH (based on direct source analysis, verified library capabilities, official documentation)
 
-## Feature Landscape
+## Table Stakes
 
-### Table Stakes: Security Audit Checks (Must audit or users at risk)
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| **SEC-01: Shell command injection audit for `git` invocations** | `main.rs:40` and `main.rs:110` shell out to `git diff HEAD -M` via `std::process::Command` and `tokio::process::Command`. These use arg arrays (safe), but verify no user-controlled strings leak into args. | LOW | Currently safe -- hardcoded args `["diff", "HEAD", "-M"]` and `["rev-parse", "--git-dir"]` in `cache.rs:108`. No user input flows into git args. Audit confirms correctness. |
-| **SEC-02: Shell command injection audit for LLM CLI invocations** | `llm.rs:95-107` passes `prompt` (derived from diff content) as a CLI arg to `claude`/`copilot`. The prompt contains file paths and diff content from git. `Command::new("claude").args(["-p", prompt, ...])` is safe from shell injection (arg array, not shell string), but the prompt content itself is attacker-controllable if a malicious file path or diff content is crafted. | MEDIUM | Arg-array exec is safe against injection. But verify prompt content cannot cause claude CLI to interpret flags (e.g., a file named `--dangerously-skip-permissions`). Mitigation: prepend `--` before the prompt arg, or validate prompt does not start with `-`. |
-| **SEC-03: LLM output parsing safety (untrusted JSON)** | `llm.rs:59` deserializes LLM JSON output with `serde_json::from_str`. LLM output is untrusted -- can contain arbitrary strings. The `extract_json` function (`llm.rs:137-150`) extracts JSON from freeform text using `find('{')` and `rfind('}')`. | MEDIUM | Current risks: (1) `extract_json` could match unbalanced braces, producing invalid JSON that serde rejects (safe). (2) Deserialized `label`/`description` strings render in TUI -- verify no terminal escape sequence injection (ANSI codes in group labels could corrupt display). (3) `file` field in GroupedChange is validated against known files (`llm.rs:83`) -- good. |
-| **SEC-04: File path traversal in diff parsing** | `parser.rs` accepts file paths from `git diff` output (e.g., `source_file`, `target_file`). These paths are used for display only (`trim_start_matches("b/")`), not for file I/O. | LOW | Currently safe -- paths are display-only, never opened or written. But verify: `cache.rs` writes to `.git/semantic-diff-cache.json` using git-derived path (`git rev-parse --git-dir`). If attacker controls `.git` directory content, cache path could be manipulated. Low risk in practice. |
-| **SEC-05: PID file race conditions (symlink attack)** | `signal.rs:5` hardcodes PID file at `/tmp/semantic-diff.pid`. Writing to `/tmp` is a classic symlink attack vector -- attacker creates symlink at that path pointing to a sensitive file (e.g., `/etc/passwd`), and `fs::write` overwrites it. | HIGH | **This is the most critical vulnerability.** `fs::write(PID_FILE, process::id().to_string())` follows symlinks. Fix: use `O_CREAT | O_EXCL` or write to a user-specific temp dir (`$XDG_RUNTIME_DIR` or `/tmp/semantic-diff-$UID/`). Also: PID file is not validated on read -- stale PID could belong to a different process. |
-| **SEC-06: Signal handling race conditions** | `event.rs:12-13` registers SIGUSR1 via tokio signals. The 500ms debounce (`app.rs:169`) prevents rapid re-parsing. | LOW | Tokio's signal handling is safe. The debounce prevents resource exhaustion from rapid signals. Verify: can an attacker send SIGUSR1 to trigger excessive git/LLM invocations? Only if they know the PID (from `/tmp/semantic-diff.pid`) and have same-user permissions. Rate limiting via debounce is adequate. |
-| **SEC-07: Log file path safety** | `main.rs:27` writes logs to `/tmp/semantic-diff.log` -- same symlink attack vector as PID file. | MEDIUM | Fix alongside SEC-05: use user-specific directory for all temp files. |
-| **SEC-08: Config file parsing safety** | `config.rs` reads `~/.config/semantic-diff.json` with JSONC stripping. Config creates default file if missing (`config.rs:139-140`). | LOW | Low risk -- config is in user's home dir. JSONC parser (`strip_json_comments`) handles edge cases well (tested). `serde_json` deserialization with `#[serde(default)]` is robust against malformed input. |
-| **SEC-09: Cache file integrity** | `cache.rs` reads/writes `.git/semantic-diff-cache.json`. Cache content is deserialized and rendered. A tampered cache could inject malicious group labels/descriptions. | LOW | Same risk as SEC-03 (terminal escape sequences in cached strings). Mitigate alongside SEC-03. |
-| **SEC-10: `truncate` function UTF-8 safety** | `grouper/mod.rs:144-150` uses byte-level slicing `&s[..max]` which panics on non-UTF-8 boundary. | MEDIUM | If a file contains multi-byte UTF-8 characters and the line is near the 60-char truncation point, this will panic. Fix: use `s.char_indices()` to find a safe boundary, or use `s.get(..max).unwrap_or(s)`. |
-
-### Table Stakes: Testing (Must test or demo fails)
+Features users expect when toggling into a "preview" mode for markdown files. Missing any of these makes the feature feel broken or incomplete.
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| **TEST-01: Diff rendering correctness** | Syntax highlighting, line numbers, word-level inline diffs, file headers with +/- counts. If any of these render incorrectly in demo, product looks broken. | MEDIUM | Use ratatui's `TestBackend` to capture rendered frames. Snapshot test against known diff inputs. |
-| **TEST-02: Collapse/expand behavior** | Enter toggles file/hunk collapse. If state gets corrupted (e.g., selected index out of bounds after collapse), TUI panics. | MEDIUM | Test `toggle_collapse()` with various selected positions, verify `visible_items()` count changes correctly, verify index clamping. |
-| **TEST-03: SIGUSR1 refresh cycle** | Signal -> debounce -> git diff -> re-parse -> re-render. This is the core real-time update loop. | HIGH | Requires integration test: spawn semantic-diff, send SIGUSR1, verify diff data updates. Test debounce: rapid signals should coalesce. Test in-flight cancellation (ROB-05). |
-| **TEST-04: Semantic grouping happy path** | LLM returns valid JSON -> groups appear in sidebar -> selecting group filters diff view. | HIGH | Mock the LLM CLI (stub `claude` binary that returns canned JSON). Verify grouping renders, sidebar navigation works, hunk-level filtering is correct. |
-| **TEST-05: Graceful degradation** | When `claude`/`copilot` unavailable, app shows ungrouped diff without errors. When LLM returns garbage, app degrades to ungrouped. | MEDIUM | Test `detect_backend()` with no CLIs on PATH. Test `GroupingFailed` message handling. Test malformed LLM JSON (partial, nested braces, empty). |
-| **TEST-06: File search/filter** | `/` enters search mode, typing filters files, Enter confirms, Esc clears. `n`/`N` jump between matches. | LOW | Unit test `handle_key_search` with various inputs. Test filter logic in `visible_items()`. |
-| **TEST-07: Edge cases** | Empty repo (no changes), huge diffs (1000+ files), binary files only, single-file diff, rename detection. | MEDIUM | Parameterized tests with crafted diff inputs. The 500-char performance guard in `compute_inline_diffs` needs testing. |
-| **TEST-08: Keyboard navigation** | j/k/g/G/Ctrl-d/Ctrl-u, Tab between panels, tree navigation. | LOW | Unit test `handle_key_diff` and `handle_key_tree` with mock state. Verify selected_index and scroll_offset after sequences. |
-| **TEST-09: Hunk-level sidebar filtering** | Selecting a file in sidebar filters to its group. Selecting a group filters to all its files/hunks. "Other" group shows ungrouped hunks. | MEDIUM | Test `hunk_filter_for_file`, `hunk_filter_for_group`, `hunk_filter_for_other` with known semantic groups. |
-| **TEST-10: Cache hit/miss correctness** | Same diff -> cache hit. Different diff -> cache miss. Corrupted cache -> graceful fallback. | LOW | Unit tests for `diff_hash`, `load`, `save`. Test with tampered cache JSON. |
+| **"p" key toggle raw/preview** | Fundamental interaction; users expect instant, stateless toggle like vim mode switches | Low | Must work only on `.md` files; no-op or disabled visual on non-md files. Follows existing key binding patterns (Enter for collapse, / for search) |
+| **Headings rendered with visual weight** | Headings are the primary structural element; without them preview looks like plain text | Low | Bold + color differentiation by level (H1-H3 minimum). H4-H6 can degrade to bold-only. Reuse existing `theme` colors |
+| **Code blocks with syntax highlighting** | Markdown files in a diff viewer will contain fenced code blocks constantly | Medium | Syntect is already in the stack for diff highlighting -- reuse it. This is the single most valuable rendering element after headings |
+| **Inline code distinguished** | Users scan for `code` references constantly in markdown diffs | Low | Background color or distinct foreground color on backtick spans |
+| **Unordered and ordered lists** | Lists are the second most common markdown element after paragraphs | Low | Indent + bullet/number rendering. Nested lists (2 levels) are table stakes; deeper nesting is rare in practice |
+| **Bold, italic, strikethrough** | Basic inline formatting; users will immediately notice if missing | Low | Map to terminal bold/italic/strikethrough attributes via crossterm |
+| **Links displayed with URL** | Markdown files are full of links; hiding them loses critical information in a diff context | Low | Render as `text (url)` format. Do NOT hide URLs -- in a diff viewer, the URL IS the content being reviewed |
+| **Tables rendered as aligned columns** | Tables are extremely common in project markdown (READMEs, changelogs, config docs) | Medium | Pipe-aligned rendering with column width calculation. Header separator row as horizontal rule. Terminal width constrains max table width |
+| **Blockquotes visually indented** | Common in changelogs, PR descriptions, and discussion markdown | Low | Left border bar (vertical line character) + indentation + dimmed or tinted text |
+| **Footer mode indicator (Raw / Preview)** | User must always know which mode they are in at a glance | Low | Footer bar already exists for shortcuts; add mode label. Use distinct color for Preview mode vs Raw mode |
+| **Horizontal rules** | Common section separator in markdown files | Low | Full-width thin line (unicode box drawing or repeated dash characters) |
 
-### Differentiators (Goes beyond minimum)
+## Differentiators
+
+Features that set this apart from piping through `mdcat` or `glow`. Not expected but create real value specifically because this is a diff viewer, not a standalone markdown tool.
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| **DIFF-01: Terminal escape sequence sanitization** | Strip ANSI escape codes from LLM output before rendering in TUI. Prevents display corruption from malicious/hallucinated LLM responses. Goes beyond just "it works" to "it's hardened." | LOW | Sanitize `label` and `description` fields after deserialization. Strip `\x1b[...` sequences. |
-| **DIFF-02: Fuzz testing for diff parser** | Use `cargo-fuzz` to throw random input at `diff::parse()` and `extract_json()`. Finds panics, infinite loops, and OOM from adversarial input. | MEDIUM | Fuzz targets: `parse()`, `extract_json()`, `strip_json_comments()`, `compute_inline_diffs()`. |
-| **DIFF-03: Resource exhaustion guards** | Limit max diff size parsed (e.g., 10MB), max number of files, max LLM response size. Currently no limits except the 500-char inline diff guard and MAX_SUMMARY_CHARS. | MEDIUM | Add guards: refuse to parse diffs >10MB, cap files at 500, cap LLM response at 100KB. |
-| **DIFF-04: PID file validation** | Before sending SIGUSR1, verify the PID file's process is actually semantic-diff (not a reused PID). | LOW | Read `/proc/{pid}/cmdline` on Linux or use `sysctl` on macOS to verify process name. |
-| **DIFF-05: Automated security regression tests** | CI pipeline that runs security-specific test suite on every PR. | LOW | `cargo test --test security` in CI. Gate merges on passing. |
-| **DIFF-06: Integration test harness with mock LLM** | Reusable test fixture that provides a fake `claude` binary returning configurable JSON. Enables testing all grouping code paths without real LLM. | MEDIUM | Shell script or compiled binary in `tests/fixtures/mock-claude` that reads stdin/args and returns canned response. Add to PATH in test setup. |
-| **DIFF-07: Performance regression tests** | Benchmark diff parsing of large diffs (10K+ lines). Detect if changes cause >2x slowdown. | MEDIUM | Use `criterion` for benchmarks. Baseline: parse 10K-line diff in <100ms. |
+| **Mermaid diagram inline rendering** | The headline differentiator. No other terminal diff viewer renders mermaid diagrams. Transforms architectural docs from unreadable code blocks into visible diagrams directly in the diff pane | High | Requires: mmdc (Puppeteer-based, ~2s render time), PNG output, Kitty graphics protocol via ratatui-image. Works in Kitty, Ghostty, WezTerm, iTerm2. Dependency: Node.js + @mermaid-js/mermaid-cli |
+| **Content-hash mermaid caching** | Mermaid rendering is slow (~2s per diagram via headless Chromium). Caching by content hash makes re-renders instant on subsequent views or after SIGUSR1 refresh | Medium | SHA256 hash the mermaid code block content, store PNG in cache directory. Skip mmdc invocation if hash matches existing PNG. Follows existing cache pattern in `cache.rs` |
+| **Diff-aware preview (show post-change file)** | Show the rendered NEW version of the markdown file. This is unique to being embedded in a diff viewer -- user sees what the change LOOKS like, not just what changed | Medium | For modified files: read working tree version directly (already has changes applied). For new files: render entire content. For deleted files: show "[File deleted]" message. No diff reconstruction needed -- just `fs::read_to_string` the working tree path |
+| **Graceful degradation for mermaid** | When mmdc is not installed or terminal lacks graphics protocol, show the mermaid source in a styled code block with "[mermaid diagram -- install mmdc to render]" note | Low | Critical for not breaking the experience on unsupported setups. Detection: check `which mmdc` at startup, probe terminal graphics protocol via ratatui-image's Picker |
+| **Async mermaid rendering with placeholder** | Show "[Rendering diagram...]" placeholder while mmdc runs in background, then swap in the image. Non-blocking, matching the existing async semantic grouping UX pattern | Medium | Spawn tokio task for mmdc, send rendered result back via existing Message channel pattern. User sees preview text immediately; diagrams pop in when ready |
+| **Scroll position preservation across toggle** | When toggling raw -> preview -> raw, return to approximately the same logical position in the file | Low-Medium | Percentage-based scroll mapping (e.g., 60% through raw maps to 60% through preview). Exact line mapping is not worth the complexity |
 
-### Anti-Features (Things to deliberately NOT build for security)
+## Anti-Features
 
-| Feature | Why Requested | Why Problematic | Alternative |
-|---------|---------------|-----------------|-------------|
-| **Shell-based command execution** | "Just use `sh -c` for simpler command construction" | Shell injection is the #1 vulnerability class for CLI tools. `Command::new().args()` is safe; `sh -c "..."` with string interpolation is not. | Keep current `Command::new().args([])` pattern everywhere. Never introduce shell string execution. |
-| **User-configurable shell commands** | "Let users customize the git diff command or LLM command" | User config could contain injection payloads (e.g., `"git-command": "git diff; rm -rf /"`) that execute with user privileges. | Keep commands hardcoded. If customization is needed later, use a strict allowlist of flag overrides, not freeform command strings. |
-| **Symlink following for diff paths** | "Resolve symlinks to show real file paths" | Following symlinks in diff path display could leak information about filesystem structure. More importantly, if any future feature opens files by path, symlink following enables traversal. | Display paths exactly as git reports them. Do not resolve or follow symlinks. |
-| **Network-accessible mode (HTTP API)** | "Add a web UI alongside TUI" | Massively expands attack surface. Auth, CORS, SSRF, and every web vulnerability class would apply. | Stay terminal-only. This is a dev tool, not a service. |
-| **Persistent LLM conversation context** | "Remember previous groupings to improve results" | Storing conversation history means storing diff content (potentially secrets) in a long-lived file. | Keep stateless: each grouping request is independent. Cache only the grouping result, not the diff content. |
-| **Automatic update mechanism** | "Check for new versions and auto-update" | Auto-update is a supply chain attack vector. Binary replacement, MITM on update channel. | Rely on Homebrew/cargo install for updates. No auto-update. |
+Features to explicitly NOT build. These are complexity traps that add engineering cost without proportional value.
+
+| Anti-Feature | Why Avoid | What to Do Instead |
+|--------------|-----------|-------------------|
+| **Side-by-side raw+preview** | Splits an already-constrained terminal pane in half; both views become unreadable. The diff viewer already shares width with the file tree sidebar | Toggle between modes with "p". One view at a time. The toggle is fast enough that side-by-side adds no real productivity |
+| **Full CommonMark spec compliance** | Diminishing returns. Footnotes, definition lists, math/LaTeX blocks, HTML passthrough are rare in project markdown. 95% of files use headings, lists, code, tables, links | Support the common 90% elements. Render unsupported elements as plain text -- they remain readable, just not styled |
+| **Custom preview themes/skins** | The existing `theme.rs` handles diff colors. Adding a separate theme layer for markdown doubles the configuration surface and testing matrix | Reuse existing theme colors. Headings get file-header-like styling, code blocks reuse syntect theme. One theme system, not two |
+| **Image rendering for non-mermaid images** | Generic image support requires downloading external URLs, handling broken links, dealing with relative paths, and various formats. Large attack surface, minimal value in diff review context | Show image alt text and URL: `[alt text](url)`. Only render mermaid because the source is self-contained in the file |
+| **Diff-within-preview (highlighting what changed in preview)** | Requires rendering old preview and new preview, then diffing the rendered output. Extremely complex for marginal value | Preview shows the final state cleanly. Raw diff shows what changed precisely. Users toggle between complementary views |
+| **Per-file preview mode memory** | Tracking which files are in preview vs raw mode independently adds state management complexity and confusing UX ("why is this file in preview but that one isn't?") | Global toggle: "p" switches ALL .md files between raw and preview. Simpler mental model. Add per-file only if users explicitly request it |
+| **SVG or PDF mermaid output** | PNG is the only format that works reliably with terminal graphics protocols (Kitty, Sixel, iTerm2). SVG needs rasterization; PDF is irrelevant for terminal display | Always render mermaid to PNG via `mmdc -o output.png` |
+| **Live markdown editing/preview** | This is a read-only diff viewer, not an editor | Preview is strictly read-only, showing the post-change rendered state |
 
 ## Feature Dependencies
 
 ```
-SEC-05 (PID file symlink fix)
-    +-- SEC-07 (log file path fix) -- same underlying fix (user-specific temp dir)
+"p" key toggle ──┬── Footer mode indicator (trivial, same change)
+                 ├── Markdown rendering engine (required for preview content)
+                 └── Diff-aware file read (working tree version for modified files)
 
-SEC-03 (LLM output parsing safety)
-    +-- DIFF-01 (terminal escape sanitization) -- extends SEC-03
-    +-- SEC-09 (cache integrity) -- same sanitization needed
+Markdown rendering engine ──┬── Text elements (headings, lists, code, tables, etc.)
+                           └── Mermaid code block detection
 
-SEC-10 (truncate UTF-8 fix)
-    +-- TEST-07 (edge case tests) -- tests should cover multi-byte filenames
+Mermaid detection ──┬── mmdc invocation (async, spawned process)
+                   ├── Content-hash caching (hash before invoking mmdc)
+                   └── Graceful degradation (fallback when mmdc missing)
 
-TEST-04 (semantic grouping tests)
-    +-- DIFF-06 (mock LLM harness) -- required for TEST-04 to work
-    +-- TEST-09 (hunk-level filtering tests) -- same test infrastructure
+mmdc invocation ──┬── PNG output file
+                 └── Async placeholder ("[Rendering diagram...]")
 
-TEST-03 (SIGUSR1 refresh tests)
-    +-- SEC-05 (PID file fix) -- test the fixed PID file mechanism
+PNG output ──── ratatui-image widget (Kitty/Sixel/iTerm2 graphics protocol)
 
-SEC-01, SEC-02 (command injection audits)
-    +-- DIFF-05 (security regression tests) -- codify audit findings as tests
+Content-hash caching ──┬── Cache directory (.semantic-diff-cache/ or in .git/)
+                      └── Cache directory gitignored
 ```
 
-### Dependency Notes
+## Key UX Decisions
 
-- **DIFF-06 requires nothing** and enables TEST-04 and TEST-09: build mock LLM harness first.
-- **SEC-05 and SEC-07 share implementation**: create a `runtime_dir()` helper that returns `$XDG_RUNTIME_DIR/semantic-diff/` or `/tmp/semantic-diff-$UID/`, used by both PID file and log file.
-- **SEC-03 and DIFF-01 share implementation**: sanitize all LLM-derived strings at deserialization time, which also fixes SEC-09 (cached strings go through same path).
-- **TEST-03 depends on SEC-05**: no point testing SIGUSR1 cycle with a vulnerable PID file mechanism.
+### Mode Toggle Behavior
 
-## MVP Definition
+The "p" key should behave like a vim mode toggle:
 
-### Launch With (v1.1 -- Security & Demo Readiness)
+- **Instant**: No loading state for markdown text rendering (parsing + rendering < 5ms for typical files). Mermaid diagrams render async with placeholder
+- **Context-sensitive**: Only active when a `.md` file header or content is selected/visible. On non-md files, either no-op silently or briefly flash "[Preview only available for .md files]" in the status area
+- **Global toggle**: All .md files switch mode together. Simpler than per-file state
+- **Clear visual signal**: Footer label changes from "Raw" to "Preview" with distinct color. The diff view content looks fundamentally different -- no +/- prefixes, no line numbers, formatted headings/tables instead
 
-- [x] **SEC-05: PID file symlink fix** -- Critical vulnerability, fix first
-- [x] **SEC-07: Log file path fix** -- Same fix, trivial marginal cost
-- [x] **SEC-10: truncate UTF-8 fix** -- Crash bug, one-line fix
-- [x] **SEC-02: LLM CLI arg safety** -- Add `--` separator before prompt arg
-- [x] **SEC-03 + DIFF-01: LLM output sanitization** -- Strip escape sequences from labels/descriptions
-- [x] **TEST-01: Diff rendering tests** -- Demo reliability
-- [x] **TEST-02: Collapse/expand tests** -- Demo reliability
-- [x] **TEST-04 + DIFF-06: Semantic grouping with mock LLM** -- Core feature E2E
-- [x] **TEST-05: Graceful degradation tests** -- Demo reliability when LLM unavailable
-- [x] **TEST-07: Edge case tests** -- Empty repo, huge diffs, binary files
+### What "Preview" Shows
 
-### Add After Validation (v1.1.x)
+Preview mode displays the **post-change version** of the markdown file, fully rendered:
 
-- [ ] **TEST-03: SIGUSR1 integration test** -- requires process spawning test infra
-- [ ] **TEST-09: Hunk-level filtering tests** -- complex setup with semantic groups
-- [ ] **DIFF-02: Fuzz testing** -- important but not blocking demo
-- [ ] **DIFF-03: Resource exhaustion guards** -- important for production hardening
+1. **Modified files**: Read the working tree version directly (`fs::read_to_string(path)` from the repo root). The working tree already has all changes applied
+2. **New files** (all additions): Same approach -- the file exists in the working tree
+3. **Deleted files**: Show a brief "[File deleted]" message or disable preview for that file
+4. **Renamed files**: Read from the new path in working tree
 
-### Future Consideration (v2+)
+This approach is far simpler than reconstructing file content from diff hunks. The working tree IS the post-change state.
 
-- [ ] **DIFF-04: PID file validation** -- nice-to-have, not a security risk (same-user attack only)
-- [ ] **DIFF-07: Performance regression tests** -- only needed when perf becomes a concern
+### Mermaid Rendering Expectations
 
-## Feature Prioritization Matrix
+Users expect:
+- Diagrams appear as actual rendered pixel images, not ASCII art approximations
+- A 2-3 second delay is acceptable on first view, with a visible "[Rendering diagram...]" text placeholder
+- Subsequent views of the same diagram are instant (cache hit)
+- If mmdc is not installed: clear message, not a crash or blank space
+- Diagrams sized to fit terminal width (ratatui-image handles column/row sizing)
+- Dark theme diagrams to match terminal aesthetic (`mmdc --theme dark --backgroundColor transparent`)
 
-| Feature | User Value | Implementation Cost | Priority |
-|---------|------------|---------------------|----------|
-| SEC-05: PID symlink fix | HIGH | LOW | P1 |
-| SEC-07: Log path fix | HIGH | LOW | P1 |
-| SEC-10: UTF-8 truncate fix | HIGH | LOW | P1 |
-| SEC-02: LLM CLI arg safety | MEDIUM | LOW | P1 |
-| SEC-03 + DIFF-01: Output sanitization | MEDIUM | LOW | P1 |
-| DIFF-06: Mock LLM harness | HIGH | MEDIUM | P1 |
-| TEST-01: Diff rendering | HIGH | MEDIUM | P1 |
-| TEST-02: Collapse/expand | HIGH | LOW | P1 |
-| TEST-04: Grouping E2E | HIGH | HIGH | P1 |
-| TEST-05: Graceful degradation | HIGH | MEDIUM | P1 |
-| TEST-07: Edge cases | HIGH | MEDIUM | P1 |
-| TEST-03: SIGUSR1 integration | MEDIUM | HIGH | P2 |
-| TEST-06: File search | MEDIUM | LOW | P2 |
-| TEST-08: Keyboard nav | MEDIUM | LOW | P2 |
-| TEST-09: Hunk filtering | MEDIUM | MEDIUM | P2 |
-| TEST-10: Cache tests | MEDIUM | LOW | P2 |
-| DIFF-02: Fuzz testing | MEDIUM | MEDIUM | P2 |
-| DIFF-03: Resource limits | MEDIUM | MEDIUM | P2 |
-| DIFF-05: Security CI | MEDIUM | LOW | P2 |
-| DIFF-04: PID validation | LOW | LOW | P3 |
-| DIFF-07: Perf regression | LOW | MEDIUM | P3 |
+### Markdown Element Priority (render quality matters most to least)
 
-**Priority key:**
-- P1: Must have for v1.1 launch (security fixes + demo-critical tests)
-- P2: Should have, add when possible (hardening + completeness)
-- P3: Nice to have, future consideration
+1. **Headings** -- structural navigation, most visually impactful
+2. **Code blocks** -- syntax highlighted, the core content being reviewed in diffs
+3. **Tables** -- extremely common in README/docs diffs, hardest to read raw
+4. **Lists** -- very common, easy to render well
+5. **Bold/italic/inline code** -- inline formatting, small effort, high polish
+6. **Links** -- show URL, important for review context
+7. **Blockquotes** -- less common but easy to render
+8. **Horizontal rules** -- trivial
+
+## MVP Recommendation
+
+### Phase 1: Core Preview (ship first, provides standalone value)
+
+1. "p" key toggle with footer mode indicator
+2. Working tree file read for post-change markdown content
+3. Markdown text rendering via termimad or pulldown-cmark + custom renderer:
+   - Headings (bold, colored by level)
+   - Code blocks (syntax highlighted via syntect)
+   - Inline code (background highlight)
+   - Bold, italic, strikethrough
+   - Unordered and ordered lists (2 levels nesting)
+   - Tables (column-aligned)
+   - Links as `text (url)`
+   - Blockquotes (left border, indented)
+   - Horizontal rules
+4. Context-sensitive toggle (only for .md files)
+5. Updated shortcut menu with "p" key
+
+### Phase 2: Mermaid Diagrams (ship second, adds the headline feature)
+
+1. Mermaid code block detection (` ```mermaid ` fences)
+2. Async mmdc invocation with dark theme
+3. PNG rendering via ratatui-image + Kitty graphics protocol
+4. Content-hash caching in gitignored directory
+5. Graceful degradation when mmdc missing or terminal lacks graphics support
+6. "[Rendering diagram...]" async placeholder
+
+### Rationale for Split
+
+Markdown text rendering is self-contained, zero external dependencies (pure Rust), testable, and immediately valuable. It validates the UX (toggle behavior, footer indicator, scroll handling) before investing in the harder graphics pipeline. Mermaid adds external dependencies (Node.js, @mermaid-js/mermaid-cli, Puppeteer/Chromium, Kitty-capable terminal) and significant integration complexity. Each phase is independently shippable and useful.
+
+### Defer
+
+- **OSC 8 clickable hyperlinks**: Start with `text (url)` plain text. Add terminal-native clickable links later after verifying detection reliability across terminals
+- **Nested list depth > 2**: Flatten deeper nesting. Extremely rare in project documentation
+- **Per-file mode memory**: Global toggle first. Only add per-file state if users report friction
+- **Scroll position preservation**: Ship without it initially; add percentage-based mapping if users report toggling feels disorienting
 
 ## Sources
 
-- Direct source code analysis of all `.rs` files in `src/` (HIGH confidence)
-- Rust `std::process::Command` documentation: arg-array execution bypasses shell (HIGH confidence)
-- OWASP command injection guidelines: shell string interpolation is the vulnerability, not `execvp`-style arg arrays (HIGH confidence)
-- `/tmp` symlink race condition is a well-documented attack class (CWE-377, CWE-59) (HIGH confidence)
-- Terminal escape sequence injection via untrusted input is documented in CVE-2003-0063 and similar (HIGH confidence)
-- Rust `&str` slicing panics on non-UTF-8 boundaries are documented in std library docs (HIGH confidence)
+- termimad (Rust terminal markdown lib): https://github.com/Canop/termimad -- crossterm backend, renders headings/tables/lists/code/blockquotes (HIGH confidence)
+- pulldown-cmark (CommonMark parser): https://github.com/raphlinus/pulldown-cmark -- v0.13.1, actively maintained, GFM tables + task lists (HIGH confidence)
+- mdcat (CLI markdown renderer): https://github.com/swsnr/mdcat -- CLI tool (not library), Kitty/iTerm2 image support, syntect highlighting (HIGH confidence)
+- mermaid-cli: https://github.com/mermaid-js/mermaid-cli -- mmdc renders to PNG/SVG via Puppeteer, supports themes and background config (HIGH confidence)
+- Kitty graphics protocol: https://sw.kovidgoyal.net/kitty/graphics-protocol/ -- APC escape codes, f=100 for PNG, t=f for file path transmission (HIGH confidence)
+- ratatui-image: https://github.com/ratatui/ratatui-image -- Image widget for ratatui, unifies Kitty/Sixel/iTerm2, protocol auto-detection via Picker (HIGH confidence)
+- glow (Go terminal markdown reader): https://github.com/charmbracelet/glow -- UX reference for terminal markdown rendering patterns (MEDIUM confidence, different ecosystem)
+- Existing codebase analysis: `src/ui/diff_view.rs`, `src/app.rs`, `src/highlight.rs` -- current rendering architecture and key binding patterns (HIGH confidence)
 
 ---
-*Feature research for: Rust CLI/TUI security audit and demo testing*
-*Researched: 2026-03-15*
+*Feature research for: v0.7.0 Markdown Preview milestone*
+*Researched: 2026-03-16*

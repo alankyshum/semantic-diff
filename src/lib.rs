@@ -5,6 +5,7 @@ pub mod config;
 pub mod diff;
 pub mod grouper;
 pub mod highlight;
+pub mod preview;
 pub mod signal;
 pub mod theme;
 pub mod ui;

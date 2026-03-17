@@ -1,5 +1,6 @@
 pub mod diff_view;
 pub mod file_tree;
+pub mod preview_view;
 pub mod summary;
 
 use crate::app::{App, InputMode};
@@ -10,9 +11,11 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Clear, Paragraph};
 use ratatui::Frame;
 
-/// Draw the entire UI: file tree sidebar + diff view + summary/search bar.
-pub fn draw(app: &App, frame: &mut Frame) {
+/// Draw the entire UI. Returns pending images that must be flushed after
+/// terminal.draw() completes (image protocols bypass ratatui's buffer).
+pub fn draw(app: &App, frame: &mut Frame) -> Vec<preview_view::PendingImage> {
     let area = frame.area();
+    let mut pending_images = Vec::new();
 
     // Vertical split: main content area | bottom bar
     let bottom_height = 1;
@@ -20,7 +23,6 @@ pub fn draw(app: &App, frame: &mut Frame) {
         Layout::vertical([Constraint::Min(1), Constraint::Length(bottom_height)]).split(area);
 
     // Horizontal split: sidebar | diff view
-    // On narrow terminals (<80 cols), use a smaller sidebar
     let sidebar_width = if area.width < 80 {
         Constraint::Max(25)
     } else {
@@ -32,10 +34,14 @@ pub fn draw(app: &App, frame: &mut Frame) {
     // Render file tree sidebar in left panel
     file_tree::render_tree(app, frame, horizontal[0]);
 
-    // Render diff view in right panel (existing)
-    diff_view::render_diff(app, frame, horizontal[1]);
+    // Render diff view or preview in right panel
+    if app.preview_mode && preview_view::is_current_file_markdown(app) {
+        pending_images = preview_view::render_preview(app, frame, horizontal[1]);
+    } else {
+        diff_view::render_diff(app, frame, horizontal[1]);
+    }
 
-    // Render bottom bar: search bar when searching, summary bar otherwise
+    // Render bottom bar
     match app.input_mode {
         InputMode::Search => render_search_bar(app, frame, vertical[1]),
         InputMode::Normal | InputMode::Help => summary::render_summary(app, frame, vertical[1]),
@@ -45,6 +51,8 @@ pub fn draw(app: &App, frame: &mut Frame) {
     if app.input_mode == InputMode::Help {
         render_help_overlay(frame, area, &app.theme);
     }
+
+    pending_images
 }
 
 /// Render the help overlay centered on screen.
@@ -58,6 +66,7 @@ fn render_help_overlay(frame: &mut Frame, area: Rect, theme: &Theme) {
         ]),
         ("Actions", vec![
             ("Enter", "Sidebar: select file/group | Diff: toggle collapse"),
+            ("p", "Toggle markdown preview (.md files)"),
             ("/", "Search files"),
             ("n/N", "Next/prev search match"),
             ("Esc", "Clear filter / quit"),
@@ -100,7 +109,8 @@ fn render_help_overlay(frame: &mut Frame, area: Rect, theme: &Theme) {
     frame.render_widget(Clear, popup_area);
     let block = Block::bordered()
         .title(" Shortcuts ")
-        .border_style(Style::default().fg(theme.help_section_fg));
+        .border_style(Style::default().fg(theme.help_section_fg))
+        .style(Style::default().bg(theme.help_overlay_bg));
     let paragraph = Paragraph::new(lines).block(block);
     frame.render_widget(paragraph, popup_area);
 }

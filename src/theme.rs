@@ -28,6 +28,7 @@ pub struct Theme {
     pub help_section_fg: Color, // Cyan section headers
     pub help_key_fg: Color,     // Yellow key names
     pub help_dismiss_fg: Color, // DarkGray "press any key"
+    pub help_overlay_bg: Color, // Help popup background
 
     // File tree
     pub tree_highlight_fg: Color,
@@ -59,6 +60,7 @@ impl Theme {
             help_section_fg: Color::Cyan,
             help_key_fg: Color::Yellow,
             help_dismiss_fg: Color::DarkGray,
+            help_overlay_bg: Color::Black,
             tree_highlight_fg: Color::Black,
             tree_highlight_bg: Color::Cyan,
             tree_group_fg: Color::Cyan,
@@ -82,8 +84,9 @@ impl Theme {
             gutter_fg: Color::Gray,
             help_text_fg: Color::Black,
             help_section_fg: Color::Blue,
-            help_key_fg: Color::Rgb(160, 100, 0), // dark yellow/amber
+            help_key_fg: Color::Red,
             help_dismiss_fg: Color::Gray,
+            help_overlay_bg: Color::White,
             tree_highlight_fg: Color::White,
             tree_highlight_bg: Color::Blue,
             tree_group_fg: Color::Blue,

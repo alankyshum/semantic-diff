@@ -1,6 +1,6 @@
 [package]
 name = "semantic-diff"
-version = "0.6.0"
+version = "0.7.0"
 edition = "2021"
 description = "A terminal diff viewer with AI-powered semantic grouping (Claude CLI / Copilot)"
 license = "MIT"
@@ -26,6 +26,10 @@ which = "8.0.2"
 dirs = "6"
 tui-tree-widget = "0.24"
 terminal-light = "1.8.0"
+pulldown-cmark = "0.13"
+blake3 = "1"
+image = "0.25"
+base64 = "0.22"
 
 [dev-dependencies]
 tempfile = "3"

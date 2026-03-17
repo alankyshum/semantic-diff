@@ -72,6 +72,22 @@ pub fn render_summary(app: &App, frame: &mut Frame, area: Rect) {
         GroupingStatus::Idle => {} // nothing extra
     }
 
+    // Show preview mode indicator
+    if app.preview_mode {
+        spans.push(Span::styled(
+            " | Preview",
+            Style::default()
+                .fg(Color::Black)
+                .bg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        ));
+    } else {
+        spans.push(Span::styled(
+            " | Raw",
+            Style::default().fg(Color::DarkGray),
+        ));
+    }
+
     // Right-align the shortcut hint
     spans.push(Span::styled(
         "  ? help",

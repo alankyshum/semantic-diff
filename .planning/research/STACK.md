@@ -1,125 +1,222 @@
-# Technology Stack: Security Hardening & Testing
+# Technology Stack: v0.7.0 Markdown Preview Additions
 
-**Project:** Semantic Diff TUI v1.1
-**Researched:** 2026-03-15
-**Focus:** Security auditing, hardening, and comprehensive testing for existing Rust CLI/TUI app
+**Project:** Semantic Diff TUI
+**Researched:** 2026-03-16
+**Scope:** NEW dependencies only for markdown preview + mermaid rendering milestone
 
 ## Existing Stack (DO NOT CHANGE)
 
-Already validated in v1.0: Rust, ratatui 0.30, syntect 5.3, tokio 1, crossterm 0.29, tui-tree-widget 0.24, clap 4, serde/serde_json, anyhow, tracing, similar 2, unidiff 0.4, which 8.0.2, dirs 6.
+Already validated: Rust, ratatui 0.30, syntect 5.3, tokio 1, crossterm 0.29, tui-tree-widget 0.24, clap 4, serde/serde_json, anyhow, tracing, similar 2, unidiff 0.4, which 8.0.2, dirs 6.
 
 ---
 
-## Recommended Stack: Security Tooling
+## Recommended Stack Additions
 
-### Static Analysis & Dependency Auditing
+### Markdown Rendering
+| Technology | Version | Purpose | Why |
+|------------|---------|---------|-----|
+| tui-markdown | ~0.1 | Parse markdown into ratatui `Text` | Direct `from_str() -> Text` API -- zero conversion layer needed. Maintained by Josh McKinney (ratatui creator). Supports headings, bold/italic, lists, blockquotes, code blocks. |
+| pulldown-cmark | 0.12 | Markdown parsing for mermaid extraction | Needed to find and extract mermaid fenced code blocks with byte ranges. Transitive dep of tui-markdown, but needed as direct dep for the extraction API. |
 
-| Tool | Version | Purpose | Why |
-|------|---------|---------|-----|
-| cargo-audit | 0.22.1 | Scan Cargo.lock for known CVEs in dependencies | Standard Rust security tool, maintained by RustSec Advisory DB team. Checks against the official RustSec advisory database. Install as cargo subcommand, run in CI. |
-| cargo-deny | 0.19.0 | License compliance + duplicate dep detection + advisory audit | Superset of cargo-audit for policy enforcement. Catches license incompatibilities (important for MIT-licensed project), duplicate crate versions, and advisories. Use `cargo deny check` in CI. |
-| clippy (built-in) | latest stable | Lint for unsafe patterns, suspicious code, correctness issues | Already available. Run with `cargo clippy -- -D warnings -W clippy::pedantic` for security-relevant lints like `clippy::unwrap_used`, `clippy::expect_used` in non-test code. |
+### Mermaid Diagram Rendering
+| Technology | Version | Purpose | Why |
+|------------|---------|---------|-----|
+| mmdc (mermaid-cli) | 11.x | External CLI: render mermaid code to PNG | No Rust-native mermaid renderer exists. mermaid-cli wraps mermaid.js in headless browser. Invoke via `tokio::process::Command`. Stable CLI interface. |
 
-**Confidence:** HIGH -- cargo-audit and cargo-deny are the de facto Rust security scanning tools, verified via crates.io.
+### Inline Image Display
+| Technology | Version | Purpose | Why |
+|------------|---------|---------|-----|
+| ratatui-image | 10.x | Render PNG images inside ratatui widgets | Purpose-built for ratatui. Handles Kitty/Sixel/iTerm2 protocol detection automatically via `Picker`. Provides `StatefulImage` widget that adapts to available space. v10.0.6 released Feb 2026. |
+| image | 0.25 | PNG decoding | Required to load PNG files before passing to ratatui-image. May be re-exported by ratatui-image but safer as direct dep. |
 
-### Fuzzing
+### Content Hashing
+| Technology | Version | Purpose | Why |
+|------------|---------|---------|-----|
+| blake3 | 1.8 | Hash mermaid code blocks for cache keys | 5-10x faster than SHA-256 (SIMD-optimized). Simple API: `blake3::hash(data).to_hex()`. 91K+ dependents. Cryptographic collision resistance is overkill for caching but comes free. |
 
-| Tool | Version | Purpose | Why |
-|------|---------|---------|-----|
-| cargo-fuzz | latest | Fuzz diff parser and JSON extraction | Uses libFuzzer under the hood. The diff parser (`parse()`) and `extract_json()` accept untrusted input (git output, LLM responses) -- prime fuzzing targets. Requires nightly Rust. |
-| arbitrary | 1.x | Structured fuzzing input generation | Derive `Arbitrary` on input structs to generate structured fuzz inputs rather than random bytes. Pairs with cargo-fuzz. |
-
-**Confidence:** HIGH -- cargo-fuzz is the standard Rust fuzzing tool, backed by Google's OSS-Fuzz infrastructure.
-
-**Note on AFL alternatives:** `afl.rs` exists but cargo-fuzz (libFuzzer) has better Rust ecosystem integration and is what the Rust project itself uses. Use cargo-fuzz.
-
-### Process Execution Hardening
-
-| Library | Version | Purpose | Why |
-|---------|---------|---------|-----|
-| std::process::Command | (stdlib) | Safe process spawning | Already used correctly -- `Command::new("git").args([...])` avoids shell injection by default because it does NOT invoke a shell. Each argument is passed directly to `execvp`. No additional library needed for basic safety. |
-
-**Critical finding:** The current codebase already uses `Command::new()` with `.args()` arrays, which is safe against shell injection. The arguments to `git diff` and `claude` CLI are hardcoded strings, not user-derived. **No crate needed here -- the code is already safe by construction.**
-
-**What to validate during audit:**
-- Ensure no `Command::new("sh").args(["-c", ...])` patterns creep in
-- The `model` parameter in `invoke_claude()` comes from config -- verify config parsing sanitizes it
-- The `prompt` passed to `claude`/`copilot` contains git diff content -- safe because it goes as a separate arg, not through a shell
-
-**Confidence:** HIGH -- Rust's `std::process::Command` documentation explicitly states it bypasses the shell.
-
-### Signal & PID File Hardening
-
-| Library | Version | Purpose | Why |
-|---------|---------|---------|-----|
-| rustix | (evaluate) | Low-level safe syscall wrappers | If PID file needs atomic creation with `O_EXCL`, rustix provides safe Rust wrappers. However, for this app's use case (single-instance detection, not a daemon), the current simple `fs::write` approach is adequate with minor hardening. |
-
-**Current PID file issues identified:**
-1. `/tmp/semantic-diff.pid` is world-writable -- symlink attack vector (LOW risk: local-only tool, single user)
-2. No file locking -- race condition if two instances start simultaneously
-3. No stale PID detection -- if process crashes, leftover PID file may confuse hook scripts
-
-**Recommended approach (no new crate needed):**
-- Use `$XDG_RUNTIME_DIR` or `$TMPDIR` instead of hardcoded `/tmp/` (already have `dirs` crate)
-- Add `O_CREAT | O_EXCL` semantics via `std::fs::OpenOptions::new().create_new(true)`
-- Validate PID is still alive with `kill(pid, 0)` signal check via `nix` crate or raw libc
-- These are stdlib + minor changes, no heavy dependencies needed
-
-**Confidence:** HIGH -- standard Unix PID file best practices, well-documented.
+### No New Infrastructure Dependencies
+The existing tokio runtime handles async subprocess invocation for mmdc. The existing `dirs` crate provides cache directory paths (`~/Library/Caches/` on macOS). The existing `which` crate detects mmdc availability. No new framework-level changes needed.
 
 ---
 
-## Recommended Stack: Testing
+## Detailed Integration Analysis
 
-### CLI/Integration Testing
+### 1. Markdown Rendering: tui-markdown (NOT mdcat)
 
-| Library | Version | Purpose | Why |
-|---------|---------|---------|-----|
-| assert_cmd | 2.2.0 | Test CLI binary invocation (exit codes, stdout/stderr) | The standard Rust crate for testing command-line apps. Wraps `std::process::Command` with fluent assertions. Use for testing `semantic-diff` binary with various args, error conditions. |
-| assert_fs | 1.1.3 | Create temporary directories with test fixture files | Pairs with assert_cmd. Create temp git repos with known diffs for reproducible integration tests. Auto-cleanup on drop. |
-| predicates | 3.1.4 | Expressive assertion matchers | Required by assert_cmd. Provides `predicate::str::contains()`, regex matching, etc. for stdout/stderr assertions. |
+**Decision: Use tui-markdown. Do NOT use mdcat or pulldown-cmark-mdcat.**
 
-**Confidence:** HIGH -- assert_cmd + assert_fs + predicates is the canonical Rust CLI testing trio, used by clap's own test suite.
+**Why not mdcat?**
+- mdcat repository was **archived January 10, 2025** -- no longer maintained. [HIGH confidence, verified on GitHub]
+- `pulldown-cmark-mdcat` (the library crate behind mdcat) renders directly to a terminal write stream with ANSI escapes. It does NOT produce ratatui `Text`/`Spans` -- you would need to parse ANSI output back into ratatui styled content, which is fragile and lossy.
+- mdcat's Kitty image support writes escape sequences directly to stdout, which conflicts with ratatui's rendering model (ratatui owns the terminal buffer).
 
-### Snapshot Testing
+**Why tui-markdown?**
+- `tui_markdown::from_str(markdown) -> ratatui::text::Text` -- zero impedance mismatch.
+- Maintained by Josh McKinney, the creator and primary maintainer of ratatui itself.
+- Active development: v0.1.27 released December 2025, 48 releases total.
+- Supports: headings, bold, italic, strikethrough, lists, blockquotes, code blocks, task lists, horizontal rules.
+- **Missing:** tables, links (display only -- no click needed in TUI), images, footnotes. Tables are the main gap but acceptable for a v0.7 preview mode. Can be added later or contributed upstream.
 
-| Library | Version | Purpose | Why |
-|---------|---------|---------|-----|
-| insta | 1.46.3 | Snapshot test diff rendering output | Perfect for testing TUI rendering: capture rendered frames as strings, snapshot them. When rendering changes, `cargo insta review` shows a diff of the diff (meta!). Use for syntax highlighting output, file tree rendering, diff view layout. |
+**Usage pattern:**
+```rust
+use tui_markdown;
 
-**Confidence:** HIGH -- insta is the dominant Rust snapshot testing library (53M+ downloads). Verified on crates.io.
+let markdown_content = std::fs::read_to_string(path)?;
+let text: ratatui::text::Text = tui_markdown::from_str(&markdown_content);
+// Render `text` directly in a Paragraph widget
+```
 
-### Property-Based Testing
+**Confidence:** HIGH -- verified API on GitHub, active releases, author is ratatui maintainer.
 
-| Library | Version | Purpose | Why |
-|---------|---------|---------|-----|
-| proptest | 1.10.0 | Generate random inputs to find edge cases | Use for diff parser: generate arbitrary diff-like strings, verify parser never panics. Generate arbitrary JSON to test `extract_json()` resilience. Generate long file paths to test path handling. |
+### 2. Mermaid Rendering: mmdc subprocess
 
-**Confidence:** HIGH -- proptest is the standard Rust property-based testing library, modeled after Haskell's QuickCheck.
+**Decision: Shell out to `mmdc` via `tokio::process::Command`.**
 
-### Mocking
+There is no Rust-native mermaid renderer. mermaid-cli wraps the mermaid.js library in a headless browser (Puppeteer/Playwright). This is the only viable option.
 
-| Library | Version | Purpose | Why |
-|---------|---------|---------|-----|
-| mockall | 0.14.0 | Mock trait-based interfaces for unit testing | Use sparingly -- the codebase is function-heavy, not trait-heavy. Useful if you extract traits for LLM backends or git operations to test grouping logic without live CLI calls. |
+**Invocation pattern:**
+```rust
+use tokio::process::Command;
 
-**Confidence:** MEDIUM -- mockall is the most popular Rust mocking library, but the codebase may need refactoring to traits before it becomes useful. Consider whether integration tests with real git repos are more valuable than mocked unit tests for this project.
+let output = Command::new("mmdc")
+    .args(["-i", &input_path, "-o", &output_path, "-t", "dark", "-b", "transparent"])
+    .output()
+    .await?;
+```
 
-### TUI-Specific Testing
+**Key flags:**
+- `-i input.mmd` -- input file (write temp file with mermaid code block content)
+- `-o output.png` -- output PNG path (write to cache dir)
+- `-t dark` -- dark theme (matches terminal aesthetic)
+- `-b transparent` -- transparent background (blends with terminal)
+- `-s 2` -- scale factor (optional, for retina/HiDPI)
 
-| Library | Version | Purpose | Why |
-|---------|---------|---------|-----|
-| ratatui TestBackend | (built-in) | Render TUI to in-memory buffer | ratatui includes `TestBackend` for rendering to a virtual terminal buffer. Capture rendered frames, assert on cell contents. No extra crate needed. |
+**Installation requirement:** `npm install -g @mermaid-js/mermaid-cli`. Use existing `which::which("mmdc")` for graceful detection at runtime.
 
-**Confidence:** HIGH -- TestBackend is part of ratatui's public API, designed for exactly this purpose.
+**Performance concern:** mmdc spawns a headless browser. First invocation is 2-5 seconds, subsequent ones ~1-2 seconds. This is why content-hash caching is essential -- never re-render unchanged diagrams.
 
-### Test Utilities
+**Graceful degradation:** If mmdc is not installed, show mermaid code blocks as raw fenced code (same as current behavior). Never block the UI waiting for mmdc.
 
-| Library | Version | Purpose | Why |
-|---------|---------|---------|-----|
-| tempfile | 3.27.0 | Create temporary files/directories | For test git repos. Lighter than assert_fs if you don't need the fluent API. Already widely used in Rust ecosystem. |
+**Confidence:** HIGH -- mmdc CLI interface is stable, well-documented. Latest version 11.12.0 (Sep 2025).
 
-**Confidence:** HIGH -- tempfile is a foundational Rust crate.
+### 3. Inline Images: ratatui-image with Kitty Protocol
+
+**Decision: Use `ratatui-image` crate for protocol-agnostic image rendering.**
+
+**Why ratatui-image instead of raw Kitty escape sequences?**
+- Handles protocol detection automatically (Kitty, Sixel, iTerm2, halfblock fallback).
+- Prevents TUI rendering from overwriting image area (a known hard problem with raw escapes).
+- `StatefulImage` widget adapts to available render space -- handles resize naturally.
+- Maintained and tested across kitty, wezterm, ghostty, foot, xterm.
+
+**Usage pattern:**
+```rust
+use ratatui_image::{picker::Picker, StatefulImage, Resize};
+use image::io::Reader as ImageReader;
+
+// One-time setup (at app init)
+let mut picker = Picker::from_query_stdio()?;
+
+// Per-image rendering
+let dyn_img = ImageReader::open(&png_path)?.decode()?;
+let image_state = picker.new_resize_protocol(dyn_img);
+
+// In render function
+let image_widget = StatefulImage::new(None).resize(Resize::Fit(None));
+f.render_stateful_widget(image_widget, area, &mut image_state);
+```
+
+**Terminal compatibility:**
+| Terminal | Protocol | Image Quality |
+|----------|----------|---------------|
+| Kitty | Kitty graphics | Full fidelity |
+| iTerm2 | iTerm2 inline | Full fidelity |
+| WezTerm | Kitty or Sixel | Full fidelity |
+| Ghostty | Kitty graphics | Full fidelity |
+| Basic terminals | Halfblock fallback | Low-res colored blocks |
+
+**How the Kitty graphics protocol works (for reference):**
+- Uses APC escape sequences: `ESC_G<params>;<base64-payload>ESC\`
+- Supports direct PNG transmission (`f=100`) -- no decode needed
+- Supports chunked transfer for large images
+- ratatui-image handles all of this internally
+
+**Integration with ratatui 0.30:** ratatui-image v10.x targets ratatui 0.29-0.30. Compatible with current Cargo.toml. Requires `crossterm` feature flag.
+
+**Confidence:** HIGH -- verified on GitHub, v10.0.6 from Feb 2026, active maintenance.
+
+### 4. Content Hashing: blake3
+
+**Decision: Use blake3, not SHA-256.**
+
+**Why blake3 over sha2 crate?**
+- 5-10x faster than SHA-256 (SIMD-optimized, single-threaded).
+- Simpler API: `blake3::hash(data).to_hex()` -- one expression.
+- 91K+ dependents -- battle-tested.
+- For cache keying, speed matters more than standards compliance.
+
+**Usage pattern:**
+```rust
+fn cache_key(mermaid_code: &str) -> String {
+    blake3::hash(mermaid_code.as_bytes()).to_hex().to_string()
+}
+
+fn cache_path(mermaid_code: &str) -> PathBuf {
+    let key = cache_key(mermaid_code);
+    dirs::cache_dir()
+        .unwrap_or_else(|| PathBuf::from("/tmp"))
+        .join("semantic-diff")
+        .join("mermaid")
+        .join(format!("{}.png", key))
+}
+```
+
+**Cache directory convention:**
+- macOS: `~/Library/Caches/semantic-diff/mermaid/`
+- Use `dirs::cache_dir()` (already a dependency) for platform-correct paths.
+- Cache is outside the git repo -- no `.gitignore` needed for it.
+- The `.planning/` references to "cache directory gitignored" in PROJECT.md likely refer to a project-local cache. Recommend using the OS-level cache dir instead to keep the repo clean.
+
+**Confidence:** HIGH -- blake3 v1.8.3 verified on GitHub (Jan 2026).
+
+### 5. Mermaid Code Block Extraction: pulldown-cmark
+
+**Decision: Use pulldown-cmark directly to extract mermaid fenced code blocks.**
+
+tui-markdown handles rendering markdown to `Text`, but we need to separately identify and extract mermaid code blocks before rendering (to replace them with images). pulldown-cmark is already a transitive dependency of tui-markdown.
+
+**Usage pattern:**
+```rust
+use pulldown_cmark::{Parser, Event, Tag, TagEnd, CodeBlockKind};
+
+fn extract_mermaid_blocks(markdown: &str) -> Vec<(std::ops::Range<usize>, String)> {
+    let parser = Parser::new(markdown);
+    let mut blocks = vec![];
+    let mut in_mermaid = false;
+    let mut current_code = String::new();
+
+    for (event, range) in parser.into_offset_iter() {
+        match event {
+            Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang)))
+                if lang.as_ref() == "mermaid" => {
+                in_mermaid = true;
+                current_code.clear();
+            }
+            Event::Text(text) if in_mermaid => {
+                current_code.push_str(&text);
+            }
+            Event::End(TagEnd::CodeBlock) if in_mermaid => {
+                blocks.push((range, current_code.clone()));
+                in_mermaid = false;
+            }
+            _ => {}
+        }
+    }
+    blocks
+}
+```
+
+**Confidence:** HIGH -- pulldown-cmark is the standard Rust markdown parser (used by rustdoc). v0.12 is current.
 
 ---
 
@@ -127,100 +224,104 @@ Already validated in v1.0: Rust, ratatui 0.30, syntect 5.3, tokio 1, crossterm 0
 
 | Category | Recommended | Alternative | Why Not |
 |----------|-------------|-------------|---------|
-| Dependency audit | cargo-audit + cargo-deny | cargo-vet | cargo-vet is for supply-chain trust (code review tracking), not CVE scanning. Overkill for this project size. |
-| Fuzzing | cargo-fuzz | afl.rs | afl.rs has worse Rust integration, requires more setup, smaller community. cargo-fuzz is what the Rust project uses. |
-| CLI testing | assert_cmd | rexpect 0.6.3 | rexpect is for interactive terminal testing (expect-style). semantic-diff IS interactive, but testing TUI interactions is better done via ratatui's TestBackend + simulated key events than expect-style byte matching. |
-| Snapshot testing | insta | expect-test | expect-test is inline (in-source) snapshots only. insta supports both inline and file-based, plus `cargo insta review` workflow. More flexible. |
-| Mocking | mockall | wiremock | wiremock is for HTTP mocking. This app doesn't use HTTP -- it shells out to CLI tools. |
-| Process safety | std::process::Command | shell-escape crate | Unnecessary -- Command::new() with .args() already avoids shell interpretation entirely. shell-escape is for when you MUST construct shell strings, which you should not do. |
+| Markdown rendering | tui-markdown | pulldown-cmark-mdcat (mdcat library) | Archived project (Jan 2025). Outputs ANSI to stdout, not ratatui Text. Would require ANSI-to-ratatui conversion layer. |
+| Markdown rendering | tui-markdown | termimad 0.34 | Renders directly to terminal via crossterm, not ratatui widgets. No ratatui `Text` output. Would conflict with ratatui's buffer model. |
+| Markdown rendering | tui-markdown | Custom pulldown-cmark -> ratatui | tui-markdown already does this. No reason to reinvent. |
+| Markdown rendering | tui-markdown | mdcat CLI subprocess | Archived. Output is ANSI text -- would need to capture and parse. Writes images directly to terminal, conflicting with ratatui buffer. |
+| Image rendering | ratatui-image | Raw Kitty escape sequences | Manual protocol detection, no resize handling, TUI overwrite bugs. ratatui-image solves all of this. |
+| Image rendering | ratatui-image | viuer crate | Not designed for ratatui integration. Writes directly to terminal, bypasses ratatui buffer. |
+| Hashing | blake3 | sha2 (SHA-256) | Slower, more verbose API. No advantage for cache keying. |
+| Hashing | blake3 | xxhash / ahash | Non-cryptographic. While fine for caching, blake3 is equally fast and provides stronger guarantees at no cost. |
+| Mermaid rendering | mmdc subprocess | kroki.io API | Requires network access. Subprocess is offline-capable and faster for local use. |
 
 ---
 
-## Installation
-
-```bash
-# Security tools (install as cargo subcommands)
-cargo install cargo-audit
-cargo install cargo-deny --locked
-# cargo-fuzz requires nightly
-rustup install nightly
-cargo install cargo-fuzz
-```
+## Cargo.toml Additions
 
 ```toml
-# Cargo.toml additions for v1.1
-[dev-dependencies]
-assert_cmd = "2.2"
-assert_fs = "1.1"
-predicates = "3.1"
-insta = { version = "1.46", features = ["json"] }
-proptest = "1.10"
-tempfile = "3.27"
-
-# Optional -- add only if refactoring LLM/git interfaces to traits
-# mockall = "0.14"
+# Add to [dependencies]
+tui-markdown = "0.1"
+pulldown-cmark = "0.12"
+ratatui-image = { version = "10", features = ["crossterm"] }
+blake3 = "1.8"
+image = "0.25"
 ```
 
 ```bash
-# Also install insta CLI for snapshot review workflow
-cargo install cargo-insta
+# External tool -- optional prerequisite (graceful degradation if missing)
+npm install -g @mermaid-js/mermaid-cli
 ```
 
+**Total new compile-time dependencies:** ~5 direct crates + their transitive deps. The `image` crate is the heaviest (image decoding), but compile time impact is moderate since it's a common Rust crate already optimized for incremental compilation.
+
 ---
 
-## What NOT to Use
+## Architecture Integration Points
 
-| Tool/Crate | Why Not |
+### Rendering Pipeline for Preview Mode
+
+```
+.md file content
+    |
+    +---> pulldown-cmark: extract mermaid code blocks with byte ranges
+    |         |
+    |         +---> blake3: hash each mermaid block
+    |         |         |
+    |         |         +---> Cache hit? Load existing PNG
+    |         |         +---> Cache miss? tokio::spawn mmdc subprocess -> PNG
+    |         |
+    |         +---> ratatui-image: load PNG, create StatefulImage
+    |
+    +---> tui-markdown::from_str(): render non-mermaid markdown to ratatui Text
+    |
+    +---> Composite: interleave Paragraph (text) and StatefulImage (diagrams)
+```
+
+### Key Constraint: Mixed Text + Image Layout
+
+ratatui renders text via `Paragraph` widget and images via `StatefulImage` widget. These are separate widgets needing separate `Rect` areas. The preview pane must:
+
+1. Split markdown content at mermaid block boundaries.
+2. Render text segments as `Paragraph` widgets and mermaid segments as `StatefulImage` widgets.
+3. Use vertical `Layout` with dynamic constraints to stack text and image blocks.
+4. **This is the hardest integration challenge** -- plan for iteration and expect the layout logic to need refinement.
+
+### Graceful Degradation Ladder
+
+| Condition | Behavior |
+|-----------|----------|
+| Normal operation | Full markdown + mermaid images |
+| mmdc not installed | Markdown renders; mermaid blocks shown as raw fenced code |
+| mmdc fails on a diagram | Show raw mermaid code + error note for that block |
+| Terminal lacks image protocol | ratatui-image falls back to halfblock approximation |
+| No mermaid blocks in file | Pure markdown rendering, no image logic triggered |
+| Non-.md file | "p" key is no-op or disabled |
+
+---
+
+## What NOT to Add
+
+| Crate/Tool | Why Not |
 |------------|---------|
-| `shell-escape` | You don't need shell escaping because `Command::new()` already bypasses the shell. Adding it implies you're constructing shell strings, which is the wrong pattern. |
-| `nix` crate (full) | Heavy dependency for what you need. Only consider it if you need `kill(pid, 0)` for stale PID detection -- and even then, a raw `libc::kill` call is simpler. |
-| `seccomp` / `landlock` | Sandboxing is overkill for a local-only TUI diff viewer. The attack surface is local git repos and a local LLM CLI. |
-| `cargo-geiger` | Counts `unsafe` blocks, but this codebase uses zero direct `unsafe`. Only useful if you suspect dependencies use excessive unsafe -- cargo-audit covers the security angle better. |
-| `tarpaulin` | If you want coverage, use `cargo llvm-cov` instead -- it's more accurate and faster. But coverage is orthogonal to security and not part of v1.1 scope. |
-| `rexpect` | Interactive terminal testing via expect-style byte matching is fragile for TUI apps. Use ratatui's TestBackend + simulated events instead. |
-
----
-
-## Security Audit Approach (Stack Implications)
-
-Based on code review of the current codebase, here is where each tool applies:
-
-### Attack Surface 1: Shell Command Execution
-**Files:** `src/main.rs` (git diff), `src/grouper/llm.rs` (claude/copilot CLI), `src/cache.rs` (git rev-parse)
-**Tool:** Manual code review + clippy lints
-**Finding:** Already safe -- all uses are `Command::new("binary").args([...])` with no shell interpolation. The `model` config param is the only external string passed as an arg, and it goes through `.args()` not a shell.
-
-### Attack Surface 2: Untrusted LLM Output
-**Files:** `src/grouper/llm.rs` (`extract_json`, `request_grouping`)
-**Tools:** proptest (fuzz JSON parsing), insta (snapshot valid/invalid responses), cargo-fuzz (deep fuzzing)
-**Finding:** `extract_json()` does naive brace-matching which could be confused by nested JSON or malformed input. The `serde_json::from_str` provides type safety, but the `known_files` validation only checks file existence -- it doesn't validate hunk indices against actual hunk counts.
-
-### Attack Surface 3: Diff Parsing
-**Files:** `src/diff/parser.rs`
-**Tools:** proptest (random diff strings), cargo-fuzz (malformed diffs), insta (snapshot known diffs)
-**Finding:** Parser delegates to `unidiff` crate which silently ignores parse errors (`let _ = patch.parse(raw)`). Malformed input won't crash but could produce wrong results. Fuzz to verify no panics.
-
-### Attack Surface 4: PID File / Signals
-**Files:** `src/signal.rs`
-**Tools:** Manual hardening (stdlib only), integration tests with assert_cmd
-**Finding:** PID written to world-readable `/tmp/`. No `O_EXCL`, no stale PID check, no file locking. Low practical risk but easy to fix.
+| mdcat (any form) | Archived. ANSI output incompatible with ratatui buffer model. |
+| termimad | Writes to terminal directly, not ratatui widgets. |
+| viuer | Bypasses ratatui buffer. Use ratatui-image instead. |
+| comrak | Alternative markdown parser. pulldown-cmark is the standard; tui-markdown already uses it. |
+| syntect for markdown | Already used for code syntax highlighting. Markdown rendering is a different concern -- use tui-markdown. |
+| Any headless browser crate | For mermaid rendering, mmdc CLI is simpler than embedding a browser runtime in Rust. |
 
 ---
 
 ## Sources
 
-- cargo-audit: https://crates.io/crates/cargo-audit -- v0.22.1, verified 2026-03-15 (HIGH confidence)
-- cargo-deny: https://crates.io/crates/cargo-deny -- v0.19.0, verified 2026-03-15 (HIGH confidence)
-- cargo-fuzz: https://rust-fuzz.github.io/book/cargo-fuzz.html (HIGH confidence)
-- assert_cmd: https://crates.io/crates/assert_cmd -- v2.2.0, verified 2026-03-15 (HIGH confidence)
-- assert_fs: https://crates.io/crates/assert_fs -- v1.1.3, verified 2026-03-15 (HIGH confidence)
-- insta: https://crates.io/crates/insta -- v1.46.3, verified 2026-03-15 (HIGH confidence)
-- proptest: https://crates.io/crates/proptest -- v1.10.0, verified 2026-03-15 (HIGH confidence)
-- mockall: https://crates.io/crates/mockall -- v0.14.0, verified 2026-03-15 (HIGH confidence)
-- tempfile: https://crates.io/crates/tempfile -- v3.27.0, verified 2026-03-15 (HIGH confidence)
-- ratatui TestBackend: ratatui built-in, documented in ratatui API docs (HIGH confidence)
-- Rust std::process::Command shell bypass: https://doc.rust-lang.org/std/process/struct.Command.html (HIGH confidence)
+- mdcat GitHub (archived Jan 2025): https://github.com/swsnr/mdcat [HIGH confidence, verified 2026-03-16]
+- tui-markdown GitHub: https://github.com/joshka/tui-markdown [HIGH confidence, verified 2026-03-16]
+- ratatui-image GitHub (v10.0.6, Feb 2026): https://github.com/benjajaja/ratatui-image [HIGH confidence, verified 2026-03-16]
+- mermaid-cli GitHub (v11.12.0, Sep 2025): https://github.com/mermaid-js/mermaid-cli [HIGH confidence, verified 2026-03-16]
+- blake3 GitHub (v1.8.3, Jan 2026): https://github.com/BLAKE3-team/BLAKE3 [HIGH confidence, verified 2026-03-16]
+- Kitty graphics protocol spec: https://sw.kovidgoyal.net/kitty/graphics-protocol/ [HIGH confidence, verified 2026-03-16]
+- termimad GitHub (v0.34.1): https://github.com/Canop/termimad [HIGH confidence, verified 2026-03-16]
 
 ---
-*Stack research for: Semantic Diff TUI v1.1 Security & Demo Readiness*
-*Researched: 2026-03-15*
+*Stack research for: Semantic Diff TUI v0.7.0 Markdown Preview*
+*Researched: 2026-03-16*

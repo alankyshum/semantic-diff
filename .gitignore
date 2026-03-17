@@ -1,2 +1,3 @@
 target/
 ai-plans/
+.claude/logs/

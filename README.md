@@ -5,7 +5,7 @@
 
 A terminal diff viewer with AI-powered semantic grouping. Built with Rust and [ratatui](https://ratatui.rs).
 
-Groups your git changes by *meaning* — not just by file path. Designed to run as a cmux split pane alongside Claude Code, giving real-time visibility into what's being changed and why.
+Groups your git changes by *meaning* — not just by file path — giving real-time visibility into what's being changed and why.
 
 ## Why
 
@@ -49,6 +49,8 @@ https://github.com/user-attachments/assets/49f7f3cf-a72c-47f6-9313-fdf0e2000db8
 
 - **Hunk-level semantic grouping** — AI clusters related hunks across files by intent (e.g. "Auth refactor", "Test coverage"), not just file-level grouping
 - **Multi-backend AI** — Supports Claude CLI and GitHub Copilot CLI (`copilot --yolo`), with configurable preference and automatic fallback
+- **Markdown preview** — Press `p` to toggle rendered preview for `.md` files (headings, tables, code blocks, lists, links, blockquotes)
+- **Mermaid diagram rendering** — Renders mermaid code blocks as inline images in terminals that support it (iTerm2, Kitty, Ghostty); falls back to styled source in multiplexers
 - **Configurable** — `~/.config/semantic-diff.json` with JSONC comment support, model selection, and intelligent cross-backend model mapping
 - **Grouping cache** — Cached in `.git/semantic-diff-cache.json` keyed by diff hash; instant reload when nothing changed
 - **Syntax-highlighted diffs** — Powered by syntect with word-level inline highlighting
@@ -56,7 +58,6 @@ https://github.com/user-attachments/assets/49f7f3cf-a72c-47f6-9313-fdf0e2000db8
 - **File tree sidebar** — Changed files organized by semantic group with per-hunk stats
 - **Group-aware diff filtering** — Select a file or group in the sidebar to filter the diff view to only those changes
 - **Hook-triggered refresh** — Auto-updates when Claude Code edits files (via SIGUSR1)
-- **cmux integration** — Auto-opens in a right split pane
 - **Help overlay** — Press `?` to see all keybindings
 - **Text wrapping** — Long diff lines flow with the terminal width
 - **Progressive enhancement** — Shows ungrouped diff immediately, regroups when AI responds
@@ -99,6 +100,7 @@ semantic-diff
 | `j/k`, `↑/↓` | Navigate up/down |
 | `Enter` | Sidebar: select file/group · Diff: toggle collapse |
 | `Tab` | Switch focus between tree sidebar and diff view |
+| `p` | Toggle markdown preview (.md files) |
 | `/` | Search/filter files |
 | `n/N` | Next/previous search match |
 | `g/G` | Jump to top/bottom |
@@ -130,59 +132,12 @@ On first run, a default config is created at `~/.config/semantic-diff.json`:
 }
 ```
 
-## Claude Code Integration
-
-semantic-diff is designed to work as a live diff viewer alongside Claude Code.
-
-### Setup
-
-1. Copy the hook script (an example is provided in `.claude/hooks.example/`):
-
-```bash
-mkdir -p ~/.claude/hooks
-cp .claude/hooks.example/refresh-semantic-diff.sh ~/.claude/hooks/
-chmod +x ~/.claude/hooks/refresh-semantic-diff.sh
-```
-
-2. Add to your Claude Code settings (`~/.claude/settings.local.json`):
-
-> **Note:** Add this to your **global** (`~/.claude/settings.local.json`) or **user-level** settings, not the project-level `.claude/settings.local.json`. Adding it to the project settings will cause the hook to trigger within the semantic-diff repo itself, repeatedly opening new semantic-diff instances.
-
-```json
-{
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/refresh-semantic-diff.sh",
-            "async": true,
-            "timeout": 10
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-### How it works
-
-1. Claude Code edits a file (Edit/Write tool)
-2. PostToolUse hook fires `refresh-semantic-diff.sh`
-3. If semantic-diff is running: sends SIGUSR1 to refresh the diff
-4. If not running: opens a cmux right-split pane and launches semantic-diff
-5. AI groups the changed hunks by semantic meaning
-6. You see real-time, grouped changes without leaving the terminal
-
 ## Requirements
 
-- Rust 1.75+
+- Rust 1.90+
 - Git
+- [Mermaid CLI](https://github.com/mermaid-js/mermaid-cli) (optional, for rendering mermaid diagrams in preview — `npm install -g @mermaid-js/mermaid-cli`)
 - [Claude CLI](https://claude.ai/download) or [GitHub Copilot CLI](https://github.com/github/copilot-cli) (optional, for semantic grouping)
-- [cmux](https://cmux.dev) (optional, for auto-split pane)
 
 ## License
 

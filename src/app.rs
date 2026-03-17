@@ -2,6 +2,7 @@ use crate::diff::DiffData;
 use crate::grouper::llm::LlmBackend;
 use crate::grouper::{GroupingStatus, SemanticGroup};
 use crate::highlight::HighlightCache;
+use crate::preview::mermaid::{ImageSupport, MermaidCache};
 use crate::theme::Theme;
 use crate::ui::file_tree::TreeNodeId;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -46,6 +47,8 @@ pub enum Message {
         u64,    // diff_hash
         String, // head_commit
     ),
+    /// A mermaid diagram finished rendering — triggers UI refresh.
+    MermaidReady,
 }
 
 
@@ -89,6 +92,8 @@ pub struct UiState {
     pub viewport_height: u16,
     /// Width of the diff view panel (Cell for interior mutability during render).
     pub diff_view_width: Cell<u16>,
+    /// Scroll offset for preview mode (line-based, not item-based).
+    pub preview_scroll: usize,
 }
 
 /// An item in the flattened visible list.
@@ -141,6 +146,12 @@ pub struct App {
     pub previous_file_hashes: HashMap<String, u64>,
     /// Git diff arguments from the CLI, used for refreshes.
     pub git_diff_args: Vec<String>,
+    /// Whether markdown preview mode is active (toggled with "p").
+    pub preview_mode: bool,
+    /// Whether the terminal supports inline image rendering.
+    pub image_support: ImageSupport,
+    /// Mermaid diagram cache (only used when image_support == Supported).
+    pub mermaid_cache: Option<MermaidCache>,
 }
 
 impl App {
@@ -148,6 +159,11 @@ impl App {
     pub fn new(diff_data: DiffData, config: &crate::config::Config, git_diff_args: Vec<String>) -> Self {
         let theme = Theme::from_mode(config.theme_mode);
         let highlight_cache = HighlightCache::new(&diff_data, theme.syntect_theme);
+        let image_support = crate::preview::mermaid::detect_image_support();
+        let mermaid_cache = match &image_support {
+            ImageSupport::Supported(_) => Some(MermaidCache::new()),
+            _ => None,
+        };
         Self {
             diff_data,
             ui_state: UiState {
@@ -156,6 +172,7 @@ impl App {
                 collapsed: HashSet::new(),
                 viewport_height: 24, // will be updated on first draw
                 diff_view_width: Cell::new(80),
+                preview_scroll: 0,
             },
             highlight_cache,
             should_quit: false,
@@ -179,6 +196,9 @@ impl App {
             previous_head: None,
             previous_file_hashes: HashMap::new(),
             git_diff_args,
+            preview_mode: false,
+            image_support,
+            mermaid_cache,
         }
     }
 
@@ -380,6 +400,7 @@ impl App {
                 self.grouping_handle = None;
                 None // Continue showing ungrouped — graceful degradation (ROB-06)
             }
+            Message::MermaidReady => None, // just triggers UI refresh
         }
     }
 
@@ -510,6 +531,15 @@ impl App {
                 self.search_query.clear();
                 return None;
             }
+            KeyCode::Char('p') => {
+                if crate::ui::preview_view::is_current_file_markdown(self) {
+                    self.preview_mode = !self.preview_mode;
+                    if self.preview_mode {
+                        self.ui_state.preview_scroll = 0;
+                    }
+                }
+                return None;
+            }
             _ => {}
         }
 
@@ -570,6 +600,11 @@ impl App {
 
     /// Handle keys when the diff view is focused (original behavior).
     fn handle_key_diff(&mut self, key: KeyEvent) -> Option<Command> {
+        // In preview mode, redirect navigation keys to preview scroll
+        if self.preview_mode {
+            return self.handle_key_preview(key);
+        }
+
         let items_len = self.visible_items().len();
         if items_len == 0 {
             return None;
@@ -1062,8 +1097,46 @@ impl App {
         items
     }
 
+    /// Handle keys in preview mode (line-based scrolling).
+    fn handle_key_preview(&mut self, key: KeyEvent) -> Option<Command> {
+        match key.code {
+            KeyCode::Char('j') | KeyCode::Down => {
+                self.ui_state.preview_scroll = self.ui_state.preview_scroll.saturating_add(1);
+                None
+            }
+            KeyCode::Char('k') | KeyCode::Up => {
+                self.ui_state.preview_scroll = self.ui_state.preview_scroll.saturating_sub(1);
+                None
+            }
+            KeyCode::Char('g') => {
+                self.ui_state.preview_scroll = 0;
+                None
+            }
+            KeyCode::Char('G') => {
+                self.ui_state.preview_scroll = usize::MAX; // will be clamped in render
+                None
+            }
+            KeyCode::Char('d') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                let half_page = (self.ui_state.viewport_height / 2) as usize;
+                self.ui_state.preview_scroll = self.ui_state.preview_scroll.saturating_add(half_page);
+                None
+            }
+            KeyCode::Char('u') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                let half_page = (self.ui_state.viewport_height / 2) as usize;
+                self.ui_state.preview_scroll = self.ui_state.preview_scroll.saturating_sub(half_page);
+                None
+            }
+            // Collapse/expand still works in preview mode (no-op but don't block)
+            KeyCode::Enter => None,
+            // Search match jumping
+            KeyCode::Char('n') | KeyCode::Char('N') => None,
+            _ => None,
+        }
+    }
+
     /// TEA view: delegate rendering to the UI module.
-    pub fn view(&self, frame: &mut ratatui::Frame) {
-        crate::ui::draw(self, frame);
+    /// Returns pending images that must be flushed after terminal.draw().
+    pub fn view(&self, frame: &mut ratatui::Frame) -> Vec<crate::ui::preview_view::PendingImage> {
+        crate::ui::draw(self, frame)
     }
 }

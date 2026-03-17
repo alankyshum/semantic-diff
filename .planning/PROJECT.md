@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A Rust terminal application (built with ratatui) that displays git diffs in a rich, collapsible, semantically-grouped view. Runs as a cmux split pane triggered by Claude Code hooks, giving real-time visibility into what files Claude is changing and why — grouped by meaning, not just by file path. Published on crates.io and Homebrew.
+A Rust terminal application (built with ratatui) that displays git diffs in a rich, collapsible, semantically-grouped view. Triggered by Claude Code hooks, giving real-time visibility into what files Claude is changing and why — grouped by meaning, not just by file path. Published on crates.io and Homebrew.
 
 ## Core Value
 
@@ -23,7 +23,6 @@ Show Claude's code changes in real-time with AI-powered semantic grouping, so th
 - ✓ AI semantic grouping via Claude CLI with progressive enhancement — v0.2.3
 - ✓ Collapsible semantic group tree nodes with summaries — v0.2.3
 - ✓ SIGUSR1-triggered refresh from Claude Code hooks — v0.2.3
-- ✓ cmux auto-split pane lifecycle — v0.2.3
 - ✓ PID file management (/tmp/semantic-diff.pid) — v0.2.3
 - ✓ PostToolUse hook for Edit/Write tools — v0.2.3
 - ✓ Panic hook terminal restoration — v0.2.3
@@ -35,15 +34,13 @@ Show Claude's code changes in real-time with AI-powered semantic grouping, so th
 
 ### Active
 
-- [ ] Security audit: command injection in shell invocations (git diff, claude CLI)
-- [ ] Security audit: signal handling race conditions (SIGUSR1, PID file)
-- [ ] Security audit: LLM output parsing safety (untrusted Claude CLI JSON)
-- [ ] Security audit: file path traversal and symlink safety in diff parsing
-- [ ] Fix all identified security vulnerabilities
-- [ ] E2E test: live diff rendering (syntax highlighting, line numbers, word-level diff)
-- [ ] E2E test: real-time refresh via Claude Code hooks in cmux pane
-- [ ] E2E test: semantic grouping (AI clustering, sidebar, progressive enhancement)
-- [ ] E2E test: graceful edge cases (empty repos, huge diffs, binary files, no clauded)
+- [ ] "p" key toggles between raw diff and rendered markdown preview for .md files
+- [ ] Preview mode renders markdown (headings, tables, links, lists) via mdcat
+- [ ] Preview mode renders mermaid diagrams via mmdc → PNG → Kitty graphics protocol
+- [ ] Mermaid image caching: content-hash mermaid code blocks, reuse PNG if unchanged
+- [ ] Cache directory gitignored
+- [ ] Footer displays current mode (Raw / Preview)
+- [ ] Shortcut menu updated with "p" key
 
 ### Out of Scope
 
@@ -59,7 +56,7 @@ Show Claude's code changes in real-time with AI-powered semantic grouping, so th
 Shipped MVP with 3,050 LOC Rust across 3 phases in 3 days.
 Tech stack: Rust, ratatui, syntect, tokio, tui-tree-widget.
 Latest release: v0.3.0 on crates.io and Homebrew.
-User runs Claude Code in cmux terminal multiplexer on macOS.
+User runs Claude Code in a terminal on macOS.
 No existing terminal tool combines collapse/expand with AI-driven semantic grouping.
 
 ## Constraints
@@ -67,7 +64,7 @@ No existing terminal tool combines collapse/expand with AI-driven semantic group
 - **Tech stack**: Rust with ratatui — single binary, fast startup
 - **LLM integration**: Claude CLI (clauded) — no external API keys
 - **Refresh model**: Hook-triggered only (PostToolUse on Edit/Write)
-- **Platform**: macOS with cmux
+- **Platform**: macOS
 - **Performance**: Diff parsing <100ms; LLM grouping async (progressive enhancement)
 
 ## Key Decisions
@@ -78,9 +75,20 @@ No existing terminal tool combines collapse/expand with AI-driven semantic group
 | clauded for semantic grouping | No permission prompts, local daemon, no API key management | ✓ Good |
 | Hook-triggered refresh over file watch | Less CPU, integrates naturally with Claude Code workflow | ✓ Good |
 | Async semantic grouping | Show diff immediately, regroup when LLM responds — no blocking | ✓ Good |
-| cmux right-split pane | Natural side-by-side with Claude Code conversation on the left | ✓ Good |
 | 3-phase quick depth | Diff viewer first, then hooks, then semantic grouping — each builds on prior | ✓ Good |
 | tui-tree-widget for sidebar | Purpose-built tree rendering, less custom code than manual approach | ✓ Good |
+
+## Current Milestone: v0.7.0 Markdown Preview
+
+**Goal:** Add a toggle preview mode for .md files that renders markdown and mermaid diagrams inline in the diff pane.
+
+**Target features:**
+- "p" key toggle between raw diff and rendered preview
+- Markdown rendering via mdcat (headings, tables, links, lists, code blocks)
+- Mermaid diagram rendering via mmdc → PNG → Kitty graphics protocol
+- Content-hashed mermaid caching (skip re-render if code unchanged)
+- Footer mode indicator (Raw / Preview)
+- Updated shortcut menu
 
 ## Completed Milestones
 
@@ -88,4 +96,4 @@ No existing terminal tool combines collapse/expand with AI-driven semantic group
 2. **Security & Demo Readiness** (v0.3.0) — Red/purple/blue team audit, hardening, E2E tests
 
 ---
-*Last updated: 2026-03-15 after v0.3.0 release*
+*Last updated: 2026-03-16 after v0.7.0 milestone start*

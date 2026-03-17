@@ -6,6 +6,7 @@ mod diff;
 mod event;
 mod grouper;
 mod highlight;
+mod preview;
 mod signal;
 mod theme;
 mod ui;
@@ -203,11 +204,32 @@ async fn main() -> Result<()> {
     // 8. Init terminal and enter main loop
     let mut terminal = ratatui::init();
 
+    let mut had_images_last_frame = false;
+
     loop {
+        let mut pending_images = Vec::new();
         terminal.draw(|f| {
             app.ui_state.viewport_height = f.area().height.saturating_sub(1);
-            app.view(f);
+            pending_images = app.view(f);
         })?;
+
+        let has_images = !pending_images.is_empty();
+
+        if let preview::mermaid::ImageSupport::Supported(protocol) = &app.image_support {
+            if has_images {
+                ui::preview_view::flush_images(&pending_images, *protocol);
+            } else if had_images_last_frame {
+                // Switched away from preview or to a non-image file — clear stale images
+                // and immediately redraw so the screen doesn't flash blank.
+                ui::preview_view::clear_stale_images(*protocol, &mut terminal);
+                terminal.draw(|f| {
+                    app.ui_state.viewport_height = f.area().height.saturating_sub(1);
+                    app.view(f);
+                })?;
+            }
+        }
+
+        had_images_last_frame = has_images;
 
         if let Some(msg) = rx.recv().await {
             if let Some(cmd) = app.update(msg) {
