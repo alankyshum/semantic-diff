@@ -2,7 +2,7 @@ use crate::app::{App, FocusedPanel};
 use crate::grouper::GroupingStatus;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
-use ratatui::text::{Line, Span};
+use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::Block;
 use ratatui::Frame;
 use tui_tree_widget::{Tree, TreeItem};
@@ -76,8 +76,93 @@ fn abbreviate_path(path: &str, max_width: usize) -> String {
     format!("{}/{}", dirs.join("/"), filename)
 }
 
+/// Wrap a sequence of styled spans into multiple `Line`s that fit within `max_width`.
+/// Uses word-level wrapping (splits on spaces). Continuation lines are indented by `indent` spaces.
+fn wrap_spans(spans: Vec<Span<'static>>, max_width: usize, indent: usize) -> Text<'static> {
+    if max_width == 0 {
+        return Text::from(Line::from(spans));
+    }
+
+    let total_len: usize = spans.iter().map(|s| s.content.len()).sum();
+    if total_len <= max_width {
+        return Text::from(Line::from(spans));
+    }
+
+    // Flatten all spans into word-level tokens preserving styles
+    struct StyledWord {
+        text: String,
+        style: Style,
+    }
+    let mut words: Vec<StyledWord> = Vec::new();
+    for span in &spans {
+        let style = span.style;
+        let content = span.content.as_ref();
+        // Split into segments preserving spaces as trailing chars on words
+        let mut start = 0;
+        for (i, ch) in content.char_indices() {
+            if ch == ' ' {
+                // Include this space with the preceding word
+                let end = i + 1;
+                if end > start {
+                    words.push(StyledWord {
+                        text: content[start..end].to_string(),
+                        style,
+                    });
+                    start = end;
+                }
+            }
+        }
+        if start < content.len() {
+            words.push(StyledWord {
+                text: content[start..].to_string(),
+                style,
+            });
+        }
+    }
+
+    let mut lines: Vec<Line<'static>> = Vec::new();
+    let mut current_spans: Vec<Span<'static>> = Vec::new();
+    let mut current_len: usize = 0;
+    let mut is_first_line = true;
+
+    for word in words {
+        let word_len = word.text.len();
+        let line_max = if is_first_line { max_width } else { max_width.saturating_sub(indent) };
+
+        if current_len + word_len <= line_max || current_len == 0 {
+            // Fits on current line, or it's the first word on the line (must place it)
+            current_spans.push(Span::styled(word.text, word.style));
+            current_len += word_len;
+        } else {
+            // Wrap to next line
+            // Trim trailing space from last span on current line
+            if let Some(last) = current_spans.last_mut() {
+                let trimmed = last.content.trim_end().to_string();
+                *last = Span::styled(trimmed, last.style);
+            }
+            lines.push(Line::from(std::mem::take(&mut current_spans)));
+            is_first_line = false;
+            current_len = 0;
+
+            // Add indent for continuation
+            let indent_str = " ".repeat(indent);
+            current_len += indent;
+            current_spans.push(Span::raw(indent_str));
+
+            current_spans.push(Span::styled(word.text, word.style));
+            current_len += word_len;
+        }
+    }
+
+    if !current_spans.is_empty() {
+        lines.push(Line::from(current_spans));
+    }
+
+    Text::from(lines)
+}
+
 /// Build a Line for a file entry in the tree, with optional [U] badge, path abbreviation, and stats.
-fn build_file_line(
+fn build_file_text(
     path: &str,
     is_untracked: bool,
     suffix: &str,
@@ -124,7 +209,7 @@ fn build_flat_tree<'a>(app: &App, sidebar_width: u16) -> Vec<TreeItem<'a, TreeNo
         .iter()
         .map(|file| {
             let path = file.target_file.trim_start_matches("b/").to_string();
-            let line = build_file_line(
+            let line = build_file_text(
                 &path, file.is_untracked, "", file.added_count, file.removed_count,
                 sidebar_width, path_overhead,
             );
@@ -146,6 +231,9 @@ fn build_grouped_tree<'a>(
 
     // Available width for nested file path: sidebar - borders(2) - highlight(3) - node_symbol(2) - indent(2)
     let nested_path_overhead: u16 = 2 + 3 + 2 + 2;
+
+    // Available width for group header: sidebar - borders(2) - highlight(3) - node_symbol(2)
+    let group_overhead: u16 = 2 + 3 + 2;
 
     for (gi, group) in groups.iter().enumerate() {
         let mut children: Vec<TreeItem<'a, TreeNodeId>> = Vec::new();
@@ -200,7 +288,7 @@ fn build_grouped_tree<'a>(
                     format!(" ({}/{} hunks)", change.hunks.len(), file.hunks.len())
                 };
 
-                let line = build_file_line(
+                let line = build_file_text(
                     &path, file.is_untracked, &hunk_info, added, removed,
                     sidebar_width, nested_path_overhead,
                 );
@@ -209,7 +297,7 @@ fn build_grouped_tree<'a>(
         }
 
         if !children.is_empty() {
-            let header = Line::from(vec![
+            let header_spans = vec![
                 Span::styled(
                     format!("{} ", group.label),
                     Style::default()
@@ -229,7 +317,9 @@ fn build_grouped_tree<'a>(
                     format!(", {} files", children.len()),
                     Style::default().fg(Color::DarkGray),
                 ),
-            ]);
+            ];
+            let available_width = sidebar_width.saturating_sub(group_overhead) as usize;
+            let header = wrap_spans(header_spans, available_width, 2);
             if let Ok(item) = TreeItem::new(TreeNodeId::Group(gi), header, children) {
                 items.push(item);
             }
@@ -256,7 +346,7 @@ fn build_grouped_tree<'a>(
         };
 
         if is_other {
-            let line = build_file_line(
+            let line = build_file_text(
                 &path, file.is_untracked, "", file.added_count, file.removed_count,
                 sidebar_width, nested_path_overhead,
             );
