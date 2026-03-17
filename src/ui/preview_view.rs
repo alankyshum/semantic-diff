@@ -11,7 +11,7 @@ use crate::preview::mermaid::{ImageProtocol, ImageSupport, MermaidRenderState};
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::Paragraph;
+use ratatui::widgets::{Paragraph, Wrap};
 use ratatui::Frame;
 use std::io::Write;
 
@@ -117,7 +117,9 @@ pub fn render_preview(app: &App, frame: &mut Frame, area: Rect) -> Vec<PendingIm
 
         match segment {
             Segment::Text(lines) => {
-                let para = Paragraph::new(lines.clone()).scroll((clip_top, 0));
+                let para = Paragraph::new(lines.clone())
+                    .wrap(Wrap { trim: false })
+                    .scroll((clip_top, 0));
                 frame.render_widget(para, seg_area);
             }
             Segment::Image { ref path } => {
@@ -177,20 +179,36 @@ pub fn flush_images(
     let _ = stdout.flush();
 }
 
-/// Clear any stale inline images by forcing a full terminal redraw.
+/// Clear any stale inline images by overwriting all cells.
 /// Call when previous frame had images but current frame does not.
+///
+/// `terminal.clear()` alone is insufficient: it resets ratatui's buffer and
+/// queues `\x1b[2J`, but ratatui's diff algorithm skips cells that are empty
+/// in both the old and new buffers. Image pixels in those cells persist.
+/// We explicitly write spaces to every cell to guarantee overwrite.
 pub fn clear_stale_images(
     protocol: ImageProtocol,
     terminal: &mut ratatui::Terminal<ratatui::backend::CrosstermBackend<std::io::Stdout>>,
 ) {
-    // For Kitty: explicitly delete all placement images
+    let mut stdout = std::io::stdout();
+
+    // For Kitty: explicitly delete all image placements
     if protocol == ImageProtocol::Kitty {
-        let mut stdout = std::io::stdout();
-        let _ = write!(stdout, "\x1b_Ga=d;\x1b\\");
-        let _ = stdout.flush();
+        let _ = write!(stdout, "\x1b_Ga=d,d=a;\x1b\\");
     }
-    // Force ratatui to redraw every cell on the next frame,
-    // which overwrites any leftover image pixels.
+
+    // Write spaces to every cell to overwrite lingering image pixels.
+    // Inline images (iTerm2 OSC 1337, Kitty) bypass ratatui's buffer,
+    // so we must physically overwrite the cells they occupied.
+    if let Ok(size) = terminal.size() {
+        let blank_line = " ".repeat(size.width as usize);
+        for row in 0..size.height {
+            let _ = write!(stdout, "\x1b[{};1H{blank_line}", row + 1);
+        }
+    }
+    let _ = stdout.flush();
+
+    // Reset ratatui's buffer state so the next draw rewrites all content.
     let _ = terminal.clear();
 }
 
@@ -248,7 +266,23 @@ enum Segment {
 impl Segment {
     fn height(&self, pane_width: u16) -> u16 {
         match self {
-            Segment::Text(lines) => lines.len() as u16,
+            Segment::Text(lines) => {
+                if pane_width == 0 {
+                    return lines.len() as u16;
+                }
+                let w = pane_width as usize;
+                lines
+                    .iter()
+                    .map(|line| {
+                        let char_width: usize = line.spans.iter().map(|s| s.content.len()).sum();
+                        if char_width == 0 {
+                            1
+                        } else {
+                            char_width.div_ceil(w)
+                        }
+                    })
+                    .sum::<usize>() as u16
+            }
             Segment::Image { ref path } => estimate_image_height(path, pane_width),
         }
     }
