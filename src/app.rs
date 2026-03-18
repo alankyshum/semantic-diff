@@ -21,6 +21,7 @@ pub enum InputMode {
     Normal,
     Search,
     Help,
+    Settings,
 }
 
 /// Which panel currently has keyboard focus.
@@ -496,7 +497,34 @@ impl App {
                 self.input_mode = InputMode::Normal;
                 None
             }
+            InputMode::Settings => self.handle_key_settings(key),
         }
+    }
+
+    /// Handle keys while the Settings overlay is open.
+    fn handle_key_settings(&mut self, key: KeyEvent) -> Option<Command> {
+        match key.code {
+            KeyCode::Char('d') => {
+                self.toggle_theme();
+                None
+            }
+            KeyCode::Esc => {
+                self.input_mode = InputMode::Normal;
+                None
+            }
+            _ => None,
+        }
+    }
+
+    /// Toggle between dark and light theme, rebuilding the highlight cache.
+    pub fn toggle_theme(&mut self) {
+        let new_theme = if self.theme.syntect_theme.contains("dark") {
+            crate::theme::Theme::light()
+        } else {
+            crate::theme::Theme::dark()
+        };
+        self.theme = new_theme;
+        self.highlight_cache = HighlightCache::new(&self.diff_data, self.theme.syntect_theme);
     }
 
     /// Handle keys in Normal mode.
@@ -506,6 +534,10 @@ impl App {
             KeyCode::Char('q') => return Some(Command::Quit),
             KeyCode::Char('?') => {
                 self.input_mode = InputMode::Help;
+                return None;
+            }
+            KeyCode::Char(',') => {
+                self.input_mode = InputMode::Settings;
                 return None;
             }
             KeyCode::Tab => {

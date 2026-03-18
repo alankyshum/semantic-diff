@@ -68,8 +68,11 @@ async fn main() -> Result<()> {
     let git_diff_args = cli.git_diff_args();
     tracing::info!(?git_diff_args, "Git diff args");
 
-    // 2c. Load config (creates default if missing)
-    let config = config::load();
+    // 2c. Load config (creates default if missing), CLI --theme overrides config
+    let mut config = config::load();
+    if cli.theme.is_some() {
+        config.theme_mode = cli.theme_mode();
+    }
     tracing::info!(?config, "Loaded config");
 
     // 3. Run git diff with user-specified args (or default: unstaged changes)

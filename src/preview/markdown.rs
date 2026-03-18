@@ -8,6 +8,7 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 
 use super::mermaid::MermaidBlock;
+use crate::theme::Theme;
 
 /// Rendered markdown content: interleaved text blocks and mermaid placeholders.
 #[derive(Debug)]
@@ -21,7 +22,7 @@ pub enum PreviewBlock {
 
 /// Parse markdown source and return a list of preview blocks.
 /// `width` is the available terminal columns for text wrapping (0 = no limit).
-pub fn parse_markdown(source: &str, width: u16) -> Vec<PreviewBlock> {
+pub fn parse_markdown(source: &str, width: u16, theme: &Theme) -> Vec<PreviewBlock> {
     let mut opts = Options::empty();
     opts.insert(Options::ENABLE_TABLES);
     opts.insert(Options::ENABLE_STRIKETHROUGH);
@@ -32,7 +33,7 @@ pub fn parse_markdown(source: &str, width: u16) -> Vec<PreviewBlock> {
 
     let mut blocks: Vec<PreviewBlock> = Vec::new();
     let mut lines: Vec<Line<'static>> = Vec::new();
-    let mut renderer = MarkdownRenderer::new(width);
+    let mut renderer = MarkdownRenderer::new(width, theme);
 
     let mut i = 0;
     while i < events.len() {
@@ -75,7 +76,7 @@ pub fn parse_markdown(source: &str, width: u16) -> Vec<PreviewBlock> {
 }
 
 /// Stateful renderer that tracks nesting context for markdown → ratatui conversion.
-struct MarkdownRenderer {
+struct MarkdownRenderer<'t> {
     /// Current inline style stack (bold, italic, etc.)
     style_stack: Vec<Style>,
     /// Current inline spans being accumulated for the current line
@@ -93,6 +94,8 @@ struct MarkdownRenderer {
     code_block_lang: String,
     /// Available terminal width for table wrapping
     pane_width: u16,
+    /// Theme for color choices
+    theme: &'t Theme,
 }
 
 struct TableState {
@@ -102,8 +105,8 @@ struct TableState {
     in_head: bool,
 }
 
-impl MarkdownRenderer {
-    fn new(pane_width: u16) -> Self {
+impl<'t> MarkdownRenderer<'t> {
+    fn new(pane_width: u16, theme: &'t Theme) -> Self {
         Self {
             style_stack: vec![Style::default()],
             current_spans: Vec::new(),
@@ -114,6 +117,7 @@ impl MarkdownRenderer {
             in_code_block: false,
             code_block_lang: String::new(),
             pane_width,
+            theme,
         }
     }
 
@@ -145,7 +149,7 @@ impl MarkdownRenderer {
         if self.in_blockquote {
             let mut prefixed = vec![Span::styled(
                 "  > ".to_string(),
-                Style::default().fg(Color::DarkGray).add_modifier(Modifier::DIM),
+                Style::default().fg(self.theme.md_blockquote_fg).add_modifier(Modifier::DIM),
             )];
             prefixed.extend(spans);
             Some(Line::from(prefixed))
@@ -163,12 +167,12 @@ impl MarkdownRenderer {
             Event::Start(Tag::Heading { level, .. }) => {
                 self.heading_level = Some(*level);
                 let (prefix, color) = match level {
-                    HeadingLevel::H1 => ("# ", Color::Magenta),
-                    HeadingLevel::H2 => ("## ", Color::Cyan),
-                    HeadingLevel::H3 => ("### ", Color::Green),
-                    HeadingLevel::H4 => ("#### ", Color::Yellow),
-                    HeadingLevel::H5 => ("##### ", Color::Blue),
-                    HeadingLevel::H6 => ("###### ", Color::Red),
+                    HeadingLevel::H1 => ("# ", self.theme.md_heading_h1_fg),
+                    HeadingLevel::H2 => ("## ", self.theme.md_heading_h2_fg),
+                    HeadingLevel::H3 => ("### ", self.theme.md_heading_h3_fg),
+                    HeadingLevel::H4 => ("#### ", self.theme.md_heading_h4_fg),
+                    HeadingLevel::H5 => ("##### ", self.theme.md_heading_h5_fg),
+                    HeadingLevel::H6 => ("###### ", self.theme.md_heading_h6_fg),
                 };
                 self.push_style(Modifier::BOLD, Some(color));
                 self.current_spans.push(Span::styled(
@@ -218,7 +222,7 @@ impl MarkdownRenderer {
                 self.current_spans.push(Span::styled(
                     format!("`{code}`"),
                     Style::default()
-                        .fg(Color::Yellow)
+                        .fg(self.theme.md_inline_code_fg)
                         .add_modifier(Modifier::BOLD),
                 ));
             }
@@ -235,7 +239,7 @@ impl MarkdownRenderer {
                         }
                         self.current_spans.push(Span::styled(
                             format!("  {line_text}"),
-                            Style::default().fg(Color::Green),
+                            Style::default().fg(self.theme.md_code_block_fg),
                         ));
                     }
                 } else if let Some(ref mut table) = self.table_state {
@@ -259,7 +263,7 @@ impl MarkdownRenderer {
 
             // Links
             Event::Start(Tag::Link { dest_url, .. }) => {
-                self.push_style(Modifier::UNDERLINED, Some(Color::Blue));
+                self.push_style(Modifier::UNDERLINED, Some(self.theme.md_link_fg));
                 // Store URL for display after link text
                 self.current_spans.push(Span::raw(String::new())); // placeholder
                 let _ = dest_url; // we'll show URL after text ends
@@ -291,7 +295,7 @@ impl MarkdownRenderer {
                     };
                     self.current_spans.push(Span::styled(
                         bullet,
-                        Style::default().fg(Color::Cyan),
+                        Style::default().fg(self.theme.md_list_bullet_fg),
                     ));
                 }
             }
@@ -304,7 +308,7 @@ impl MarkdownRenderer {
             // Blockquotes
             Event::Start(Tag::BlockQuote(_)) => {
                 self.in_blockquote = true;
-                self.push_style(Modifier::DIM, Some(Color::DarkGray));
+                self.push_style(Modifier::DIM, Some(self.theme.md_blockquote_fg));
             }
             Event::End(TagEnd::BlockQuote(_)) => {
                 if let Some(line) = self.flush_line() {
@@ -323,13 +327,13 @@ impl MarkdownRenderer {
                         self.code_block_lang = lang.to_string();
                         lines.push(Line::from(Span::styled(
                             format!("  ```{lang}"),
-                            Style::default().fg(Color::DarkGray),
+                            Style::default().fg(self.theme.md_code_block_delim_fg),
                         )));
                     }
                     CodeBlockKind::Indented => {
                         lines.push(Line::from(Span::styled(
                             "  ```".to_string(),
-                            Style::default().fg(Color::DarkGray),
+                            Style::default().fg(self.theme.md_code_block_delim_fg),
                         )));
                     }
                 }
@@ -342,7 +346,7 @@ impl MarkdownRenderer {
                 self.code_block_lang.clear();
                 lines.push(Line::from(Span::styled(
                     "  ```".to_string(),
-                    Style::default().fg(Color::DarkGray),
+                    Style::default().fg(self.theme.md_code_block_delim_fg),
                 )));
                 lines.push(Line::raw(""));
             }
@@ -394,7 +398,7 @@ impl MarkdownRenderer {
             Event::Rule => {
                 lines.push(Line::from(Span::styled(
                     "──────────────────────────────────────────".to_string(),
-                    Style::default().fg(Color::DarkGray),
+                    Style::default().fg(self.theme.md_rule_fg),
                 )));
                 lines.push(Line::raw(""));
             }
@@ -606,16 +610,20 @@ fn wrap_text(text: &str, width: usize) -> Vec<String> {
 mod tests {
     use super::*;
 
+    fn test_theme() -> Theme {
+        Theme::dark()
+    }
+
     #[test]
     fn test_heading_parsing() {
-        let blocks = parse_markdown("# Hello\n\nSome text", 80);
+        let blocks = parse_markdown("# Hello\n\nSome text", 80, &test_theme());
         assert!(!blocks.is_empty());
     }
 
     #[test]
     fn test_mermaid_extraction() {
         let md = "# Diagram\n\n```mermaid\ngraph TD\n    A-->B\n```\n\nAfter.";
-        let blocks = parse_markdown(md, 80);
+        let blocks = parse_markdown(md, 80, &test_theme());
         let has_mermaid = blocks.iter().any(|b| matches!(b, PreviewBlock::Mermaid(_)));
         assert!(has_mermaid, "Should extract mermaid block");
     }
@@ -623,7 +631,7 @@ mod tests {
     #[test]
     fn test_table_rendering() {
         let md = "| A | B |\n|---|---|\n| 1 | 2 |\n| 3 | 4 |";
-        let blocks = parse_markdown(md, 80);
+        let blocks = parse_markdown(md, 80, &test_theme());
         assert!(!blocks.is_empty());
     }
 

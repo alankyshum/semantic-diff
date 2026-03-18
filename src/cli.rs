@@ -1,4 +1,5 @@
 use clap::Parser;
+use crate::theme::ThemeMode;
 
 /// A terminal diff viewer with AI-powered semantic grouping.
 ///
@@ -16,9 +17,25 @@ use clap::Parser;
 #[derive(Parser, Debug)]
 #[command(name = "semantic-diff", version, about)]
 pub struct Cli {
+    /// Color theme: auto, dark, or light. Auto-detects terminal background.
+    /// Can also be set via SEMANTIC_DIFF_THEME env var.
+    /// Use --theme=light for SSH/tmux sessions where auto-detection fails.
+    #[arg(long, value_name = "MODE", env = "SEMANTIC_DIFF_THEME")]
+    pub theme: Option<String>,
+
     /// Arguments passed through to `git diff` (commits, ranges, --staged, -- paths, etc.)
     #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
     pub git_args: Vec<String>,
+}
+
+impl Cli {
+    pub fn theme_mode(&self) -> ThemeMode {
+        match self.theme.as_deref() {
+            Some("dark") => ThemeMode::Dark,
+            Some("light") => ThemeMode::Light,
+            _ => ThemeMode::Auto,
+        }
+    }
 }
 
 impl Cli {
@@ -36,13 +53,14 @@ mod tests {
 
     #[test]
     fn test_no_args_produces_bare_diff() {
-        let cli = Cli { git_args: vec![] };
+        let cli = Cli { theme: None, git_args: vec![] };
         assert_eq!(cli.git_diff_args(), vec!["diff", "-M"]);
     }
 
     #[test]
     fn test_head_arg() {
         let cli = Cli {
+            theme: None,
             git_args: vec!["HEAD".to_string()],
         };
         assert_eq!(cli.git_diff_args(), vec!["diff", "-M", "HEAD"]);
@@ -51,6 +69,7 @@ mod tests {
     #[test]
     fn test_staged_flag() {
         let cli = Cli {
+            theme: None,
             git_args: vec!["--staged".to_string()],
         };
         assert_eq!(cli.git_diff_args(), vec!["diff", "-M", "--staged"]);
@@ -59,6 +78,7 @@ mod tests {
     #[test]
     fn test_two_dot_range() {
         let cli = Cli {
+            theme: None,
             git_args: vec!["main..feature".to_string()],
         };
         assert_eq!(cli.git_diff_args(), vec!["diff", "-M", "main..feature"]);
@@ -67,6 +87,7 @@ mod tests {
     #[test]
     fn test_three_dot_range() {
         let cli = Cli {
+            theme: None,
             git_args: vec!["main...feature".to_string()],
         };
         assert_eq!(cli.git_diff_args(), vec!["diff", "-M", "main...feature"]);
@@ -75,6 +96,7 @@ mod tests {
     #[test]
     fn test_two_refs() {
         let cli = Cli {
+            theme: None,
             git_args: vec!["main".to_string(), "feature".to_string()],
         };
         assert_eq!(
@@ -86,6 +108,7 @@ mod tests {
     #[test]
     fn test_path_limiter() {
         let cli = Cli {
+            theme: None,
             git_args: vec![
                 "HEAD".to_string(),
                 "--".to_string(),
@@ -101,6 +124,7 @@ mod tests {
     #[test]
     fn test_cached_alias() {
         let cli = Cli {
+            theme: None,
             git_args: vec!["--cached".to_string()],
         };
         assert_eq!(cli.git_diff_args(), vec!["diff", "-M", "--cached"]);
@@ -111,6 +135,7 @@ mod tests {
     #[test]
     fn test_head_tilde_syntax() {
         let cli = Cli {
+            theme: None,
             git_args: vec!["HEAD~3".to_string()],
         };
         assert_eq!(cli.git_diff_args(), vec!["diff", "-M", "HEAD~3"]);
@@ -119,6 +144,7 @@ mod tests {
     #[test]
     fn test_head_caret_syntax() {
         let cli = Cli {
+            theme: None,
             git_args: vec!["HEAD^".to_string()],
         };
         assert_eq!(cli.git_diff_args(), vec!["diff", "-M", "HEAD^"]);
@@ -127,6 +153,7 @@ mod tests {
     #[test]
     fn test_sha_refs() {
         let cli = Cli {
+            theme: None,
             git_args: vec![
                 "abc1234".to_string(),
                 "def5678".to_string(),
@@ -142,6 +169,7 @@ mod tests {
     fn test_full_sha() {
         let sha = "a".repeat(40);
         let cli = Cli {
+            theme: None,
             git_args: vec![sha.clone()],
         };
         assert_eq!(cli.git_diff_args(), vec!["diff", "-M", &sha]);
@@ -150,6 +178,7 @@ mod tests {
     #[test]
     fn test_staged_with_ref() {
         let cli = Cli {
+            theme: None,
             git_args: vec!["--staged".to_string(), "HEAD~1".to_string()],
         };
         assert_eq!(
@@ -161,6 +190,7 @@ mod tests {
     #[test]
     fn test_multiple_path_limiters() {
         let cli = Cli {
+            theme: None,
             git_args: vec![
                 "HEAD".to_string(),
                 "--".to_string(),
@@ -178,6 +208,7 @@ mod tests {
     #[test]
     fn test_two_dot_range_with_paths() {
         let cli = Cli {
+            theme: None,
             git_args: vec![
                 "main..feature".to_string(),
                 "--".to_string(),
@@ -193,6 +224,7 @@ mod tests {
     #[test]
     fn test_three_dot_range_with_paths() {
         let cli = Cli {
+            theme: None,
             git_args: vec![
                 "origin/main...HEAD".to_string(),
                 "--".to_string(),
@@ -208,6 +240,7 @@ mod tests {
     #[test]
     fn test_merge_base_flag() {
         let cli = Cli {
+            theme: None,
             git_args: vec!["--merge-base".to_string(), "main".to_string()],
         };
         assert_eq!(
@@ -219,6 +252,7 @@ mod tests {
     #[test]
     fn test_no_index_flag() {
         let cli = Cli {
+            theme: None,
             git_args: vec![
                 "--no-index".to_string(),
                 "file_a.txt".to_string(),
@@ -235,6 +269,7 @@ mod tests {
     fn test_many_positional_args_stress() {
         let args: Vec<String> = (0..100).map(|i| format!("path_{i}.rs")).collect();
         let cli = Cli {
+            theme: None,
             git_args: args.clone(),
         };
         let result = cli.git_diff_args();
@@ -248,6 +283,7 @@ mod tests {
     #[test]
     fn test_unicode_path() {
         let cli = Cli {
+            theme: None,
             git_args: vec![
                 "HEAD".to_string(),
                 "--".to_string(),
@@ -261,6 +297,7 @@ mod tests {
     #[test]
     fn test_path_with_spaces() {
         let cli = Cli {
+            theme: None,
             git_args: vec![
                 "--".to_string(),
                 "path with spaces/file.rs".to_string(),
@@ -273,6 +310,7 @@ mod tests {
     #[test]
     fn test_at_upstream_syntax() {
         let cli = Cli {
+            theme: None,
             git_args: vec!["@{upstream}".to_string()],
         };
         assert_eq!(cli.git_diff_args(), vec!["diff", "-M", "@{upstream}"]);
@@ -281,6 +319,7 @@ mod tests {
     #[test]
     fn test_stash_ref() {
         let cli = Cli {
+            theme: None,
             git_args: vec!["stash@{0}".to_string()],
         };
         assert_eq!(cli.git_diff_args(), vec!["diff", "-M", "stash@{0}"]);
@@ -289,6 +328,7 @@ mod tests {
     #[test]
     fn test_remote_tracking_branch() {
         let cli = Cli {
+            theme: None,
             git_args: vec![
                 "origin/main".to_string(),
                 "origin/feature/my-branch".to_string(),
@@ -303,6 +343,7 @@ mod tests {
     #[test]
     fn test_tag_ref() {
         let cli = Cli {
+            theme: None,
             git_args: vec!["v1.0.0".to_string(), "v2.0.0".to_string()],
         };
         assert_eq!(
@@ -314,6 +355,7 @@ mod tests {
     #[test]
     fn test_diff_filter_flag_passthrough() {
         let cli = Cli {
+            theme: None,
             git_args: vec!["--diff-filter=ACMR".to_string(), "HEAD".to_string()],
         };
         assert_eq!(
@@ -325,6 +367,7 @@ mod tests {
     #[test]
     fn test_stat_flag_passthrough() {
         let cli = Cli {
+            theme: None,
             git_args: vec!["--stat".to_string(), "HEAD".to_string()],
         };
         assert_eq!(
@@ -336,6 +379,7 @@ mod tests {
     #[test]
     fn test_name_only_flag_passthrough() {
         let cli = Cli {
+            theme: None,
             git_args: vec!["--name-only".to_string()],
         };
         assert_eq!(
@@ -347,6 +391,7 @@ mod tests {
     #[test]
     fn test_combined_flags_and_ranges() {
         let cli = Cli {
+            theme: None,
             git_args: vec![
                 "--staged".to_string(),
                 "--diff-filter=M".to_string(),
@@ -364,6 +409,7 @@ mod tests {
     #[test]
     fn test_empty_string_arg() {
         let cli = Cli {
+            theme: None,
             git_args: vec!["".to_string()],
         };
         let result = cli.git_diff_args();
@@ -373,6 +419,7 @@ mod tests {
     #[test]
     fn test_double_dash_only() {
         let cli = Cli {
+            theme: None,
             git_args: vec!["--".to_string()],
         };
         assert_eq!(cli.git_diff_args(), vec!["diff", "-M", "--"]);

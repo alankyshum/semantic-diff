@@ -309,6 +309,7 @@ fn mixed_diff_toggle_only_on_md() {
 #[test]
 fn parse_complex_markdown() {
     use semantic_diff::preview::markdown::{parse_markdown, PreviewBlock};
+    use semantic_diff::theme::Theme;
 
     let md = r#"# Heading 1
 
@@ -343,7 +344,7 @@ graph TD
 [Link](https://example.com)
 "#;
 
-    let blocks = parse_markdown(md, 120);
+    let blocks = parse_markdown(md, 120, &Theme::dark());
     assert!(!blocks.is_empty(), "Should produce blocks");
 
     let has_text = blocks.iter().any(|b| matches!(b, PreviewBlock::Text(_)));

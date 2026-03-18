@@ -8,7 +8,7 @@ use crate::theme::Theme;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Clear, Paragraph};
+use ratatui::widgets::{Block, Clear, Paragraph, Wrap};
 use ratatui::Frame;
 
 /// Draw the entire UI. Returns pending images that must be flushed after
@@ -44,12 +44,19 @@ pub fn draw(app: &App, frame: &mut Frame) -> Vec<preview_view::PendingImage> {
     // Render bottom bar
     match app.input_mode {
         InputMode::Search => render_search_bar(app, frame, vertical[1]),
-        InputMode::Normal | InputMode::Help => summary::render_summary(app, frame, vertical[1]),
+        InputMode::Normal | InputMode::Help | InputMode::Settings => {
+            summary::render_summary(app, frame, vertical[1])
+        }
     }
 
     // Render help overlay on top if in Help mode
     if app.input_mode == InputMode::Help {
         render_help_overlay(frame, area, &app.theme);
+    }
+
+    // Render settings overlay on top if in Settings mode
+    if app.input_mode == InputMode::Settings {
+        render_settings_overlay(frame, area, &app.theme);
     }
 
     pending_images
@@ -69,6 +76,7 @@ fn render_help_overlay(frame: &mut Frame, area: Rect, theme: &Theme) {
             ("p", "Toggle markdown preview (.md files)"),
             ("/", "Search files"),
             ("n/N", "Next/prev search match"),
+            (",", "Settings"),
             ("Esc", "Clear filter / quit"),
             ("q", "Quit"),
         ]),
@@ -100,8 +108,9 @@ fn render_help_overlay(frame: &mut Frame, area: Rect, theme: &Theme) {
         Style::default().fg(theme.help_dismiss_fg),
     )));
 
+    let content_width = lines.iter().map(|l| l.spans.iter().map(|s| s.content.chars().count()).sum::<usize>()).max().unwrap_or(0) as u16;
     let height = (lines.len() + 2).min(area.height as usize) as u16;
-    let width = 50u16.min(area.width.saturating_sub(4));
+    let width = (content_width + 4).min(area.width.saturating_sub(4)); // +4 for borders + padding
     let x = (area.width.saturating_sub(width)) / 2;
     let y = (area.height.saturating_sub(height)) / 2;
     let popup_area = Rect::new(x, y, width, height);
@@ -112,6 +121,58 @@ fn render_help_overlay(frame: &mut Frame, area: Rect, theme: &Theme) {
         .border_style(Style::default().fg(theme.help_section_fg))
         .style(Style::default().bg(theme.help_overlay_bg));
     let paragraph = Paragraph::new(lines).block(block);
+    frame.render_widget(paragraph, popup_area);
+}
+
+/// Render the settings overlay centered on screen.
+fn render_settings_overlay(frame: &mut Frame, area: Rect, theme: &Theme) {
+    let current_mode = if theme.syntect_theme.contains("dark") {
+        "Dark"
+    } else {
+        "Light"
+    };
+
+    let mut lines: Vec<Line> = vec![Line::raw("")];
+
+    // Theme section
+    lines.push(Line::from(Span::styled(
+        "  Theme",
+        Style::default()
+            .fg(theme.help_section_fg)
+            .add_modifier(Modifier::BOLD),
+    )));
+    lines.push(Line::from(vec![
+        Span::styled(
+            format!("    {:<14}", "d"),
+            Style::default()
+                .fg(theme.help_key_fg)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            format!("Toggle dark/light mode  [Current: {current_mode}]"),
+            Style::default().fg(theme.help_text_fg),
+        ),
+    ]));
+    lines.push(Line::raw(""));
+
+    lines.push(Line::from(Span::styled(
+        "  Esc to close",
+        Style::default().fg(theme.help_dismiss_fg),
+    )));
+
+    let content_width = lines.iter().map(|l| l.spans.iter().map(|s| s.content.chars().count()).sum::<usize>()).max().unwrap_or(0) as u16;
+    let width = (content_width + 4).min(area.width.saturating_sub(4));
+    let height = (lines.len() + 2).min(area.height as usize) as u16;
+    let x = (area.width.saturating_sub(width)) / 2;
+    let y = (area.height.saturating_sub(height)) / 2;
+    let popup_area = Rect::new(x, y, width, height);
+
+    frame.render_widget(Clear, popup_area);
+    let block = Block::bordered()
+        .title(" Settings ")
+        .border_style(Style::default().fg(theme.help_section_fg))
+        .style(Style::default().bg(theme.help_overlay_bg));
+    let paragraph = Paragraph::new(lines).block(block).wrap(Wrap { trim: false });
     frame.render_widget(paragraph, popup_area);
 }
 
