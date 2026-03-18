@@ -231,6 +231,32 @@ async fn request_incremental(
     Ok(validated_groups)
 }
 
+/// Invoke the detected LLM backend with a raw prompt and return the text response.
+/// Uses JSON output format (for structured responses like grouping).
+pub async fn invoke_llm(
+    backend: LlmBackend,
+    model: &str,
+    prompt: &str,
+) -> anyhow::Result<String> {
+    match backend {
+        LlmBackend::Claude => invoke_claude(prompt, model).await,
+        LlmBackend::Copilot => invoke_copilot(prompt, model).await,
+    }
+}
+
+/// Invoke the LLM backend with text output format (for free-form markdown responses).
+/// For Claude, uses `--output-format text` instead of JSON to avoid the wrapper.
+pub async fn invoke_llm_text(
+    backend: LlmBackend,
+    model: &str,
+    prompt: &str,
+) -> anyhow::Result<String> {
+    match backend {
+        LlmBackend::Claude => invoke_claude_text(prompt, model).await,
+        LlmBackend::Copilot => invoke_copilot(prompt, model).await,
+    }
+}
+
 /// Invoke the `claude` CLI and return the LLM response text.
 ///
 /// Pipes the prompt via stdin to avoid exposing code diffs in the process table.
@@ -290,6 +316,65 @@ async fn invoke_claude(prompt: &str, model: &str) -> anyhow::Result<String> {
         .ok_or_else(|| anyhow::anyhow!("missing result field in claude JSON output"))?;
 
     Ok(result_text.to_string())
+}
+
+/// Invoke the `claude` CLI with text output format (no JSON wrapper).
+/// Used for free-form responses like review summaries.
+async fn invoke_claude_text(prompt: &str, model: &str) -> anyhow::Result<String> {
+    use std::process::Stdio;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    let mut child = Command::new("claude")
+        .args([
+            "-p",
+            "--output-format",
+            "text",
+            "--model",
+            model,
+        ])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
+
+    if let Some(mut stdin) = child.stdin.take() {
+        stdin.write_all(prompt.as_bytes()).await?;
+    }
+
+    // Read stdout and stderr concurrently to avoid deadlock if stderr pipe fills up
+    let stdout_pipe = child.stdout.take()
+        .ok_or_else(|| anyhow::anyhow!("failed to capture claude stdout"))?;
+    let stderr_pipe = child.stderr.take();
+
+    let stdout_fut = async {
+        let mut limited = stdout_pipe.take(MAX_RESPONSE_BYTES as u64);
+        let mut buf = Vec::with_capacity(8192);
+        let bytes_read = limited.read_to_end(&mut buf).await?;
+        Ok::<(Vec<u8>, usize), std::io::Error>((buf, bytes_read))
+    };
+    let stderr_fut = async {
+        let mut stderr_buf = Vec::new();
+        if let Some(mut stderr) = stderr_pipe {
+            stderr.read_to_end(&mut stderr_buf).await.ok();
+        }
+        stderr_buf
+    };
+
+    let (stdout_result, stderr_buf) = tokio::join!(stdout_fut, stderr_fut);
+    let (buf, bytes_read) = stdout_result?;
+
+    if bytes_read >= MAX_RESPONSE_BYTES {
+        child.kill().await.ok();
+        anyhow::bail!("LLM response exceeded {MAX_RESPONSE_BYTES} byte limit");
+    }
+
+    let status = child.wait().await?;
+    if !status.success() {
+        let stderr_str = String::from_utf8_lossy(&stderr_buf);
+        anyhow::bail!("claude exited with status {status}: {stderr_str}");
+    }
+
+    Ok(String::from_utf8(buf)?)
 }
 
 /// Invoke `copilot --yolo` and return the LLM response text.
