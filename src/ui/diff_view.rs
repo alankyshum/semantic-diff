@@ -39,7 +39,7 @@ pub fn render_diff(app: &App, frame: &mut Frame, area: Rect) {
 }
 
 /// Render a single visible item as a Line.
-fn render_item(app: &App, item: &VisibleItem, is_selected: bool) -> Line<'static> {
+pub(crate) fn render_item(app: &App, item: &VisibleItem, is_selected: bool) -> Line<'static> {
     let sel_bg = if is_selected {
         app.theme.selection_bg
     } else {

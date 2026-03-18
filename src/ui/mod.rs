@@ -1,6 +1,7 @@
 pub mod diff_view;
 pub mod file_tree;
 pub mod preview_view;
+pub mod review_view;
 pub mod summary;
 
 use crate::app::{App, InputMode};
@@ -34,8 +35,10 @@ pub fn draw(app: &App, frame: &mut Frame) -> Vec<preview_view::PendingImage> {
     // Render file tree sidebar in left panel
     file_tree::render_tree(app, frame, horizontal[0]);
 
-    // Render diff view or preview in right panel
-    if app.preview_mode && preview_view::is_current_file_markdown(app) {
+    // Render diff view, preview, or review+diff in right panel
+    if app.active_review_group.is_some() {
+        review_view::render_review_with_diff(app, frame, horizontal[1]);
+    } else if app.preview_mode && preview_view::is_current_file_markdown(app) {
         pending_images = preview_view::render_preview(app, frame, horizontal[1]);
     } else {
         diff_view::render_diff(app, frame, horizontal[1]);
@@ -79,6 +82,10 @@ fn render_help_overlay(frame: &mut Frame, area: Rect, theme: &Theme) {
             (",", "Settings"),
             ("Esc", "Clear filter / quit"),
             ("q", "Quit"),
+        ]),
+        ("Review (on group)", vec![
+            ("R", "Force-refresh review"),
+            ("Esc", "Close review pane"),
         ]),
     ];
 
