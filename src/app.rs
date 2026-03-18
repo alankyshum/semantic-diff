@@ -3,6 +3,7 @@ use crate::grouper::llm::LlmBackend;
 use crate::grouper::{GroupingStatus, SemanticGroup};
 use crate::highlight::HighlightCache;
 use crate::preview::mermaid::{ImageSupport, MermaidCache};
+use crate::review::{GroupReview, ReviewCache, ReviewSection, ReviewSource, SectionState};
 use crate::theme::Theme;
 use crate::ui::file_tree::TreeNodeId;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -50,6 +51,7 @@ pub enum Message {
     ),
     /// A mermaid diagram finished rendering — triggers UI refresh.
     MermaidReady,
+    ReviewSectionReady(u64, ReviewSection, Result<String, String>),
 }
 
 
@@ -74,6 +76,15 @@ pub enum Command {
         file_hashes: HashMap<String, u64>,
         delta: crate::grouper::DiffDelta,
     },
+    SpawnReviewSection {
+        backend: crate::grouper::llm::LlmBackend,
+        model: String,
+        section: ReviewSection,
+        prompt: String,
+        group_content_hash: u64,
+    },
+    SpawnReviewBatch(Vec<Command>),
+    CancelReview(u64),
     Quit,
 }
 
@@ -153,6 +164,11 @@ pub struct App {
     pub image_support: ImageSupport,
     /// Mermaid diagram cache (only used when image_support == Supported).
     pub mermaid_cache: Option<MermaidCache>,
+    pub review_cache: ReviewCache,
+    pub review_handles: std::collections::HashMap<(u64, ReviewSection), tokio::task::JoinHandle<()>>,
+    pub active_review_group: Option<u64>,
+    pub review_scroll: usize,
+    pub review_source: ReviewSource,
 }
 
 impl App {
@@ -200,6 +216,11 @@ impl App {
             preview_mode: false,
             image_support,
             mermaid_cache,
+            review_cache: ReviewCache::new(),
+            review_handles: std::collections::HashMap::new(),
+            active_review_group: None,
+            review_scroll: 0,
+            review_source: crate::review::detect_review_skill(),
         }
     }
 
@@ -368,7 +389,8 @@ impl App {
                 drop(ts);
                 // Clear any stale tree filter from the flat view
                 self.tree_filter = None;
-                None
+                // Spawn reviews for all groups in parallel
+                self.spawn_all_reviews()
             }
             Message::IncrementalGroupingComplete(new_assignments, delta, file_hashes, diff_hash, head_commit) => {
                 let existing = self.semantic_groups.as_ref().cloned().unwrap_or_default();
@@ -393,7 +415,8 @@ impl App {
                 ts.select_first();
                 drop(ts);
                 self.tree_filter = None;
-                None
+                // Spawn reviews for all groups in parallel
+                self.spawn_all_reviews()
             }
             Message::GroupingFailed(err) => {
                 tracing::warn!("Grouping failed: {}", err);
@@ -402,6 +425,29 @@ impl App {
                 None // Continue showing ungrouped — graceful degradation (ROB-06)
             }
             Message::MermaidReady => None, // just triggers UI refresh
+            Message::ReviewSectionReady(hash, section, result) => {
+                self.review_handles.remove(&(hash, section));
+                if let Some(review) = self.review_cache.get_mut(&hash) {
+                    match result {
+                        Ok(content) => {
+                            if section == ReviewSection::How && content.trim() == "SKIP" {
+                                review.sections.insert(section, SectionState::Skipped);
+                            } else {
+                                review.sections.insert(section, SectionState::Ready(content));
+                            }
+                        }
+                        Err(msg) => {
+                            review.sections.insert(section, SectionState::Error(msg));
+                        }
+                    }
+                    let all_complete = review.sections.values().all(|s| s.is_complete());
+                    if all_complete {
+                        let review_clone = review.clone();
+                        crate::review::save_review_to_disk(&review_clone);
+                    }
+                }
+                None
+            }
         }
     }
 
@@ -613,25 +659,116 @@ impl App {
         // After any navigation, sync the diff view to the selected tree node
         let selected = ts.selected().to_vec();
         drop(ts); // release borrow before mutating self
-        self.apply_tree_selection(&selected);
-        None
+        self.apply_tree_selection(&selected)
     }
 
     /// Update the diff view filter based on the currently selected tree node.
-    fn apply_tree_selection(&mut self, selected: &[TreeNodeId]) {
+    fn apply_tree_selection(&mut self, selected: &[TreeNodeId]) -> Option<Command> {
         match selected.last() {
             Some(TreeNodeId::File(group_idx, path)) => {
                 self.select_tree_file(path, *group_idx);
+                // Clear review pane display, but let in-flight reviews finish
+                // in the background so results get cached.
+                self.active_review_group = None;
+                self.review_scroll = 0;
+                None
             }
             Some(TreeNodeId::Group(gi)) => {
                 self.select_tree_group(*gi);
+                // Set this group as active for the review pane display.
+                // Reviews are pre-spawned for all groups when grouping completes,
+                // so by the time the user navigates here the review is likely
+                // already cached or in-flight.
+                if let Some(groups) = &self.semantic_groups {
+                    if let Some(group) = groups.get(*gi) {
+                        let hash = crate::review::group_content_hash(group);
+                        if self.active_review_group == Some(hash) {
+                            return None; // already showing
+                        }
+                        self.active_review_group = Some(hash);
+                        self.review_scroll = 0;
+
+                        // If review isn't in memory yet, try disk cache
+                        if self.review_cache.get(&hash).is_none() {
+                            if let Some(cached) = crate::review::load_review_from_disk(hash, &self.review_source) {
+                                self.review_cache.insert(cached);
+                            }
+                        }
+                        // If still not cached (and not in-flight), spawn on demand as fallback
+                        if self.review_cache.get(&hash).is_none() {
+                            return self.spawn_all_reviews();
+                        }
+                    }
+                }
+                None
             }
-            None => {}
+            None => None,
+        }
+    }
+
+    /// Spawn reviews for ALL groups. Checks disk cache first, only spawns LLM
+    /// calls for groups without cached reviews. Returns a SpawnReviewBatch with
+    /// all needed sections, or None if everything is already cached.
+    pub fn spawn_all_reviews(&mut self) -> Option<Command> {
+        let backend = self.llm_backend?;
+        let groups = self.semantic_groups.as_ref()?.clone();
+        let mut all_cmds: Vec<Command> = Vec::new();
+
+        for group in &groups {
+            let hash = crate::review::group_content_hash(group);
+
+            // Already in memory cache?
+            if self.review_cache.get(&hash).is_some() {
+                continue;
+            }
+
+            // Check disk cache
+            if let Some(cached) = crate::review::load_review_from_disk(hash, &self.review_source) {
+                self.review_cache.insert(cached);
+                continue;
+            }
+
+            // Cache miss — prepare LLM calls for this group
+            let mut sections_map = std::collections::HashMap::new();
+            for s in ReviewSection::all() {
+                sections_map.insert(s, SectionState::Loading);
+            }
+            self.review_cache.insert(GroupReview {
+                content_hash: hash,
+                sections: sections_map,
+                source: self.review_source.clone(),
+            });
+
+            let model = self.llm_model.clone();
+            let review_source = self.review_source.clone();
+            for &section in &ReviewSection::all() {
+                let prompt = crate::review::llm::build_review_prompt(
+                    section, group, &self.diff_data, &review_source,
+                );
+                all_cmds.push(Command::SpawnReviewSection {
+                    backend,
+                    model: model.clone(),
+                    section,
+                    prompt,
+                    group_content_hash: hash,
+                });
+            }
+        }
+
+        if all_cmds.is_empty() {
+            None
+        } else {
+            Some(Command::SpawnReviewBatch(all_cmds))
         }
     }
 
     /// Handle keys when the diff view is focused (original behavior).
     fn handle_key_diff(&mut self, key: KeyEvent) -> Option<Command> {
+        // Review pane scroll and controls take priority when a review is active
+        if self.active_review_group.is_some() {
+            return self.handle_key_review(key);
+        }
+
         // In preview mode, redirect navigation keys to preview scroll
         if self.preview_mode {
             return self.handle_key_preview(key);
@@ -1127,6 +1264,85 @@ impl App {
             }
         }
         items
+    }
+
+    /// Handle keys when the review pane is active.
+    fn handle_key_review(&mut self, key: KeyEvent) -> Option<Command> {
+        match key.code {
+            KeyCode::Char('j') | KeyCode::Down => {
+                self.review_scroll = self.review_scroll.saturating_add(1);
+                None
+            }
+            KeyCode::Char('k') | KeyCode::Up => {
+                self.review_scroll = self.review_scroll.saturating_sub(1);
+                None
+            }
+            KeyCode::Char('d') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                self.review_scroll = self.review_scroll.saturating_add(
+                    (self.ui_state.viewport_height / 2) as usize,
+                );
+                None
+            }
+            KeyCode::Char('u') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                self.review_scroll = self.review_scroll.saturating_sub(
+                    (self.ui_state.viewport_height / 2) as usize,
+                );
+                None
+            }
+            KeyCode::Char('g') => {
+                self.review_scroll = 0;
+                None
+            }
+            KeyCode::Char('G') => {
+                self.review_scroll = 999; // will be clamped by renderer
+                None
+            }
+            KeyCode::Char('R') => {
+                // Force-refresh review
+                if let Some(hash) = self.active_review_group {
+                    // Cancel in-flight tasks for this hash
+                    let keys: Vec<_> = self
+                        .review_handles
+                        .keys()
+                        .filter(|(h, _)| *h == hash)
+                        .cloned()
+                        .collect();
+                    for key in keys {
+                        if let Some(handle) = self.review_handles.remove(&key) {
+                            handle.abort();
+                        }
+                    }
+                    // Clear caches
+                    self.review_cache.remove(&hash);
+                    crate::review::delete_review_from_disk(hash);
+                    self.active_review_group = None;
+
+                    // Re-trigger by re-applying current tree selection
+                    let selected = self.tree_state.borrow().selected().to_vec();
+                    return self.apply_tree_selection(&selected);
+                }
+                None
+            }
+            KeyCode::Esc => {
+                // Clear review mode
+                if let Some(old_hash) = self.active_review_group.take() {
+                    let keys: Vec<_> = self
+                        .review_handles
+                        .keys()
+                        .filter(|(h, _)| *h == old_hash)
+                        .cloned()
+                        .collect();
+                    for key in keys {
+                        if let Some(handle) = self.review_handles.remove(&key) {
+                            handle.abort();
+                        }
+                    }
+                }
+                self.review_scroll = 0;
+                None
+            }
+            _ => None,
+        }
     }
 
     /// Handle keys in preview mode (line-based scrolling).

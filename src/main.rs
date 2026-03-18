@@ -7,6 +7,7 @@ mod event;
 mod grouper;
 mod highlight;
 mod preview;
+mod review;
 mod signal;
 mod theme;
 mod ui;
@@ -15,6 +16,28 @@ use anyhow::Result;
 use app::{App, Command, Message};
 use clap::Parser;
 use tokio::sync::mpsc;
+
+/// Spawn review tasks for a SpawnReviewBatch command.
+fn spawn_review_batch(
+    cmd: Command,
+    tx: &mpsc::Sender<Message>,
+    app: &mut App,
+) {
+    if let Command::SpawnReviewBatch(cmds) = cmd {
+        for cmd in cmds {
+            if let Command::SpawnReviewSection { backend, model, section, prompt, group_content_hash } = cmd {
+                let tx2 = tx.clone();
+                let handle = tokio::spawn(async move {
+                    let result = crate::review::llm::invoke_review_section(
+                        backend, &model, &prompt,
+                    ).await;
+                    let _ = tx2.send(Message::ReviewSectionReady(group_content_hash, section, result)).await;
+                });
+                app.review_handles.insert((group_content_hash, section), handle);
+            }
+        }
+    }
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -117,6 +140,10 @@ async fn main() -> Result<()> {
         // Initialize incremental state from cache
         app.previous_head = cache::get_head_commit();
         app.previous_file_hashes = grouper::compute_all_file_hashes(&app.diff_data);
+        // Spawn reviews for all groups
+        if let Some(cmd) = app.spawn_all_reviews() {
+            spawn_review_batch(cmd, &tx, &mut app);
+        }
     } else if let Some(backend) = app.llm_backend {
         // Try incremental cache: same HEAD, previous groups + file hashes stored
         let current_head = cache::get_head_commit();
@@ -136,6 +163,9 @@ async fn main() -> Result<()> {
                     app.previous_head = Some(head.clone());
                     app.previous_file_hashes = new_hashes;
                     tracing::info!("Incremental cache: no changes since last save");
+                    if let Some(cmd) = app.spawn_all_reviews() {
+                        spawn_review_batch(cmd, &tx, &mut app);
+                    }
                     used_incremental = true;
                 } else if delta.is_only_removals() {
                     // Only files removed — prune locally
@@ -148,6 +178,9 @@ async fn main() -> Result<()> {
                     app.previous_file_hashes = new_hashes.clone();
                     cache::save_with_state(diff_hash, app.semantic_groups.as_ref().unwrap(), Some(head), &new_hashes);
                     tracing::info!("Incremental cache: pruned removed files");
+                    if let Some(cmd) = app.spawn_all_reviews() {
+                        spawn_review_batch(cmd, &tx, &mut app);
+                    }
                     used_incremental = true;
                 } else {
                     // New/modified files — spawn incremental grouping
@@ -310,6 +343,24 @@ async fn main() -> Result<()> {
                             }
                         });
                         app.grouping_handle = Some(handle);
+                    }
+                    Command::SpawnReviewBatch(_) => {
+                        spawn_review_batch(cmd, &tx, &mut app);
+                    }
+                    Command::SpawnReviewSection { .. } => {
+                        // Individual spawn — handled within SpawnReviewBatch above
+                        // This variant exists for type completeness but won't be sent alone in Phase 1
+                    }
+                    Command::CancelReview(hash) => {
+                        let keys: Vec<_> = app.review_handles.keys()
+                            .filter(|(h, _)| *h == hash)
+                            .cloned()
+                            .collect();
+                        for key in keys {
+                            if let Some(handle) = app.review_handles.remove(&key) {
+                                handle.abort();
+                            }
+                        }
                     }
                     Command::Quit => break,
                 }
