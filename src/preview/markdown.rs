@@ -500,15 +500,18 @@ fn render_table(rows: &[Vec<String>], pane_width: u16) -> Vec<Line<'static>> {
             lines.push(Line::from(spans));
         }
 
-        // Separator after header row
-        if is_header {
+        // Separator after each row (except the last, which gets the bottom border)
+        if ri < rows.len() - 1 {
+            let joiner = if is_header { "┼" } else { "┼" };
+            let dash = if is_header { "─" } else { "┄" };
+            let (left, right) = if is_header { ("├", "┤") } else { ("├", "┤") };
             let sep: String = col_widths
                 .iter()
-                .map(|w| "─".repeat(w + 2))
+                .map(|w| dash.repeat(w + 2))
                 .collect::<Vec<_>>()
-                .join("┼");
+                .join(joiner);
             lines.push(Line::from(Span::styled(
-                format!("  ├{sep}┤"),
+                format!("  {left}{sep}{right}"),
                 border_style,
             )));
         }

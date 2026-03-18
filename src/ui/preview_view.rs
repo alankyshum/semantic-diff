@@ -127,13 +127,15 @@ pub fn render_preview(app: &App, frame: &mut Frame, area: Rect) -> Vec<PendingIm
                 let blank_lines: Vec<Line> = (0..visible_h).map(|_| Line::raw("")).collect();
                 frame.render_widget(Paragraph::new(blank_lines), seg_area);
 
-                // Queue image for rendering after ratatui flushes
+                // Queue image for rendering after ratatui flushes.
+                // Use capped dimensions so small diagrams don't stretch.
                 if clip_top == 0 {
+                    let (img_cols, _) = estimate_image_size(path, seg_area.width);
                     pending_images.push(PendingImage {
                         path: path.clone(),
                         x: seg_area.x,
                         y: seg_area.y,
-                        width: seg_area.width,
+                        width: img_cols,
                         height: seg_area.height,
                     });
                 }
@@ -343,24 +345,36 @@ fn build_mermaid_segment(
     }
 }
 
-/// Estimate terminal rows needed for the image, preserving aspect ratio
-/// relative to the pane width. Assumes ~2:1 char aspect ratio (chars are
-/// roughly twice as tall as they are wide).
-fn estimate_image_height(path: &std::path::Path, pane_width: u16) -> u16 {
+/// Estimate the display size (columns, rows) for a mermaid image.
+/// Caps the width based on the image's native pixel width so small diagrams
+/// don't stretch to fill the entire pane. Preserves aspect ratio.
+/// Assumes ~8 pixels per terminal column and ~16 pixels per terminal row
+/// (standard monospace font at common sizes).
+fn estimate_image_size(path: &std::path::Path, pane_width: u16) -> (u16, u16) {
     if let Ok(img) = image::open(path) {
         let (img_w, img_h) = (img.width() as f64, img.height() as f64);
         if img_w > 0.0 {
-            // Image will be scaled to fill pane_width columns.
-            // Terminal chars are ~2x taller than wide, so divide by 2 for rows.
+            // Estimate how many columns the image "naturally" needs.
+            // ~8px per column is typical for monospace fonts.
+            let natural_cols = (img_w / 8.0).ceil() as u16;
+            // Don't exceed pane width, but also don't stretch small images
+            let display_cols = natural_cols.min(pane_width);
+            // Compute height preserving aspect ratio.
+            // Terminal chars are ~2x taller than wide, so divide by 2.
             let aspect = img_h / img_w;
-            let rows = (pane_width as f64 * aspect / 2.0).ceil() as u16;
-            rows.clamp(3, 50)
+            let rows = (display_cols as f64 * aspect / 2.0).ceil() as u16;
+            (display_cols.max(10), rows.clamp(3, 50))
         } else {
-            10
+            (pane_width.min(60), 10)
         }
     } else {
-        10
+        (pane_width.min(60), 10)
     }
+}
+
+/// Estimate terminal rows needed for the image (used for layout sizing).
+fn estimate_image_height(path: &std::path::Path, pane_width: u16) -> u16 {
+    estimate_image_size(path, pane_width).1
 }
 
 fn render_mermaid_source(
