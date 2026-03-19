@@ -502,16 +502,14 @@ fn render_table(rows: &[Vec<String>], pane_width: u16) -> Vec<Line<'static>> {
 
         // Separator after each row (except the last, which gets the bottom border)
         if ri < rows.len() - 1 {
-            let joiner = if is_header { "┼" } else { "┼" };
             let dash = if is_header { "─" } else { "┄" };
-            let (left, right) = if is_header { ("├", "┤") } else { ("├", "┤") };
             let sep: String = col_widths
                 .iter()
                 .map(|w| dash.repeat(w + 2))
                 .collect::<Vec<_>>()
-                .join(joiner);
+                .join("┼");
             lines.push(Line::from(Span::styled(
-                format!("  {left}{sep}{right}"),
+                format!("  ├{sep}┤"),
                 border_style,
             )));
         }

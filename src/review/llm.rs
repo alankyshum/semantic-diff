@@ -70,10 +70,7 @@ fn build_section_prompt(section: ReviewSection, shared_context: &str, review_sou
         ReviewSection::Verdict => {
             let skill_preamble = match review_source {
                 ReviewSource::Skill { path, .. } => {
-                    match std::fs::read_to_string(path) {
-                        Ok(content) => content,
-                        Err(_) => String::new(),
-                    }
+                    std::fs::read_to_string(path).unwrap_or_default()
                 }
                 ReviewSource::BuiltIn => String::new(),
             };

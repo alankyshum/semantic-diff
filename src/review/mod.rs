@@ -68,6 +68,12 @@ pub struct ReviewCache {
     order: VecDeque<u64>,
 }
 
+impl Default for ReviewCache {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ReviewCache {
     pub fn new() -> Self {
         Self {

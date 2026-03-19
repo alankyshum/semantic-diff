@@ -231,19 +231,6 @@ async fn request_incremental(
     Ok(validated_groups)
 }
 
-/// Invoke the detected LLM backend with a raw prompt and return the text response.
-/// Uses JSON output format (for structured responses like grouping).
-pub async fn invoke_llm(
-    backend: LlmBackend,
-    model: &str,
-    prompt: &str,
-) -> anyhow::Result<String> {
-    match backend {
-        LlmBackend::Claude => invoke_claude(prompt, model).await,
-        LlmBackend::Copilot => invoke_copilot(prompt, model).await,
-    }
-}
-
 /// Invoke the LLM backend with text output format (for free-form markdown responses).
 /// For Claude, uses `--output-format text` instead of JSON to avoid the wrapper.
 pub async fn invoke_llm_text(
