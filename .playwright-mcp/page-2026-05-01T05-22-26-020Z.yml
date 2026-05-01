@@ -1,0 +1,175 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e5]:
+        - link "← All reviews" [ref=e6] [cursor=pointer]:
+          - /url: /
+        - heading "semantic-diff self-review (final)" [level=1] [ref=e7]
+        - generic [ref=e8]: complete
+      - generic [ref=e9]:
+        - generic [ref=e10]: 47 files
+        - generic [ref=e11]: 5 groups
+        - generic [ref=e12]: 0a279c09
+    - generic [ref=e13]:
+      - complementary [ref=e14]:
+        - generic [ref=e15]: Groups
+        - button "Cargo workspace restructuring ● ● ● ✗" [ref=e16] [cursor=pointer]:
+          - generic [ref=e17]: Cargo workspace restructuring
+          - generic [ref=e18]:
+            - 'generic "WHY: ready" [ref=e19]': ●
+            - 'generic "WHAT: ready" [ref=e20]': ●
+            - 'generic "HOW: ready" [ref=e21]': ●
+            - 'generic "VERDICT: error" [ref=e22]': ✗
+        - button "CLI & input handling ● ● ● ●" [ref=e23] [cursor=pointer]:
+          - generic [ref=e24]: CLI & input handling
+          - generic [ref=e25]:
+            - 'generic "WHY: ready" [ref=e26]': ●
+            - 'generic "WHAT: ready" [ref=e27]': ●
+            - 'generic "HOW: ready" [ref=e28]': ●
+            - 'generic "VERDICT: ready" [ref=e29]': ●
+        - button "Web server & embedded assets ● ● ● ●" [ref=e30] [cursor=pointer]:
+          - generic [ref=e31]: Web server & embedded assets
+          - generic [ref=e32]:
+            - 'generic "WHY: ready" [ref=e33]': ●
+            - 'generic "WHAT: ready" [ref=e34]': ●
+            - 'generic "HOW: ready" [ref=e35]': ●
+            - 'generic "VERDICT: ready" [ref=e36]': ●
+        - button "Dependency updates ● ● ● ✗" [ref=e37] [cursor=pointer]:
+          - generic [ref=e38]: Dependency updates
+          - generic [ref=e39]:
+            - 'generic "WHY: ready" [ref=e40]': ●
+            - 'generic "WHAT: ready" [ref=e41]': ●
+            - 'generic "HOW: ready" [ref=e42]': ●
+            - 'generic "VERDICT: error" [ref=e43]': ✗
+        - button "CI/CD & documentation ● ● ● ●" [ref=e44] [cursor=pointer]:
+          - generic [ref=e45]: CI/CD & documentation
+          - generic [ref=e46]:
+            - 'generic "WHY: ready" [ref=e47]': ●
+            - 'generic "WHAT: ready" [ref=e48]': ●
+            - 'generic "HOW: ready" [ref=e49]': ●
+            - 'generic "VERDICT: ready" [ref=e50]': ●
+      - main [ref=e51]:
+        - generic [ref=e52]:
+          - heading "Cargo workspace restructuring" [level=2] [ref=e53]
+          - paragraph [ref=e54]: Convert single-crate project into a Cargo workspace with semantic-diff-cli and semantic-diff-core sub-crates.
+          - generic [ref=e55]:
+            - generic [ref=e56]: Cargo.toml
+            - generic [ref=e57]: crates/semantic-diff-cli/Cargo.toml
+        - generic [ref=e58]:
+          - heading "WHY" [level=3] [ref=e59]
+          - list [ref=e61]:
+            - listitem [ref=e62]:
+              - strong [ref=e63]: Separation of concerns
+              - text: ": Split the monolithic crate into"
+              - code [ref=e64]: semantic-diff-core
+              - text: (library logic) and
+              - code [ref=e65]: semantic-diff-cli
+              - text: (binary + web server), enabling the core to be used independently or tested in isolation.
+            - listitem [ref=e66]:
+              - strong [ref=e67]: Enable a web-based UI
+              - text: ": The CLI crate gains"
+              - code [ref=e68]: axum
+              - text: ","
+              - code [ref=e69]: tower-http
+              - text: ", and"
+              - code [ref=e70]: include_dir
+              - text: dependencies, indicating a shift from a TUI-only app to one that also serves a browser-based diff viewer.
+            - listitem [ref=e71]:
+              - strong [ref=e72]: Shared dependency management
+              - text: ": Moving common deps to"
+              - code [ref=e73]: "[workspace.dependencies]"
+              - text: eliminates version drift between crates and gives a single place to bump shared libraries.
+            - listitem [ref=e74]:
+              - strong [ref=e75]: Version bump to 0.10.0
+              - text: ": The workspace restructuring is tied to a minor version increment, signaling this is a breaking architectural change rather than a patch."
+            - listitem [ref=e76]:
+              - strong [ref=e77]: Remove legacy TUI dependencies
+              - text: ": The old"
+              - code [ref=e78]: "[dependencies]"
+              - text: block (ratatui, crossterm, tui-tree-widget, etc.) is dropped from the root, reflecting the deletion of the TUI frontend in favor of the new web-based approach.
+        - generic [ref=e79]:
+          - heading "WHAT" [level=3] [ref=e80]
+          - table [ref=e82]:
+            - rowgroup [ref=e83]:
+              - row "Component Before After Risk" [ref=e84]:
+                - columnheader "Component" [ref=e85]
+                - columnheader "Before" [ref=e86]
+                - columnheader "After" [ref=e87]
+                - columnheader "Risk" [ref=e88]
+            - rowgroup [ref=e89]:
+              - row "Binary version 0.9.0 0.10.0 low" [ref=e90]:
+                - cell "Binary version" [ref=e91]
+                - cell "0.9.0" [ref=e92]
+                - cell "0.10.0" [ref=e93]
+                - cell "low" [ref=e94]
+              - row "UI paradigm TUI (ratatui, crossterm, syntect, tui-tree-widget, terminal-light) Web-based (axum, tower-http, tokio-stream) high" [ref=e95]:
+                - cell "UI paradigm" [ref=e96]
+                - cell "TUI (ratatui, crossterm, syntect, tui-tree-widget, terminal-light)" [ref=e97]
+                - cell "Web-based (axum, tower-http, tokio-stream)" [ref=e98]
+                - cell "high" [ref=e99]
+              - row "Browser launch Not present open crate added — browser auto-opens on invocation medium" [ref=e100]:
+                - cell "Browser launch" [ref=e101]
+                - cell "Not present" [ref=e102]
+                - cell "open crate added — browser auto-opens on invocation" [ref=e103]:
+                  - code [ref=e104]: open
+                  - text: crate added — browser auto-opens on invocation
+                - cell "medium" [ref=e105]
+              - row "Static asset serving Not present include_dir embeds web assets into binary at compile time medium" [ref=e106]:
+                - cell "Static asset serving" [ref=e107]
+                - cell "Not present" [ref=e108]
+                - cell "include_dir embeds web assets into binary at compile time" [ref=e109]:
+                  - code [ref=e110]: include_dir
+                  - text: embeds web assets into binary at compile time
+                - cell "medium" [ref=e111]
+              - row "TTY detection Not present atty crate added — behavior likely differs when stdin is a pipe vs terminal medium" [ref=e112]:
+                - cell "TTY detection" [ref=e113]
+                - cell "Not present" [ref=e114]
+                - cell "atty crate added — behavior likely differs when stdin is a pipe vs terminal" [ref=e115]:
+                  - code [ref=e116]: atty
+                  - text: crate added — behavior likely differs when stdin is a pipe vs terminal
+                - cell "medium" [ref=e117]
+              - row "tempfile / chrono Dev-dependencies only Runtime dependencies — now used in production code paths low" [ref=e118]:
+                - cell "tempfile / chrono" [ref=e119]:
+                  - code [ref=e120]: tempfile
+                  - text: /
+                  - code [ref=e121]: chrono
+                - cell "Dev-dependencies only" [ref=e122]
+                - cell "Runtime dependencies — now used in production code paths" [ref=e123]
+                - cell "low" [ref=e124]
+              - row "Image rendering / base64 image + base64 present Removed from cli crate — image-in-terminal feature gone medium" [ref=e125]:
+                - cell "Image rendering / base64" [ref=e126]
+                - cell "image + base64 present" [ref=e127]:
+                  - code [ref=e128]: image
+                  - text: +
+                  - code [ref=e129]: base64
+                  - text: present
+                - cell "Removed from cli crate — image-in-terminal feature gone" [ref=e130]
+                - cell "medium" [ref=e131]
+              - row "Markdown rendering pulldown-cmark present Removed from cli crate — moved to core or dropped from runtime low" [ref=e132]:
+                - cell "Markdown rendering" [ref=e133]
+                - cell "pulldown-cmark present" [ref=e134]:
+                  - code [ref=e135]: pulldown-cmark
+                  - text: present
+                - cell "Removed from cli crate — moved to core or dropped from runtime" [ref=e136]
+                - cell "low" [ref=e137]
+              - row "reqwest Not present Added as dev-dependency — integration tests now make real HTTP requests none" [ref=e138]:
+                - cell "reqwest" [ref=e139]:
+                  - code [ref=e140]: reqwest
+                - cell "Not present" [ref=e141]
+                - cell "Added as dev-dependency — integration tests now make real HTTP requests" [ref=e142]
+                - cell "none" [ref=e143]
+              - row "Binary name semantic-diff semantic-diff (unchanged) none" [ref=e144]:
+                - cell "Binary name" [ref=e145]
+                - cell "semantic-diff" [ref=e146]:
+                  - code [ref=e147]: semantic-diff
+                - cell "semantic-diff (unchanged)" [ref=e148]:
+                  - code [ref=e149]: semantic-diff
+                  - text: (unchanged)
+                - cell "none" [ref=e150]
+        - generic [ref=e151]:
+          - heading "HOW" [level=3] [ref=e152]
+          - generic [ref=e153]: Rendering diagram…
+        - generic [ref=e154]:
+          - heading "VERDICT" [level=3] [ref=e155]
+          - generic [ref=e156]: LLM timed out after 120s
+  - img [ref=e159]

@@ -2,3 +2,6 @@ target/
 ai-plans/
 .claude/logs/
 .envrc
+web/build/
+web/node_modules/
+web/.svelte-kit/

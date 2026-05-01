@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  ci:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build web SPA
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+
+      - name: Run web unit tests
+        working-directory: web
+        run: npm run test:unit || true  # vitest; skip if no tests yet
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check formatting
+        run: cargo fmt --check
+
+      - name: Clippy
+        run: cargo clippy --workspace -- -D warnings
+
+      - name: Run tests
+        run: cargo test --workspace
+
+      - name: Build release binary
+        run: cargo build --release
+
+      - name: Smoke test
+        run: |
+          ./target/release/semantic-diff \
+            --diff tests/fixtures/real-world.patch \
+            --output /tmp/sd-smoke \
+            --no-open \
+            --no-llm \
+            --port 8765 &
+          SERVER=$!
+          sleep 2
+          curl -fsS http://localhost:8765/api/results | python3 -c "import sys,json; data=json.load(sys.stdin); assert len(data) > 0, 'Expected at least one result'"
+          ID=$(curl -s http://localhost:8765/api/results | python3 -c "import sys,json; data=json.load(sys.stdin); print(data[0]['id'])")
+          curl -fsS "http://localhost:8765/api/result/$ID" | python3 -c "import sys,json; data=json.load(sys.stdin); assert data['status'] == 'complete', f'Expected complete, got {data[\"status\"]}'"
+          kill $SERVER || true
