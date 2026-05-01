@@ -16,6 +16,36 @@ async fn main() -> Result<()> {
 
     let cli = cli::Cli::parse_smart();
 
+    // History mode: browse past saved reviews from the global results dir
+    if cli.history {
+        if !cli.git_args.is_empty() {
+            anyhow::bail!("--history takes no positional args");
+        }
+        let results_dir = orchestrator::default_results_dir();
+        let _ = std::fs::create_dir_all(&results_dir);
+
+        let is_empty = std::fs::read_dir(&results_dir)
+            .map(|mut it| it.next().is_none())
+            .unwrap_or(true);
+
+        let (tx, _rx) = broadcast::channel::<String>(32);
+        let state = server::AppState {
+            results_dir,
+            notifier: tx,
+        };
+        let addr = server::start(state, cli.port).await?;
+        let url = format!("http://{}:{}/", addr.ip(), addr.port());
+        eprintln!("Browsing saved reviews at {url}");
+        if is_empty {
+            eprintln!("(no saved reviews yet — run `semantic-diff` on a diff first)");
+        }
+        if !cli.no_open {
+            let _ = open::that(&url);
+        }
+        tokio::signal::ctrl_c().await?;
+        return Ok(());
+    }
+
     // Replay mode: serve an existing result.json without re-running review
     if let Some(result_path) = &cli.result {
         let content = std::fs::read_to_string(result_path)?;

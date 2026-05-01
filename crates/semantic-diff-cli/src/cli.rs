@@ -9,6 +9,7 @@ use clap::Parser;
 ///   semantic-diff --diff patch.patch       # from a diff file
 ///   semantic-diff --pr owner/repo#123      # from a PR
 ///   git diff HEAD~5 | semantic-diff --stdin
+///   semantic-diff --history                # browse past saved reviews
 #[derive(Parser, Debug)]
 #[command(name = "semantic-diff", version, about)]
 pub struct Cli {
@@ -61,6 +62,11 @@ pub struct Cli {
     /// Human label shown in the SPA header.
     #[arg(long, value_name = "STR")]
     pub title: Option<String>,
+
+    /// Browse past saved review results in the web UI without running any diff or LLM.
+    /// Opens the SPA at "/" (history picker). No git diff is run; no AI is invoked.
+    #[arg(long, alias = "browse", conflicts_with_all = &["diff", "stdin", "pr", "result", "no_llm", "llm_providers", "output", "title"])]
+    pub history: bool,
 }
 
 impl Cli {
@@ -116,7 +122,7 @@ const VALUE_FLAGS: &[&str] = &[
 
 /// Boolean flags this CLI owns.
 const BOOL_FLAGS: &[&str] = &[
-    "--stdin", "--no-open", "--no-llm", "--help", "-h", "--version", "-V",
+    "--stdin", "--no-open", "--no-llm", "--history", "--help", "-h", "--version", "-V",
 ];
 
 /// Split argv (without the program name) into (own_args, git_args).
@@ -309,6 +315,50 @@ mod tests {
         let argv: Vec<String> = ["--title"].iter().map(|s| s.to_string()).collect();
         let (own, git) = partition_argv(&argv);
         assert_eq!(own, vec!["--title"]);
+        assert!(git.is_empty());
+    }
+
+    #[test]
+    fn test_history_flag_parses() {
+        let cli = Cli::try_parse_from(["semantic-diff", "--history"]).unwrap();
+        assert!(cli.history);
+        assert!(cli.git_args.is_empty());
+    }
+
+    #[test]
+    fn test_browse_alias_parses() {
+        let cli = Cli::try_parse_from(["semantic-diff", "--browse"]).unwrap();
+        assert!(cli.history);
+    }
+
+    #[test]
+    fn test_history_conflicts_with_diff() {
+        assert!(Cli::try_parse_from(["semantic-diff", "--history", "--diff", "foo.patch"]).is_err());
+    }
+
+    #[test]
+    fn test_history_conflicts_with_result() {
+        assert!(Cli::try_parse_from(["semantic-diff", "--history", "--result", "foo.json"]).is_err());
+    }
+
+    #[test]
+    fn test_history_conflicts_with_no_llm() {
+        assert!(Cli::try_parse_from(["semantic-diff", "--history", "--no-llm"]).is_err());
+    }
+
+    #[test]
+    fn test_history_compatible_with_no_open_and_port() {
+        let cli = Cli::try_parse_from(["semantic-diff", "--history", "--no-open", "--port", "4000"]).unwrap();
+        assert!(cli.history);
+        assert!(cli.no_open);
+        assert_eq!(cli.port, 4000);
+    }
+
+    #[test]
+    fn test_partition_argv_routes_history_to_own() {
+        let argv: Vec<String> = ["--history"].iter().map(|s| s.to_string()).collect();
+        let (own, git) = partition_argv(&argv);
+        assert_eq!(own, vec!["--history"]);
         assert!(git.is_empty());
     }
 }

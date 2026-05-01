@@ -132,13 +132,17 @@ pub async fn run(input: ResolvedInput, opts: RunOpts, config: &Config) -> Result
     Ok(ResultHandle { id, path })
 }
 
-/// Determine the output directory for a result, defaulting to ~/.local/share/semantic-diff/results/<id>/
-pub fn default_output_dir(id: &str) -> PathBuf {
+/// Determine the base results directory, defaulting to ~/.local/share/semantic-diff/results/
+pub fn default_results_dir() -> PathBuf {
     dirs::data_local_dir()
         .unwrap_or_else(|| PathBuf::from("."))
         .join("semantic-diff")
         .join("results")
-        .join(id)
+}
+
+/// Determine the output directory for a result, defaulting to ~/.local/share/semantic-diff/results/<id>/
+pub fn default_output_dir(id: &str) -> PathBuf {
+    default_results_dir().join(id)
 }
 
 /// List all result.json files under the given results directory.
@@ -159,4 +163,14 @@ pub fn list_results(results_dir: &Path) -> Vec<PathBuf> {
         tb.cmp(&ta)
     });
     results
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_output_dir_is_results_dir_joined_with_id() {
+        assert_eq!(default_output_dir("abc123"), default_results_dir().join("abc123"));
+    }
 }
