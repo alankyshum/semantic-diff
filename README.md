@@ -1,144 +1,205 @@
 # semantic-diff
 
-[![Crates.io](https://img.shields.io/crates/v/semantic-diff)](https://crates.io/crates/semantic-diff)
-[![Homebrew](https://img.shields.io/crates/v/semantic-diff?label=homebrew)](https://github.com/alankyshum/homebrew-tap)
+A web-based diff viewer with AI-powered semantic grouping.
 
-A terminal diff viewer with AI-powered semantic grouping. Built with Rust and [ratatui](https://ratatui.rs).
+![semantic-diff screenshot](sd-final.png)
 
-Groups your git changes by *meaning* — not just by file path — giving real-time visibility into what's being changed and why.
+## What it is
 
-## Why
+`semantic-diff` reads a unified diff (from your working tree, a file, stdin, or a GitHub PR), groups the hunks by *intent* using an AI CLI (Claude Code, GitHub Copilot, or Cursor), and serves an interactive review SPA on `127.0.0.1`. It auto-opens your browser to a per-diff URL and streams review sections (WHY / WHAT / HOW / VERDICT) into the page over Server-Sent Events as the LLM finishes them.
 
-AI coding agents like Claude Code, Cursor, and Copilot generate code faster than you can review it. The bottleneck has shifted from *writing* code to *understanding what changed*.
+The Rust binary embeds the SvelteKit SPA via `include_dir!`, so there is nothing to install beyond the binary and one of the supported AI CLIs.
 
-> *"Claude Code has absolutely zero features that help me review code or do anything else than vibe-coding and accept changes as they come in"*
-> — [Hacker News](https://news.ycombinator.com/item?id=46207784)
+## Quick start
 
-> *"You can't review code being generated faster than you can read it"*
-> — [Hacker News](https://news.ycombinator.com/item?id=45424824)
-
-> *"The diff shows what changed, but not why"*
-> — [Hacker News](https://news.ycombinator.com/item?id=47322623)
-
-> *"CLI based tools (eg. git diff) are just generally inferior to visual integrated code review tools"*
-> — [Hacker News](https://news.ycombinator.com/item?id=46600362)
-
-Developers moving to terminal-first workflows (Ghostty + tmux + Claude Code) gain speed but lose the review capabilities IDEs provide. `semantic-diff` fills that gap — a terminal-native TUI that groups your changes by *intent*, not just by file.
-
-### How semantic-diff is different
-
-| Tool | Semantic grouping | Terminal TUI | AI-powered | Review-time |
-|------|:-:|:-:|:-:|:-:|
-| **semantic-diff** | Yes | Yes | Yes | Yes |
-| [Difftastic](https://github.com/Wilfred/difftastic) | No | Yes | No | Yes |
-| [Delta](https://github.com/dandavison/delta) | No | Yes | No | Yes |
-| [Deff](https://github.com/flamestro/deff) | No | Yes | No | Yes |
-| [Crit](https://github.com/kevindutra/crit) | No | Yes | No | Yes |
-| [Gnosis](https://github.com/oddur/gnosis) | Yes | No (Electron) | Yes | Yes |
-| [VibeGit](https://github.com/mwufi/vibegit) | Yes | No | Yes | No (commit-time) |
-| [LightLayer](https://github.com/lightlayer-dev/lightlayer) | Yes | No (web) | Yes | Yes |
-| [Plandex](https://github.com/plandex-ai/plandex) | No | Yes | Yes | Yes |
-
-No other tool combines **semantic grouping by intent** + **terminal-native TUI** + **AI-powered analysis** at **review time**.
-
-## Demo
-
-https://github.com/user-attachments/assets/49f7f3cf-a72c-47f6-9313-fdf0e2000db8
-
-## Features
-
-- **Hunk-level semantic grouping** — AI clusters related hunks across files by intent (e.g. "Auth refactor", "Test coverage"), not just file-level grouping
-- **Multi-backend AI** — Supports Claude CLI and GitHub Copilot CLI (`copilot --yolo`), with configurable preference and automatic fallback
-- **Markdown preview** — Press `p` to toggle rendered preview for `.md` files (headings, tables, code blocks, lists, links, blockquotes)
-- **Mermaid diagram rendering** — Renders mermaid code blocks as inline images in terminals that support it (iTerm2, Kitty, Ghostty); falls back to styled source in multiplexers
-- **Configurable** — `~/.config/semantic-diff.json` with JSONC comment support, model selection, and intelligent cross-backend model mapping
-- **Grouping cache** — Cached in `.git/semantic-diff-cache.json` keyed by diff hash; instant reload when nothing changed
-- **Syntax-highlighted diffs** — Powered by syntect with word-level inline highlighting
-- **Collapse/expand** — Toggle files, hunks, and semantic groups
-- **File tree sidebar** — Changed files organized by semantic group with per-hunk stats
-- **Group-aware diff filtering** — Select a file or group in the sidebar to filter the diff view to only those changes
-- **Hook-triggered refresh** — Auto-updates when Claude Code edits files (via SIGUSR1)
-- **Help overlay** — Press `?` to see all keybindings
-- **Text wrapping** — Long diff lines flow with the terminal width
-- **Progressive enhancement** — Shows ungrouped diff immediately, regroups when AI responds
-- **Graceful degradation** — Works without any AI CLI (falls back to ungrouped view)
-
-## Install
-
-### Homebrew (macOS)
+Install from source (no published release yet):
 
 ```bash
-brew install alankyshum/tap/semantic-diff
+cargo install --path crates/semantic-diff-cli
 ```
 
-### Cargo (crates.io)
+Then, from any git repo:
 
 ```bash
-cargo install semantic-diff
+semantic-diff                    # review unstaged changes
 ```
 
-### Build from source
+The server binds to a loopback port and your browser opens automatically. The URL is also printed to stderr.
+
+## Inputs
+
+| Flag | Description |
+|------|-------------|
+| *(none)* + trailing `git_args` | Run `git diff -M <args>`. Examples: `semantic-diff`, `semantic-diff --staged`, `semantic-diff HEAD~3..HEAD`, `semantic-diff main..feature` |
+| `--diff <FILE>` | Read a unified diff from a file (e.g. a saved `.patch`) |
+| `--stdin` | Read diff from stdin (auto-detected when piped) |
+| `--pr <URL_OR_REF>` | Fetch via `gh pr diff`. Accepts `https://github.com/owner/repo/pull/123` or `owner/repo#123` |
+| `--result <FILE>` | Replay mode: serve an existing `result.json` |
+| `--history` (alias `--browse`) | Pick from past saved reviews |
+| `--title <STR>` | Header label shown in the SPA |
+| `--port <PORT>` | HTTP port. Default `0` (OS-assigned). Env: `SEMANTIC_DIFF_PORT` |
+| `--output <DIR>` | Where `result.json` is written. Default: `~/.local/share/semantic-diff/results/<id>/` |
+| `--no-open` | Don't auto-open the browser |
+| `--no-llm` | Skip LLM grouping and review (renders the diff only) |
+| `--llm-providers <LIST>` | Provider fallback order. Default `claude,copilot,cursor`. Env: `SEMANTIC_DIFF_LLM_PROVIDERS` |
+
+Examples:
 
 ```bash
-git clone https://github.com/alankyshum/semantic-diff
-cd semantic-diff
-cargo build --release
-# Binary at target/release/semantic-diff
+semantic-diff                          # unstaged changes
+semantic-diff HEAD~3..HEAD             # commit range
+semantic-diff --staged                 # staged changes
+semantic-diff --diff patch.patch       # from a diff file
+semantic-diff --pr owner/repo#123      # from a PR
+git diff HEAD~5 | semantic-diff --stdin
+semantic-diff --history                # browse past saved reviews
 ```
 
-## Usage
+## Configuration
 
-```bash
-# Run in any git repo with uncommitted changes
-semantic-diff
-```
-
-### Keybindings
-
-| Key | Action |
-|-----|--------|
-| `j/k`, `↑/↓` | Navigate up/down |
-| `Enter` | Sidebar: select file/group · Diff: toggle collapse |
-| `Tab` | Switch focus between tree sidebar and diff view |
-| `p` | Toggle markdown preview (.md files) |
-| `/` | Search/filter files |
-| `n/N` | Next/previous search match |
-| `g/G` | Jump to top/bottom |
-| `Ctrl+d/u` | Page down/up |
-| `?` | Show shortcut help |
-| `Escape` | Clear filter / quit |
-| `q` | Quit |
-
-### Configuration
-
-On first run, a default config is created at `~/.config/semantic-diff.json`:
+Config lives at `~/.config/semantic-diff.json` (JSONC; auto-created on first run):
 
 ```jsonc
 {
-  // Which AI CLI to prefer: "claude" or "copilot"
-  // Falls back to the other if preferred is not installed
+  // Which AI CLI to prefer ("claude" or "copilot"). Optional;
+  // default fallback order: claude → copilot → cursor.
   // "preferred-ai-cli": "claude",
 
-  "claude": {
-    // Model: "haiku" (fast, default), "sonnet" (balanced), "opus" (powerful)
-    // Cross-backend models mapped automatically (gemini-flash → haiku)
-    "model": "haiku"
-  },
-
-  "copilot": {
-    // Model: "gemini-flash" (fast, default), "sonnet", "opus", "haiku", "gemini-pro"
-    "model": "gemini-flash"
-  }
+  "claude":  { "model": "haiku" },         // haiku | sonnet | opus (or tier alias)
+  "copilot": { "model": "gemini-flash" }   // sonnet | opus | haiku | gemini-flash | gemini-pro
 }
 ```
 
-## Requirements
+Fields:
 
-- Rust 1.90+
-- Git
-- [Mermaid CLI](https://github.com/mermaid-js/mermaid-cli) (optional, for rendering mermaid diagrams in preview — `npm install -g @mermaid-js/mermaid-cli`)
-- [Claude CLI](https://claude.ai/download) or [GitHub Copilot CLI](https://github.com/github/copilot-cli) (optional, for semantic grouping)
+- **`preferred-ai-cli`** — moves the named provider to the front of the fallback chain. Equivalent to passing `--llm-providers <name>,<rest>`.
+- **`claude.model`** — model tier passed to `claude -p --model …`.
+- **`copilot.model`** — model tier passed to `copilot --model …`.
 
-## License
+> A `/settings` UI is planned but not built yet — see [ROADMAP.md](ROADMAP.md). For now, edit the JSON file directly.
 
-MIT
+## LLM providers
+
+`semantic-diff` shells out to whichever AI CLI you have installed. It does **not** read or store API keys — auth is delegated entirely to the upstream CLI.
+
+| Provider | Binary | Install | Login |
+|----------|--------|---------|-------|
+| **Claude** | `claude` | `npm install -g @anthropic-ai/claude-code` | run `claude` and follow its prompts |
+| **Copilot** | `copilot` (falls back to `gh copilot --`) | `npm install -g @github/copilot` *or* `gh extension install github/gh-copilot` | use the CLI's own auth flow (or `gh auth login`) |
+| **Cursor** | `cursor-agent` (falls back to `cursor agent`) | Cursor IDE → "Install cursor-agent CLI" | sign in via Cursor IDE |
+
+Invocation details:
+
+- Claude: `claude -p --output-format <json|text> --model <…>` with the prompt on stdin.
+- Copilot: `copilot --allow-all-tools --model <…>`.
+- Cursor: `cursor-agent -p --output-format text --trust --workspace . <prompt>`. Model is not configurable; Cursor's default is used.
+
+If the first provider's binary is missing, rate-limited, or auth-failed, `semantic-diff` logs the error and tries the next one in the fallback list.
+
+## Result artifacts
+
+| Artifact | Path |
+|----------|------|
+| Per-run result | `~/.local/share/semantic-diff/results/<id>/result.json` |
+| Grouping cache | `<git-dir>/semantic-diff-cache.json` |
+| Per-section review cache | `<git-dir>/semantic-diff-cache/reviews/<content_hash>.json` |
+
+`<id>` is the first 8 hex chars of `blake3(diff || title)`, so the same diff replays to the same URL.
+
+There are no log files — `tracing` writes to stderr; control verbosity with `RUST_LOG` (e.g. `RUST_LOG=semantic_diff=debug`).
+
+To share a review, copy the result directory:
+
+```bash
+cp -r ~/.local/share/semantic-diff/results/<id> /tmp/share/
+# the recipient can replay with:
+semantic-diff --result /tmp/share/<id>/result.json
+```
+
+To delete one:
+
+```bash
+rm -rf ~/.local/share/semantic-diff/results/<id>
+```
+
+## Architecture
+
+```mermaid
+flowchart TD
+    A[Input: file / stdin / gh pr diff / git diff -M] --> B[Orchestrator]
+    B --> C[Compute id = blake3 diff||title]
+    C --> D[Boot axum server on 127.0.0.1<br/>open browser at /r/id]
+    B --> E[Parse diff → DiffData]
+    E --> F[Write empty result.json]
+    F --> G[LLM grouping<br/>claude → copilot → cursor]
+    G --> H[Detect review skill]
+    H --> I[Spawn parallel tasks:<br/>group × WHY/WHAT/HOW/VERDICT]
+    I --> J[Atomic write result.json<br/>+ SSE notify]
+    J --> K[SvelteKit SPA<br/>refetches on each event]
+    I --> L[Cache successful per-group reviews]
+```
+
+Three runtime modes: normal (live diff), `--result <file>` (replay), and `--history` (picker over past saved reviews).
+
+## Skills
+
+Reviews can be customized by dropping a "review" skill into `.claude/skills/`. Discovery order:
+
+1. `./.claude/skills/` (project-local — checked first)
+2. `~/.claude/skills/` (global)
+
+The first entry whose **name (case-insensitive) contains `review`** wins. It can be either:
+
+- a **flat file** of any extension (e.g. `.claude/skills/review.md`), or
+- a **subdirectory** containing `SKILL.md` (e.g. `.claude/skills/code-review/SKILL.md`).
+
+The skill's contents are injected into the VERDICT-section prompt. If no skill is found, the built-in review prompt is used. Cached reviews are invalidated automatically when the resolved skill source changes.
+
+Minimal example — `.claude/skills/review.md`:
+
+```markdown
+# Review criteria
+
+- Flag any new `unwrap()` or `panic!` in non-test code.
+- Call out missing tests for new public functions.
+- Prefer security/correctness comments over style nits.
+```
+
+## FAQ / troubleshooting
+
+**Browser didn't open.** Use the URL printed to stderr (looks like `http://127.0.0.1:54321/r/abcd1234`). On headless boxes, pass `--no-open` and tunnel the port over SSH.
+
+**`claude: command not found`.** Install with `npm install -g @anthropic-ai/claude-code`, then run `claude` once to authenticate. Same idea for `copilot` and `cursor-agent`.
+
+**Rate-limited on Claude.** Skip it for this run: `semantic-diff --llm-providers copilot,cursor`. Or set `SEMANTIC_DIFF_LLM_PROVIDERS=copilot,cursor` in your shell.
+
+**Stale review (e.g. you tweaked your skill).** Delete the cache and re-run:
+
+```bash
+rm -f .git/semantic-diff-cache.json
+rm -rf .git/semantic-diff-cache/reviews
+```
+
+**No LLM at all.** Pass `--no-llm` to render just the diff with no grouping or review.
+
+## Development
+
+```bash
+# Rust binary + library
+cargo build
+cargo test
+
+# SvelteKit SPA (rebuild before `cargo build` to refresh embedded assets)
+cd web
+pnpm install
+pnpm build
+```
+
+Repo layout:
+
+- `crates/semantic-diff-cli/` — binary crate (clap CLI, axum server, embedded SPA, orchestrator).
+- `crates/semantic-diff-core/` — library (diff parsing, grouping, review, `llm_cli`, config, result schema, cache).
+- `web/` — SvelteKit SPA. Built into `web/build/` and embedded via `include_dir!`.
+- `tests/` — Rust integration tests.
+- `scripts/` — helper scripts (e.g. `scripts/check-readme.sh`, `scripts/smoke.sh`).
+- `docs/` — architecture and feature notes (in progress).

@@ -6,10 +6,10 @@
 
 semantic-diff sits at the intersection of three converging mega-trends:
 1. **The review debt crisis** — developers spend as much time reviewing AI code as writing it manually
-2. **The terminal-first renaissance** — Ghostty, Neovim+tmux, Claude Code driving developers back to CLI
+2. **The CLI-launched dev workflow** — Ghostty, Neovim+tmux, Claude Code driving developers to launch tools from the terminal
 3. **The semantic gap** — existing diff tools show *what* changed but not *why*
 
-No other tool combines **semantic grouping by intent** + **terminal-native TUI** + **AI-powered analysis** at **review time**. This is a category-defining opportunity.
+No other tool combines **semantic grouping by intent** + **a terminal-launched, browser-rendered review UI** + **AI-powered analysis** at **review time**. This is a category-defining opportunity.
 
 ---
 
@@ -49,7 +49,7 @@ Key pain points developers report:
 | **Web review** | Gnosis, LightLayer | AI-powered code review | Not terminal-native (Electron/web) |
 | **Git TUI** | lazygit, gitui, tig | Terminal git interfaces | No AI, no semantic grouping |
 
-**semantic-diff's unique position**: The only tool that does AI-powered semantic grouping in a terminal-native TUI at review time.
+**semantic-diff's unique position**: The only tool that does AI-powered semantic grouping, launched from your terminal and rendered in a local web UI, at review time.
 
 ---
 
@@ -92,7 +92,7 @@ Key pain points developers report:
 | **Branch diff support** (`main..HEAD`) | P0 | Review all changes on a feature branch — the primary PR review use case |
 | **Commit range diffs** (`HEAD~3..HEAD`) | P1 | Review recent commits, essential for "what did the agent just do?" |
 | **Pipe input support** (`git diff \| semantic-diff`) | P1 | Unix philosophy; composability with any diff source |
-| **Performance: large diffs** | P0 | AI agents generate large changes; TUI must stay responsive at 1000+ lines |
+| **Performance: large diffs** | P0 | AI agents generate large changes; the SPA must stay responsive at 1000+ lines |
 | **Error recovery** | P1 | Graceful handling when AI backend is slow/unavailable; better loading states |
 | **Cross-platform testing** | P1 | Linux support (many Claude Code users are on remote Linux boxes via SSH) |
 
@@ -158,7 +158,7 @@ Key pain points developers report:
 **Validation signals**: Growing HN/Reddit discussion of review pain; enterprise policies mandating AI code review; EU AI Act compliance requirements (Aug 2026).
 
 ### Hypothesis 2: "Terminal-native wins for power users"
-**Bet**: The highest-value developers (senior/staff engineers, tech leads) are disproportionately terminal-first. They will prefer a terminal-native review tool over yet another web UI.
+**Bet**: The highest-value developers (senior/staff engineers, tech leads) are disproportionately terminal-first. They will prefer a tool they launch from the terminal — even if the review surface itself is a local web UI — over a fully hosted web product.
 
 **Validation signals**: Ghostty adoption, Claude Code growth ($2.5B run rate), Neovim renaissance, lazygit popularity (40k+ stars).
 
@@ -176,10 +176,10 @@ Key pain points developers report:
 
 ## Anti-Roadmap (What We Won't Build)
 
-- **IDE plugin**: We are terminal-native. IDE users have existing review tools. Don't dilute focus.
+- **IDE plugin**: We are CLI-launched. IDE users have existing review tools. Don't dilute focus.
 - **PR bot / GitHub App**: CodeRabbit, Ellipsis already own this. We solve a different problem (local review, not automated commenting).
 - **Code generation**: We review code, we don't write it. Stay in the review lane.
-- **Web UI**: Electron/web is a different product. Terminal-native is the moat.
+- **Hosted web product**: A SaaS dashboard is a different product. Local-first (CLI-launched, loopback-only) is the moat.
 - **AI model hosting**: We use external CLIs (Claude, Copilot). Don't build inference infrastructure.
 
 ---
@@ -202,5 +202,5 @@ Key pain points developers report:
 2. **Write a benchmark blog post**: "Reviewing a 500-line AI-generated diff: semantic-diff vs git diff vs GitHub UI" — with timing data
 3. **Submit to Homebrew core**
 4. **Create GitHub Releases with static binaries** (Linux amd64/arm64, macOS amd64/arm64)
-5. **Post to HN**: "Show HN: semantic-diff — AI-powered terminal diff viewer that groups changes by intent"
+5. **Post to HN**: "Show HN: semantic-diff — AI-powered diff viewer that groups changes by intent"
 6. **Add Claude Code hook example** to README (PostToolUse → auto-refresh)
