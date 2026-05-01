@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, afterUpdate } from 'svelte';
+  import { effectiveTheme } from '$lib/stores/theme';
 
   export let content: string;
 
@@ -7,7 +7,7 @@
   let rendered = '';
   let error = '';
 
-  async function renderMermaid() {
+  async function renderMermaid(theme: 'light' | 'dark' = 'dark') {
     if (!content) return;
 
     // Extract mermaid block from content
@@ -16,7 +16,11 @@
 
     try {
       const mermaid = (await import('mermaid')).default;
-      mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' });
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: theme === 'dark' ? 'dark' : 'default',
+        securityLevel: 'loose',
+      });
 
       const id = `mermaid-${Math.random().toString(36).slice(2)}`;
       const { svg } = await mermaid.render(id, diagramText);
@@ -28,8 +32,8 @@
     }
   }
 
-  onMount(renderMermaid);
-  $: content && renderMermaid();
+  // Re-render when content or theme changes.
+  $: if (content) { renderMermaid($effectiveTheme); }
 </script>
 
 {#if error}
@@ -46,9 +50,9 @@
 {/if}
 
 <style>
-  .mermaid-container { overflow-x: auto; background: #0d1117; border-radius: 6px; padding: 1rem; }
+  .mermaid-container { overflow-x: auto; background: var(--color-bg); border-radius: 6px; padding: 1rem; }
   .mermaid-container :global(svg) { max-width: 100%; height: auto; }
-  .mermaid-error { color: #f85149; }
-  .mermaid-loading { color: #8b949e; font-style: italic; }
-  .raw-content { font-size: 0.75rem; color: #8b949e; white-space: pre-wrap; word-break: break-all; }
+  .mermaid-error { color: var(--color-danger); }
+  .mermaid-loading { color: var(--color-fg-muted); font-style: italic; }
+  .raw-content { font-size: 0.75rem; color: var(--color-fg-muted); white-space: pre-wrap; word-break: break-all; }
 </style>

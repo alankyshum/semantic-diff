@@ -4,6 +4,17 @@
 		<meta charset="utf-8" />
 		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<script>
+			// No-FOUC theme bootstrap — runs before SvelteKit hydration.
+			try {
+				var p = localStorage.getItem('theme-pref') || 'auto';
+				var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+				var eff = p === 'auto' ? (prefersDark ? 'dark' : 'light') : p;
+				document.documentElement.dataset.theme = eff;
+			} catch (e) {
+				document.documentElement.dataset.theme = 'dark';
+			}
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">

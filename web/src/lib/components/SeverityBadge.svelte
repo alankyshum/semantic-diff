@@ -1,17 +1,24 @@
 <script lang="ts">
   export let severity: 'high' | 'medium' | 'low' | 'none' | string;
 
-  const colors: Record<string, string> = {
-    high: '#f85149',
-    medium: '#d29922',
-    low: '#3fb950',
-    none: '#8b949e',
+  // Map severities to CSS variables.
+  const tokens: Record<string, string> = {
+    high: '--color-danger',
+    medium: '--color-warning',
+    low: '--color-success',
+    none: '--color-fg-muted',
   };
 
-  $: color = colors[severity?.toLowerCase()] ?? colors.none;
+  $: token = tokens[severity?.toLowerCase()] ?? tokens.none;
+  // Use color-mix where supported so the badge has tinted bg/border without
+  // needing extra tokens. Falls back gracefully (var() resolves; color-mix
+  // is supported in all modern targets we care about).
+  $: bg = `color-mix(in srgb, var(${token}) 12%, transparent)`;
+  $: border = `color-mix(in srgb, var(${token}) 32%, transparent)`;
+  $: color = `var(${token})`;
 </script>
 
-<span class="badge" style="background: {color}20; color: {color}; border: 1px solid {color}50;">
+<span class="badge" style="background: {bg}; color: {color}; border: 1px solid {border};">
   {severity}
 </span>
 

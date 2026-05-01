@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { fetchResults } from '$lib/api';
   import type { ResultSummary } from '$lib/types';
+  import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 
   let results: ResultSummary[] = [];
   let loading = true;
@@ -19,10 +20,10 @@
 
   function statusColor(status: string): string {
     switch (status) {
-      case 'complete': return '#3fb950';
-      case 'running': return '#d29922';
-      case 'failed': return '#f85149';
-      default: return '#8b949e';
+      case 'complete': return 'var(--color-success)';
+      case 'running': return 'var(--color-warning)';
+      case 'failed': return 'var(--color-danger)';
+      default: return 'var(--color-fg-muted)';
     }
   }
 
@@ -37,8 +38,13 @@
 
 <div class="container">
   <header>
-    <h1>semantic-diff</h1>
-    <p class="subtitle">AI-powered semantic code reviews</p>
+    <div class="header-row">
+      <div>
+        <h1>semantic-diff</h1>
+        <p class="subtitle">AI-powered semantic code reviews</p>
+      </div>
+      <ThemeToggle />
+    </div>
   </header>
 
   {#if loading}
@@ -72,27 +78,32 @@
 
 <style>
   .container {
-    max-width: 800px;
+    max-width: var(--content-max);
     margin: 0 auto;
-    padding: 2rem 1rem;
+    padding: 2rem clamp(1rem, 4vw, 3rem);
   }
   header { margin-bottom: 2rem; }
+  .header-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
   h1 { font-size: 1.8rem; margin: 0 0 0.25rem; }
-  .subtitle { color: #8b949e; margin: 0; }
-  .loading, .empty { color: #8b949e; text-align: center; padding: 3rem; }
-  .error { color: #f85149; padding: 1rem; border: 1px solid #f85149; border-radius: 6px; }
-  .results-list { display: flex; flex-direction: column; gap: 0.75rem; }
+  .subtitle { color: var(--color-fg-muted); margin: 0; }
+  .loading, .empty { color: var(--color-fg-muted); text-align: center; padding: 3rem; }
+  .error { color: var(--color-danger); padding: 1rem; border: 1px solid var(--color-danger); border-radius: 6px; }
+  .results-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 0.75rem;
+  }
   .result-card {
     display: block;
     padding: 1rem 1.25rem;
-    border: 1px solid #30363d;
+    border: 1px solid var(--color-border);
     border-radius: 8px;
-    background: #161b22;
+    background: var(--color-bg-elev);
     transition: border-color 0.15s;
   }
-  .result-card:hover { border-color: #58a6ff; text-decoration: none; }
+  .result-card:hover { border-color: var(--color-accent); text-decoration: none; }
   .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; }
-  .result-title { font-weight: 600; color: #e6edf3; }
+  .result-title { font-weight: 600; color: var(--color-fg); }
   .result-status { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
-  .result-meta { display: flex; gap: 1rem; font-size: 0.8rem; color: #8b949e; }
+  .result-meta { display: flex; gap: 1rem; font-size: 0.8rem; color: var(--color-fg-muted); }
 </style>

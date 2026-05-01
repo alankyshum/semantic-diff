@@ -89,44 +89,45 @@
   .loading-state,
   .no-diff {
     padding: 1rem;
-    color: #6b7280;
+    color: var(--color-fg-muted);
     font-style: italic;
     font-family: inherit;
   }
 
-  /* Override diff2html styles for dark/light consistency */
+  /* Override diff2html styles to use theme tokens */
   :global(.d2h-wrapper) {
     border-radius: 0.375rem;
     overflow: hidden;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
   }
 
   :global(.d2h-file-header) {
-    background-color: #f9fafb;
-    border-bottom: 1px solid #e5e7eb;
+    background-color: var(--color-bg-elev);
+    border-bottom: 1px solid var(--color-border);
     padding: 0.5rem 1rem;
     font-size: 0.875rem;
     font-weight: 500;
+    color: var(--color-fg);
   }
 
   :global(.d2h-del) {
-    background-color: #fef2f2;
+    background-color: var(--color-diff-del-bg);
   }
 
   :global(.d2h-ins) {
-    background-color: #f0fdf4;
+    background-color: var(--color-diff-add-bg);
   }
 
   :global(.d2h-del-changes) {
-    background-color: #fecaca;
+    background-color: var(--color-diff-del-emph);
   }
 
   :global(.d2h-ins-changes) {
-    background-color: #bbf7d0;
+    background-color: var(--color-diff-add-emph);
   }
 
   :global(.d2h-code-linenumber) {
-    color: #9ca3af;
+    color: var(--color-fg-muted);
     user-select: none;
     min-width: 3rem;
   }
