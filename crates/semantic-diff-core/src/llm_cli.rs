@@ -27,6 +27,19 @@ impl LlmProvider {
         }
     }
 
+    /// Stable key used for cost-table lookups (`"<cost_key>:<model>"`).
+    /// Currently identical to [`Self::as_str`], but kept as a separate method
+    /// so server-side cost lookup and the `default_cost_table` keys share a
+    /// single source of truth — changing the wire string here automatically
+    /// propagates to both call sites (S1).
+    pub fn cost_key(&self) -> &'static str {
+        match self {
+            Self::Claude => "claude",
+            Self::Copilot => "copilot",
+            Self::Cursor => "cursor",
+        }
+    }
+
     fn parse(value: &str) -> Option<Self> {
         match value.trim().to_ascii_lowercase().as_str() {
             "claude" => Some(Self::Claude),

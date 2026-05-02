@@ -1,8 +1,8 @@
 use crate::config::Config;
 use crate::diff::DiffData;
-use crate::grouper::llm::invoke_llm_text;
+use crate::grouper::llm::invoke_llm_full;
 use crate::grouper::SemanticGroup;
-use crate::llm_cli::LlmProvider;
+use crate::llm_cli::{LlmInvocation, LlmProvider};
 use super::{ReviewSection, ReviewSource};
 
 fn build_shared_context(group: &SemanticGroup, diff_data: &DiffData) -> String {
@@ -130,17 +130,20 @@ pub fn build_review_prompt(
 }
 
 /// Invoke the LLM for a single review section with a 120-second timeout.
+///
+/// Returns the full [`LlmInvocation`] so callers can capture token/cost
+/// metadata (F6/F20). Use `.text` for the response body.
 pub async fn invoke_review_section(
     providers: &[LlmProvider],
     config: &Config,
     prompt: &str,
-) -> Result<String, String> {
+) -> Result<LlmInvocation, String> {
     use std::time::Duration;
     match tokio::time::timeout(
         Duration::from_secs(120),
-        invoke_llm_text(providers, config, prompt),
+        invoke_llm_full(providers, config, prompt),
     ).await {
-        Ok(Ok(response)) => Ok(response),
+        Ok(Ok(invocation)) => Ok(invocation),
         Ok(Err(e)) => Err(e.to_string()),
         Err(_) => Err("LLM timed out after 120s".to_string()),
     }

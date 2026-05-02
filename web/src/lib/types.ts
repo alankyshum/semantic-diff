@@ -118,6 +118,12 @@ export interface PerSectionTiming {
   section: string;
   duration_ms: number;
   cache_hit: boolean;
+  /** F20: prompt input tokens reported by the provider, when available. */
+  input_tokens?: number;
+  /** F20: response output tokens reported by the provider, when available. */
+  output_tokens?: number;
+  /** F20: USD cost for this section, when the provider reports it. */
+  cost_usd?: number;
 }
 
 export interface RunMetadata {
@@ -182,6 +188,8 @@ export interface RawConfig {
   claude: CliConfig;
   copilot: CliConfig;
   cursor: CliConfig;
+  /** F20: per-model cost overrides. Keyed `"<provider>:<model>"`. */
+  'cost-table'?: Record<string, CostEntry>;
 }
 
 export interface ConfigEnvelope {
@@ -233,3 +241,74 @@ export type LlmProvider = LlmProviderName;
 
 /** Alias of {@link ConfigEnvelope} — what `GET /api/config` returns. */
 export type ConfigPayload = ConfigEnvelope;
+
+// ---- F20: cost-table + run preview ----
+
+/** Per-model cost rates, in USD per million tokens. User-overridable via
+ *  `cost-table` in the config file; defaults are best-guess. */
+export interface CostEntry {
+  input_per_mtok: number;
+  output_per_mtok: number;
+}
+
+/** Default cost table — kept in sync with `default_cost_table()` in
+ *  `crates/semantic-diff-core/src/config.rs`. These rates are best-guess
+ *  and intentionally exposed to the UI so it can render a preview before the
+ *  user runs the LLM. */
+export function defaultCostTable(): Record<string, CostEntry> {
+  return {
+    'claude:sonnet-4': { input_per_mtok: 3.0, output_per_mtok: 15.0 },
+    'claude:opus-4': { input_per_mtok: 15.0, output_per_mtok: 75.0 },
+    'copilot:gpt-4': { input_per_mtok: 30.0, output_per_mtok: 60.0 },
+  };
+}
+
+// ---- F11: run-from-UI ----
+
+/** Body for `POST /api/runs` and `POST /api/runs/preview`. */
+export interface RunRequest {
+  /** One of: `git`, `staged`, `pr`, `paste`. */
+  mode: 'git' | 'staged' | 'pr' | 'paste';
+  git_args?: string[];
+  pr?: string;
+  diff_text?: string;
+  title?: string;
+  working_dir?: string;
+  no_llm?: boolean;
+  /** `[group_id, section]` pairs to skip in the preview cost estimate. */
+  skip_sections?: Array<[string, string]>;
+}
+
+/** Response body of `POST /api/runs`. Status 202; the run continues async. */
+export interface RunResponse {
+  id: string;
+}
+
+/** Per-section cost preview entry. */
+export interface PreviewSection {
+  input_tokens: number;
+  output_tokens_est: number;
+  cost_usd: number;
+}
+
+/** Per-group cost preview entry. */
+export interface PreviewGroup {
+  group_id: string;
+  title: string;
+  sections: Record<string, PreviewSection>;
+}
+
+/** Response body of `POST /api/runs/preview`. */
+export interface PreviewResponse {
+  groups: PreviewGroup[];
+  total_input_tokens: number;
+  total_output_tokens_est: number;
+  total_cost_usd: number;
+  /** W3: `true` when grouping fell back to a single synthetic bucket
+   *  (LLM grouper failed or no providers configured). The cost preview
+   *  may diverge significantly from a real run. Absent on the wire when
+   *  false (backend uses `skip_serializing_if`). */
+  degraded?: boolean;
+  /** Underlying error message when `degraded` is true. */
+  degraded_reason?: string;
+}

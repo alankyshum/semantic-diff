@@ -225,9 +225,17 @@ pub async fn invoke_llm_text(
     config: &Config,
     prompt: &str,
 ) -> anyhow::Result<String> {
-    Ok(invoke_with_fallback(prompt, LlmOutputKind::Text, providers, config)
-        .await?
-        .text)
+    Ok(invoke_llm_full(providers, config, prompt).await?.text)
+}
+
+/// Like [`invoke_llm_text`] but returns the full `LlmInvocation` including
+/// token usage and cost metadata when the provider exposes it.
+pub async fn invoke_llm_full(
+    providers: &[LlmProvider],
+    config: &Config,
+    prompt: &str,
+) -> anyhow::Result<crate::llm_cli::LlmInvocation> {
+    invoke_with_fallback(prompt, LlmOutputKind::Text, providers, config).await
 }
 
 /// Extract JSON from text that may be wrapped in ```json ... ``` code fences.

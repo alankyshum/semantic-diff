@@ -1,8 +1,10 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { page } from '$app/stores';
-  import { fetchResult, subscribeToResult } from '$lib/api';
-  import type { ResultDocument } from '$lib/types';
+  import { goto } from '$app/navigation';
+  import { fetchResult, fetchResultsForRepo, subscribeToResult } from '$lib/api';
+  import type { ResultDocument, ResultSummary } from '$lib/types';
+  import { register, paletteItems, type PaletteItem } from '$lib/keyboard';
   import Mermaid from '$lib/components/Mermaid.svelte';
   import MarkdownView from '$lib/components/MarkdownView.svelte';
   import SeverityBadge from '$lib/components/SeverityBadge.svelte';
@@ -10,7 +12,13 @@
   import DiffViewer from '$lib/components/DiffViewer.svelte';
   import RunMetadataPanel from '$lib/components/RunMetadataPanel.svelte';
   import RepoHistoryNav from '$lib/components/RepoHistoryNav.svelte';
+  import RerunButton from '$lib/components/RerunButton.svelte';
   import { statusColor } from '$lib/util/date';
+
+  /** True when the section is `ready` or `error` (i.e. not currently loading). */
+  function canRerun(state: string | undefined): boolean {
+    return state === 'ready' || state === 'error';
+  }
 
   let doc: ResultDocument | null = null;
   let error = '';
@@ -85,17 +93,7 @@
     }
   }
 
-  function isEditableTarget(t: EventTarget | null): boolean {
-    if (!(t instanceof HTMLElement)) return false;
-    const tag = t.tagName;
-    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
-    if (t.isContentEditable) return true;
-    return false;
-  }
-
-  function onKey(e: KeyboardEvent) {
-    if (e.key !== 'v' || e.ctrlKey || e.metaKey || e.altKey) return;
-    if (isEditableTarget(e.target)) return;
+  function cycleViewMode() {
     const order: Array<'review' | 'split' | 'diff'> = ['review', 'split', 'diff'];
     let i = order.indexOf(viewMode);
     for (let step = 0; step < 3; step++) {
@@ -104,6 +102,34 @@
       if (next === 'split' && !viewportWide) continue;
       setViewMode(next);
       return;
+    }
+  }
+
+  function nextGroup(delta: 1 | -1) {
+    if (!doc) return;
+    const ids = doc.groups.map((g) => g.id);
+    if (ids.length === 0) return;
+    const idx = ids.indexOf(selectedGroupId);
+    const next = ids[(idx + delta + ids.length) % ids.length];
+    selectedGroupId = next;
+    if (typeof window !== 'undefined') {
+      queueMicrotask(() => {
+        const el = document.querySelector('.main .group-header');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+  }
+
+  function jumpToSection(name: 'WHY' | 'WHAT' | 'HOW' | 'VERDICT') {
+    if (typeof document === 'undefined') return;
+    // The section h3s contain the literal SECTION name. Scroll the matching one
+    // (within `.main`) into view.
+    const headings = document.querySelectorAll<HTMLElement>('.main .section-card h3');
+    for (const h of Array.from(headings)) {
+      if ((h.textContent || '').trim().toUpperCase() === name) {
+        h.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
     }
   }
 
@@ -127,21 +153,175 @@
     e.preventDefault();
   }
 
+  let repoHistory: ResultSummary[] = [];
+  let unregs: Array<() => void> = [];
+  let paletteHandle: { remove: () => void } | null = null;
+
+  async function loadRepoHistory(name: string) {
+    try {
+      repoHistory = await fetchResultsForRepo(name);
+    } catch {
+      repoHistory = [];
+    }
+  }
+
+  function navRepoHistory(delta: 1 | -1) {
+    if (!doc || repoHistory.length < 2) return;
+    const idx = repoHistory.findIndex((r) => r.id === doc!.id);
+    if (idx < 0) return;
+    const target = idx + delta;
+    if (target < 0 || target >= repoHistory.length) return;
+    void goto(`/r/${repoHistory[target].id}`);
+  }
+
+  // Refresh dynamic palette items whenever the document changes.
+  function refreshPaletteItems() {
+    if (paletteHandle) {
+      paletteHandle.remove();
+      paletteHandle = null;
+    }
+    if (!doc) return;
+    const items: PaletteItem[] = [];
+    for (const g of doc.groups) {
+      const gid = g.id;
+      items.push({
+        id: `group:${gid}`,
+        label: `Jump to group: ${g.label}`,
+        group: 'Groups',
+        action: () => { selectedGroupId = gid; },
+      });
+    }
+    for (const f of doc.file_index ?? []) {
+      const path = f.path;
+      items.push({
+        id: `file:${path}`,
+        label: `Jump to file: ${path}`,
+        group: 'Files',
+        action: () => {
+          selectedFile = path;
+          const entry = doc?.file_index?.find((x) => x.path === path);
+          const firstId = entry?.group_ids[0]
+            ?? doc?.groups.find((g) => g.changes.some((c) => c.file === path))?.id;
+          if (firstId) selectedGroupId = firstId;
+        },
+      });
+    }
+    for (const [gid, r] of Object.entries(doc.reviews)) {
+      for (const issue of r.verdict_issues ?? []) {
+        const issueId = issue.id;
+        const targetGid = gid;
+        items.push({
+          id: `issue:${gid}:${issueId}`,
+          label: `Jump to issue: ${issueId} ${issue.title}`,
+          group: 'Issues',
+          action: () => {
+            selectedGroupId = targetGid;
+            if (typeof window !== 'undefined') {
+              queueMicrotask(() => {
+                const el = document.getElementById(`issue-${issueId}`);
+                el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              });
+            }
+          },
+        });
+      }
+    }
+    paletteItems.update((cur) => [...cur, ...items]);
+    paletteHandle = {
+      remove: () => {
+        const ids = new Set(items.map((i) => i.id));
+        paletteItems.update((cur) => cur.filter((i) => !ids.has(i.id)));
+      },
+    };
+  }
+
+  $: if (doc) refreshPaletteItems();
+  $: if (doc?.repo?.name) void loadRepoHistory(doc.repo.name);
+
   onMount(() => {
     try {
       sidebarCollapsed = localStorage.getItem('sidebar-collapsed') === '1';
     } catch { /* ignore */ }
     onResize();
     window.addEventListener('resize', onResize);
-    window.addEventListener('keydown', onKey);
     loadResult();
+
+    // Register review-detail shortcuts.
+    unregs.push(register({
+      combo: 'j',
+      scope: 'review-detail',
+      label: 'Next group',
+      group: 'Navigation',
+      handler: () => nextGroup(1),
+    }));
+    unregs.push(register({
+      combo: 'k',
+      scope: 'review-detail',
+      label: 'Previous group',
+      group: 'Navigation',
+      handler: () => nextGroup(-1),
+    }));
+    unregs.push(register({
+      combo: '1',
+      scope: 'review-detail',
+      label: 'Jump to WHY',
+      group: 'Sections',
+      handler: () => jumpToSection('WHY'),
+    }));
+    unregs.push(register({
+      combo: '2',
+      scope: 'review-detail',
+      label: 'Jump to WHAT',
+      group: 'Sections',
+      handler: () => jumpToSection('WHAT'),
+    }));
+    unregs.push(register({
+      combo: '3',
+      scope: 'review-detail',
+      label: 'Jump to HOW',
+      group: 'Sections',
+      handler: () => jumpToSection('HOW'),
+    }));
+    unregs.push(register({
+      combo: '4',
+      scope: 'review-detail',
+      label: 'Jump to VERDICT',
+      group: 'Sections',
+      handler: () => jumpToSection('VERDICT'),
+    }));
+    unregs.push(register({
+      combo: 'v',
+      scope: 'review-detail',
+      label: 'Cycle view (review/split/diff)',
+      group: 'View',
+      handler: () => cycleViewMode(),
+    }));
+    unregs.push(register({
+      combo: '[',
+      scope: 'review-detail',
+      label: 'Previous review in repo',
+      group: 'Navigation',
+      handler: () => navRepoHistory(1), // history is recency-sorted: prev review = older = idx+1
+    }));
+    unregs.push(register({
+      combo: ']',
+      scope: 'review-detail',
+      label: 'Next review in repo',
+      group: 'Navigation',
+      handler: () => navRepoHistory(-1),
+    }));
   });
 
   onDestroy(() => {
     unsubscribe?.();
     if (typeof window !== 'undefined') {
       window.removeEventListener('resize', onResize);
-      window.removeEventListener('keydown', onKey);
+    }
+    for (const u of unregs) u();
+    unregs = [];
+    if (paletteHandle) {
+      paletteHandle.remove();
+      paletteHandle = null;
     }
   });
 
@@ -314,7 +494,16 @@
               <div class="split-left">
                 {#each ['WHY', 'WHAT', 'HOW', 'VERDICT'] as section}
                   <section class="section-card section-card--prose">
-                    <h3>{section}</h3>
+                    <div class="section-head">
+                      <h3>{section}</h3>
+                      {#if canRerun(selectedReview.sections[section]?.state)}
+                        <RerunButton
+                          resultId={doc.id}
+                          groupId={selectedGroupId}
+                          section={section.toLowerCase() as 'why' | 'what' | 'how' | 'verdict'}
+                        />
+                      {/if}
+                    </div>
                     {#if selectedReview.sections[section]?.state === 'loading'}
                       <div class="skeleton">Loading…</div>
                     {:else if selectedReview.sections[section]?.state === 'ready'}
@@ -369,7 +558,12 @@
             <!-- review mode (default) -->
             <!-- WHY -->
             <section class="section-card section-card--prose">
-              <h3>WHY</h3>
+              <div class="section-head">
+                <h3>WHY</h3>
+                {#if canRerun(selectedReview.sections.WHY?.state)}
+                  <RerunButton resultId={doc.id} groupId={selectedGroupId} section="why" />
+                {/if}
+              </div>
               {#if selectedReview.sections.WHY?.state === 'loading'}
                 <div class="skeleton">Analyzing intent…</div>
               {:else if selectedReview.sections.WHY?.state === 'ready'}
@@ -381,7 +575,12 @@
 
             <!-- WHAT -->
             <section class="section-card section-card--prose">
-              <h3>WHAT</h3>
+              <div class="section-head">
+                <h3>WHAT</h3>
+                {#if canRerun(selectedReview.sections.WHAT?.state)}
+                  <RerunButton resultId={doc.id} groupId={selectedGroupId} section="what" />
+                {/if}
+              </div>
               {#if selectedReview.sections.WHAT?.state === 'loading'}
                 <div class="skeleton">Analyzing changes…</div>
               {:else if selectedReview.sections.WHAT?.state === 'ready'}
@@ -393,7 +592,12 @@
 
             <!-- HOW -->
             <section class="section-card">
-              <h3>HOW</h3>
+              <div class="section-head">
+                <h3>HOW</h3>
+                {#if canRerun(selectedReview.sections.HOW?.state)}
+                  <RerunButton resultId={doc.id} groupId={selectedGroupId} section="how" />
+                {/if}
+              </div>
               {#if selectedReview.sections.HOW?.state === 'loading'}
                 <div class="skeleton">Generating diagram…</div>
               {:else if selectedReview.sections.HOW?.state === 'ready'}
@@ -405,7 +609,12 @@
 
             <!-- VERDICT -->
             <section class="section-card section-card--prose">
-              <h3>VERDICT</h3>
+              <div class="section-head">
+                <h3>VERDICT</h3>
+                {#if canRerun(selectedReview.sections.VERDICT?.state)}
+                  <RerunButton resultId={doc.id} groupId={selectedGroupId} section="verdict" />
+                {/if}
+              </div>
               {#if selectedReview.sections.VERDICT?.state === 'loading'}
                 <div class="skeleton">Reviewing for issues…</div>
               {:else if selectedReview.sections.VERDICT?.state === 'ready'}
@@ -611,6 +820,14 @@
     max-width: var(--reading-max);
   }
   .section-card h3 { margin: 0 0 0.75rem; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-fg-muted); }
+  .section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+  .section-head h3 { margin: 0; }
   .skeleton {
     height: 80px; border-radius: 4px;
     background: linear-gradient(90deg, var(--color-bg-inset) 25%, var(--color-border) 50%, var(--color-bg-inset) 75%);

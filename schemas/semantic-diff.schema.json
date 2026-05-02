@@ -22,6 +22,24 @@
       },
       "type": "object"
     },
+    "CostEntry": {
+      "description": "F20: cost rates for a single model, in USD per million tokens. User-overridable — the bundled defaults are best-guess and can be adjusted via the config file.",
+      "properties": {
+        "input_per_mtok": {
+          "format": "double",
+          "type": "number"
+        },
+        "output_per_mtok": {
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "required": [
+        "input_per_mtok",
+        "output_per_mtok"
+      ],
+      "type": "object"
+    },
     "LlmProvider": {
       "enum": [
         "claude",
@@ -38,6 +56,13 @@
     },
     "copilot": {
       "$ref": "#/definitions/CliConfig"
+    },
+    "cost-table": {
+      "additionalProperties": {
+        "$ref": "#/definitions/CostEntry"
+      },
+      "description": "F20: per-model cost overrides. Keyed `\"<provider>:<model>\"`. Optional; missing entries fall back to the bundled defaults.",
+      "type": "object"
     },
     "cursor": {
       "$ref": "#/definitions/CliConfig"

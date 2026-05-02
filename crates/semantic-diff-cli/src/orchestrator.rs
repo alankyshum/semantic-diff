@@ -4,7 +4,7 @@ use semantic_diff_core::{
     config::Config,
     diff,
     grouper,
-    llm_cli::LlmProvider,
+    llm_cli::{LlmInvocation, LlmProvider},
     result::{
         LlmInfo, PerSectionTiming, ResultDocument, RunMetadata, SkillFileInfo, TokenUsage,
         SCHEMA_VERSION,
@@ -136,7 +136,8 @@ pub async fn run(input: ResolvedInput, opts: RunOpts, config: &Config) -> Result
     let _ = opts.notifier.send("groups_ready".to_string());
 
     // Spawn review tasks for all groups × all sections.
-    let mut tasks: JoinSet<(String, ReviewSection, Result<String, String>, u64)> = JoinSet::new();
+    let mut tasks: JoinSet<(String, ReviewSection, Result<LlmInvocation, String>, u64)> =
+        JoinSet::new();
 
     for (group_idx, group) in groups.iter().enumerate() {
         let group_id = format!("g{}", group_idx);
@@ -154,20 +155,40 @@ pub async fn run(input: ResolvedInput, opts: RunOpts, config: &Config) -> Result
         }
     }
 
+    // Accumulator for per-section token/cost stats (F20).
+    let mut token_accum: Vec<(Option<u64>, Option<u64>, Option<f64>)> = Vec::new();
+
     while let Some(task_result) = tasks.join_next().await {
         match task_result {
             Ok((gid, section, result, dur)) => {
-                doc.set_section(&gid, section, result);
+                // Translate Result<LlmInvocation, String> into the
+                // Result<String, String> that `set_section` expects, while
+                // capturing token usage on the Ok path.
+                let (set_result, tokens) = match result {
+                    Ok(invocation) => {
+                        let tokens =
+                            (invocation.input_tokens, invocation.output_tokens, invocation.cost_usd);
+                        (Ok(invocation.text), Some(tokens))
+                    }
+                    Err(e) => (Err(e), None),
+                };
+                doc.set_section(&gid, section, set_result);
 
-                // Append timing entry (F6). cache_hit=false; orchestrator does
-                // not currently observe disk-cache hits — TODO: thread signal
-                // through invoke_review_section.
+                // Append timing entry (F6/F20). cache_hit=false; orchestrator
+                // does not currently observe disk-cache hits.
+                let (in_tok, out_tok, cost) = tokens.unwrap_or((None, None, None));
                 metadata.timings.push(PerSectionTiming {
                     group_id: gid.clone(),
                     section: section.label().to_string(),
                     duration_ms: dur,
                     cache_hit: false,
+                    input_tokens: in_tok,
+                    output_tokens: out_tok,
+                    cost_usd: cost,
                 });
+                if tokens.is_some() {
+                    token_accum.push((in_tok, out_tok, cost));
+                }
                 doc.set_metadata(metadata.clone());
 
                 doc.write_atomic(&path)?;
@@ -179,10 +200,9 @@ pub async fn run(input: ResolvedInput, opts: RunOpts, config: &Config) -> Result
         }
     }
 
+    metadata.tokens = aggregate_tokens(&token_accum);
     metadata.completed_at = Some(Utc::now());
     metadata.total_duration_ms = Some(run_start.elapsed().as_millis() as u64);
-    // TODO(F20): aggregate from per-section invocations once `invoke_review_section`
-    // returns the full `LlmInvocation` instead of just the response text.
     doc.set_metadata(metadata);
     doc.mark_complete();
     doc.write_atomic(&path)?;
@@ -266,8 +286,7 @@ async fn capture_llm_info(providers: &[LlmProvider], config: &Config) -> Option<
     })
 }
 
-// Currently unused but kept for future token aggregation.
-#[allow(dead_code)]
+// Aggregate per-section token/cost into a single `TokenUsage` rollup (F20).
 fn aggregate_tokens(invocations: &[(Option<u64>, Option<u64>, Option<f64>)]) -> Option<TokenUsage> {
     let mut input_total: u64 = 0;
     let mut output_total: u64 = 0;

@@ -163,6 +163,12 @@ pub struct PerSectionTiming {
     pub section: String,
     pub duration_ms: u64,
     pub cache_hit: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub input_tokens: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub output_tokens: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cost_usd: Option<f64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -433,6 +439,13 @@ impl ResultDocument {
     /// Mark the document as failed.
     pub fn mark_failed(&mut self) {
         self.status = RunStatus::Failed;
+    }
+
+    /// Load a `ResultDocument` from a JSON file on disk.
+    pub fn load_from(path: &Path) -> anyhow::Result<Self> {
+        let content = std::fs::read_to_string(path)?;
+        let doc: Self = serde_json::from_str(&content)?;
+        Ok(doc)
     }
 
     /// Atomically write the document to disk using a temp file + rename.

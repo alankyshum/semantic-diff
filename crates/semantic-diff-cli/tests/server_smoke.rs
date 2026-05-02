@@ -11,6 +11,8 @@ async fn boot_server_with_fixture(
     let state = AppState {
         results_dir,
         notifier: tx.clone(),
+        config: None,
+        preregistered_notifiers: std::collections::HashMap::new(),
     };
     let (addr, token) = start_with_token(state, 0).await.expect("failed to start server");
     (addr, tx, token)
@@ -80,7 +82,7 @@ async fn test_get_api_result_nonexistent_returns_404() {
     let tmp = tempfile::tempdir().unwrap();
     let (addr, _tx, _csrf) = boot_server_with_fixture(tmp.path().to_path_buf()).await;
 
-    let res = reqwest::get(format!("http://{}/api/result/notfound", addr))
+    let res = reqwest::get(format!("http://{}/api/result/abcdef01", addr))
         .await
         .unwrap();
     assert_eq!(res.status(), 404);

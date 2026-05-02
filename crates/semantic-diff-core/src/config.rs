@@ -1,6 +1,7 @@
 use crate::llm_cli::{default_provider_order, parse_provider_order, LlmProvider};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 /// Environment variable that overrides the LLM provider order.
@@ -21,6 +22,39 @@ pub struct Config {
     pub copilot_model: String,
     pub cursor_model: String,
     pub llm_providers: Vec<LlmProvider>,
+    /// F20: per-model cost table. Keys are `"<provider>:<model>"`. User-overridable.
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub cost_table: HashMap<String, CostEntry>,
+}
+
+/// F20: cost rates for a single model, in USD per million tokens. User-overridable
+/// — the bundled defaults are best-guess and can be adjusted via the config file.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct CostEntry {
+    pub input_per_mtok: f64,
+    pub output_per_mtok: f64,
+}
+
+/// Default cost table. These are best-guess rates, NOT authoritative.
+/// Users can override via `cost-table` in `~/.config/semantic-diff.json`.
+pub fn default_cost_table() -> HashMap<String, CostEntry> {
+    let mut m = HashMap::new();
+    // Source: anthropic.com/pricing, verified 2026-05-01
+    m.insert(
+        format!("{}:sonnet-4", LlmProvider::Claude.cost_key()),
+        CostEntry { input_per_mtok: 3.0, output_per_mtok: 15.0 },
+    );
+    // Source: anthropic.com/pricing, verified 2026-05-01
+    m.insert(
+        format!("{}:opus-4", LlmProvider::Claude.cost_key()),
+        CostEntry { input_per_mtok: 15.0, output_per_mtok: 75.0 },
+    );
+    // Source: github.com/features/copilot/plans (best-guess; users should override)
+    m.insert(
+        format!("{}:gpt-4", LlmProvider::Copilot.cost_key()),
+        CostEntry { input_per_mtok: 30.0, output_per_mtok: 60.0 },
+    );
+    m
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -48,6 +82,10 @@ pub struct RawConfig {
     pub copilot: CliConfig,
     #[serde(skip_serializing_if = "CliConfig::is_empty")]
     pub cursor: CliConfig,
+    /// F20: per-model cost overrides. Keyed `"<provider>:<model>"`. Optional;
+    /// missing entries fall back to the bundled defaults.
+    #[serde(rename = "cost-table", default, skip_serializing_if = "HashMap::is_empty")]
+    pub cost_table: HashMap<String, CostEntry>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
@@ -97,6 +135,7 @@ impl Config {
             copilot_model: "gemini-flash".to_string(),
             cursor_model: "auto".to_string(),
             llm_providers: default_provider_order(),
+            cost_table: default_cost_table(),
         }
     }
 
@@ -130,6 +169,7 @@ impl Config {
             claude: CliConfig { model: Some(self.claude_model.clone()) },
             copilot: CliConfig { model: Some(self.copilot_model.clone()) },
             cursor: CliConfig { model: Some(self.cursor_model.clone()) },
+            cost_table: self.cost_table.clone(),
         }
     }
 
@@ -249,12 +289,19 @@ fn load_from(path: &Path) -> Config {
     };
 
     let llm_providers = raw.llm_providers.unwrap_or_else(default_provider_order);
+    // Merge user cost-table overrides on top of defaults so missing entries
+    // still resolve. User entries win on key collision.
+    let mut cost_table = default_cost_table();
+    for (k, v) in raw.cost_table {
+        cost_table.insert(k, v);
+    }
     Config {
         preferred_ai_cli: raw.preferred_ai_cli,
         claude_model: resolve_model_for_claude(raw.claude.model.as_deref()),
         copilot_model: resolve_model_for_copilot(raw.copilot.model.as_deref()),
         cursor_model: raw.cursor.model.unwrap_or_else(|| "auto".to_string()),
         llm_providers,
+        cost_table,
     }
 }
 
@@ -382,6 +429,7 @@ mod tests {
             claude: CliConfig { model: Some("sonnet".into()) },
             copilot: CliConfig { model: Some("opus".into()) },
             cursor: CliConfig { model: Some("auto".into()) },
+            cost_table: HashMap::new(),
         };
         save_raw(&raw, &path).unwrap();
         let txt = std::fs::read_to_string(&path).unwrap();

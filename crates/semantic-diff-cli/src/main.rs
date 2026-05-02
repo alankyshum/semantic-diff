@@ -1,6 +1,7 @@
 use semantic_diff_cli::{cli, input, orchestrator, server};
 
 use anyhow::Result;
+use std::collections::HashMap;
 use tokio::sync::broadcast;
 
 #[tokio::main]
@@ -32,6 +33,8 @@ async fn main() -> Result<()> {
         let state = server::AppState {
             results_dir,
             notifier: tx,
+            config: None,
+            preregistered_notifiers: HashMap::new(),
         };
         let addr = server::start(state, cli.port).await?;
         let url = format!("http://{}:{}/", addr.ip(), addr.port());
@@ -62,6 +65,8 @@ async fn main() -> Result<()> {
         let state = server::AppState {
             results_dir,
             notifier: tx,
+            config: None,
+            preregistered_notifiers: HashMap::new(),
         };
         let addr = server::start(state, cli.port).await?;
         let url = format!("http://{}:{}/r/{}", addr.ip(), addr.port(), id);
@@ -119,6 +124,12 @@ async fn main() -> Result<()> {
     let state = server::AppState {
         results_dir,
         notifier: tx.clone(),
+        config: None,
+        preregistered_notifiers: {
+            let mut m = HashMap::new();
+            m.insert(preliminary_id.clone(), tx.clone());
+            m
+        },
     };
     let addr = server::start(state, cli.port).await?;
     let url = format!("http://{}:{}/r/{}", addr.ip(), addr.port(), preliminary_id);
