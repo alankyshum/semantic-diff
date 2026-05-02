@@ -18,6 +18,9 @@ unidiff.workspace = true
 similar.workspace = true
 tempfile.workspace = true
 chrono.workspace = true
+schemars.workspace = true
+pulldown-cmark = "0.10"
+regex = "1"
 
 [dev-dependencies]
 tempfile.workspace = true

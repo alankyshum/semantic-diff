@@ -1,13 +1,22 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
-  import type { Group, GroupReview } from '$lib/types';
+  import type { Group, GroupReview, FileEntry } from '$lib/types';
+  import FileTree from './FileTree.svelte';
 
   export let groups: Group[];
   export let reviews: Record<string, GroupReview>;
   export let selectedGroupId: string;
   export let collapsed: boolean = false;
+  export let view: 'group' | 'file' = 'group';
+  export let files: FileEntry[] = [];
+  export let selectedFile: string | null = null;
+  /** Set of group ids highlighted by the currently-selected file (file view only). */
+  export let highlightedGroupIds: Set<string> = new Set();
 
-  const dispatch = createEventDispatcher<{ toggleCollapsed: boolean }>();
+  const dispatch = createEventDispatcher<{
+    toggleCollapsed: boolean;
+    selectFile: { file: string };
+  }>();
 
   function sectionDot(review: GroupReview | undefined, section: string): string {
     const s = review?.sections?.[section];
@@ -37,7 +46,7 @@
 <aside class="sidebar" class:collapsed>
   <div class="sidebar-top">
     {#if !collapsed}
-      <div class="sidebar-header">Groups</div>
+      <div class="sidebar-header">{view === 'group' ? 'Groups' : 'Files'}</div>
     {/if}
     <button
       type="button"
@@ -49,29 +58,42 @@
       {collapsed ? '⟩' : '⟨'}
     </button>
   </div>
-  {#each groups as group}
-    <button
-      class="group-item"
-      class:selected={group.id === selectedGroupId}
-      on:click={() => selectedGroupId = group.id}
-      title={group.label}
-    >
-      {#if !collapsed}
-        <div class="group-label">{group.label}</div>
-      {/if}
-      <div class="section-dots" class:vertical={collapsed}>
-        {#each ['WHY', 'WHAT', 'HOW', 'VERDICT'] as sec}
-          <span
-            class="dot"
-            style="color: {dotColor(reviews[group.id], sec)}"
-            title="{sec}: {reviews[group.id]?.sections?.[sec]?.state ?? 'pending'}"
-          >
-            {sectionDot(reviews[group.id], sec)}
-          </span>
-        {/each}
-      </div>
-    </button>
-  {/each}
+
+  <!-- Segmented switch lives in the page (r/[id]/+page.svelte), not here. -->
+
+  {#if view === 'group'}
+    {#each groups as group}
+      <button
+        class="group-item"
+        class:selected={group.id === selectedGroupId}
+        class:dim={selectedFile !== null && highlightedGroupIds.size > 0 && !highlightedGroupIds.has(group.id)}
+        on:click={() => selectedGroupId = group.id}
+        title={group.label}
+        id={`sb-group-${group.id}`}
+      >
+        {#if !collapsed}
+          <div class="group-label">{group.label}</div>
+        {/if}
+        <div class="section-dots" class:vertical={collapsed}>
+          {#each ['WHY', 'WHAT', 'HOW', 'VERDICT'] as sec}
+            <span
+              class="dot"
+              style="color: {dotColor(reviews[group.id], sec)}"
+              title="{sec}: {reviews[group.id]?.sections?.[sec]?.state ?? 'pending'}"
+            >
+              {sectionDot(reviews[group.id], sec)}
+            </span>
+          {/each}
+        </div>
+      </button>
+    {/each}
+  {:else if !collapsed}
+    <FileTree
+      {files}
+      {selectedFile}
+      on:select={(e) => dispatch('selectFile', { file: e.detail })}
+    />
+  {/if}
 </aside>
 
 <style>
@@ -114,6 +136,7 @@
     justify-content: center;
   }
   .collapse-btn:hover { color: var(--color-fg); border-color: var(--color-accent); }
+
   .group-item {
     display: block; width: 100%; text-align: left;
     padding: 0.5rem 0.75rem; border: none; background: none;
@@ -125,6 +148,12 @@
     background: var(--color-bg-inset);
     border-left: 3px solid var(--color-accent);
     padding-left: calc(0.75rem - 3px);
+  }
+  .group-item.dim {
+    opacity: 0.4;
+  }
+  .group-item.dim.selected {
+    opacity: 1;
   }
   .group-label { font-size: 0.875rem; margin-bottom: 0.2rem; word-break: break-word; }
   .section-dots { display: flex; gap: 0.3rem; font-size: 0.65rem; }

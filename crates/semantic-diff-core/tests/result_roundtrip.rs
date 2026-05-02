@@ -3,7 +3,6 @@ use semantic_diff_core::{
     diff::DiffData,
     result::{ResultDocument, RunStatus, SourceInfo, SourceKind, SCHEMA_VERSION},
 };
-use std::path::Path;
 
 fn empty_diff() -> DiffData {
     DiffData { files: vec![], binary_files: vec![] }
@@ -17,10 +16,10 @@ fn git_source() -> SourceInfo {
 }
 
 #[test]
-fn test_schema_version_is_1() {
-    assert_eq!(SCHEMA_VERSION, 1);
+fn test_schema_version_is_2() {
+    assert_eq!(SCHEMA_VERSION, 2);
     let doc = ResultDocument::new("diff", &empty_diff(), git_source(), "T".to_string());
-    assert_eq!(doc.schema_version, 1);
+    assert_eq!(doc.schema_version, 2);
 }
 
 #[test]
@@ -92,7 +91,7 @@ fn test_write_atomic_produces_valid_json() {
     assert!(path.exists());
     let content = std::fs::read_to_string(&path).unwrap();
     let value: serde_json::Value = serde_json::from_str(&content).unwrap();
-    assert_eq!(value["schema_version"], 1);
+    assert_eq!(value["schema_version"], 2);
     assert_eq!(value["status"], "running");
 }
 

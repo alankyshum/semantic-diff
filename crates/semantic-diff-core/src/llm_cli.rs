@@ -10,7 +10,8 @@ use tokio::process::Command;
 const MAX_RESPONSE_BYTES: usize = 1_048_576;
 const DEFAULT_PROVIDER_ORDER: &str = "claude,copilot,cursor";
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "lowercase")]
 pub enum LlmProvider {
     Claude,
     Copilot,
@@ -52,6 +53,10 @@ pub enum LlmOutputKind {
 pub struct LlmInvocation {
     pub provider: LlmProvider,
     pub text: String,
+    /// Token usage parsed from provider output, when available (F6/F20).
+    pub input_tokens: Option<u64>,
+    pub output_tokens: Option<u64>,
+    pub cost_usd: Option<f64>,
 }
 
 #[derive(Debug, Clone)]
@@ -82,6 +87,14 @@ struct ProviderFailure {
     provider: LlmProvider,
     kind: FailureKind,
     reason: String,
+}
+
+#[derive(Debug, Clone, Default)]
+struct ParsedResponse {
+    text: String,
+    input_tokens: Option<u64>,
+    output_tokens: Option<u64>,
+    cost_usd: Option<f64>,
 }
 
 pub fn default_provider_order_csv() -> &'static str {
@@ -132,7 +145,7 @@ async fn invoke_with_fallback_using<F, Fut>(
 ) -> anyhow::Result<LlmInvocation>
 where
     F: FnMut(LlmProvider) -> Fut,
-    Fut: Future<Output = Result<String, ProviderFailure>>,
+    Fut: Future<Output = Result<ParsedResponse, ProviderFailure>>,
 {
     let effective_providers = if providers.is_empty() {
         default_provider_order()
@@ -144,9 +157,15 @@ where
 
     for provider in effective_providers.iter().copied() {
         match invoke(provider).await {
-            Ok(text) => {
+            Ok(parsed) => {
                 tracing::info!(provider = %provider, "LLM provider selected");
-                return Ok(LlmInvocation { provider, text });
+                return Ok(LlmInvocation {
+                    provider,
+                    text: parsed.text,
+                    input_tokens: parsed.input_tokens,
+                    output_tokens: parsed.output_tokens,
+                    cost_usd: parsed.cost_usd,
+                });
             }
             Err(failure) => {
                 match failure.kind {
@@ -184,13 +203,13 @@ async fn invoke_provider(
     prompt: &str,
     output_kind: LlmOutputKind,
     config: &Config,
-) -> Result<String, ProviderFailure> {
+) -> Result<ParsedResponse, ProviderFailure> {
     let requests = requests_for_provider(provider, prompt, output_kind, config);
     let mut missing = Vec::new();
 
     for request in requests {
         match run_command_request(&request, provider).await {
-            Ok(text) => return Ok(text),
+            Ok(parsed) => return Ok(parsed),
             Err(failure) if failure.kind == FailureKind::MissingBinary => {
                 missing.push(request.display_name);
             }
@@ -312,7 +331,7 @@ fn requests_for_provider(
 async fn run_command_request(
     request: &CommandRequest,
     provider: LlmProvider,
-) -> Result<String, ProviderFailure> {
+) -> Result<ParsedResponse, ProviderFailure> {
     let mut child = Command::new(request.program)
         .args(&request.args)
         .stdin(if request.stdin.is_some() { Stdio::piped() } else { Stdio::null() })
@@ -483,13 +502,15 @@ fn parse_command_output(
     display_name: &str,
     response_parser: ResponseParser,
     stdout_buf: Vec<u8>,
-) -> Result<String, ProviderFailure> {
+) -> Result<ParsedResponse, ProviderFailure> {
     match response_parser {
-        ResponseParser::PlainText => String::from_utf8(stdout_buf).map_err(|error| ProviderFailure {
-            provider,
-            kind: FailureKind::Unexpected,
-            reason: format!("invalid UTF-8 from {display_name}: {error}"),
-        }),
+        ResponseParser::PlainText => String::from_utf8(stdout_buf)
+            .map(|text| ParsedResponse { text, ..Default::default() })
+            .map_err(|error| ProviderFailure {
+                provider,
+                kind: FailureKind::Unexpected,
+                reason: format!("invalid UTF-8 from {display_name}: {error}"),
+            }),
         ResponseParser::ClaudeJson => parse_claude_json_output(provider, display_name, stdout_buf),
     }
 }
@@ -498,7 +519,7 @@ fn parse_claude_json_output(
     provider: LlmProvider,
     display_name: &str,
     stdout_buf: Vec<u8>,
-) -> Result<String, ProviderFailure> {
+) -> Result<ParsedResponse, ProviderFailure> {
     let stdout = String::from_utf8(stdout_buf).map_err(|error| ProviderFailure {
         provider,
         kind: FailureKind::Unexpected,
@@ -516,7 +537,15 @@ fn parse_claude_json_output(
         kind: FailureKind::Unexpected,
         reason: format!("missing result field in {display_name} JSON output"),
     })?;
-    Ok(result_text.to_string())
+    let input_tokens = wrapper["usage"]["input_tokens"].as_u64();
+    let output_tokens = wrapper["usage"]["output_tokens"].as_u64();
+    let cost_usd = wrapper["total_cost_usd"].as_f64();
+    Ok(ParsedResponse {
+        text: result_text.to_string(),
+        input_tokens,
+        output_tokens,
+        cost_usd,
+    })
 }
 
 #[cfg(test)]
@@ -555,8 +584,8 @@ mod tests {
                 attempted.push(provider);
                 ready(match provider {
                     LlmProvider::Claude => Err(missing(provider)),
-                    LlmProvider::Copilot => Ok("copilot response".to_string()),
-                    LlmProvider::Cursor => Ok("cursor response".to_string()),
+                    LlmProvider::Copilot => Ok(ParsedResponse { text: "copilot response".to_string(), ..Default::default() }),
+                    LlmProvider::Cursor => Ok(ParsedResponse { text: "cursor response".to_string(), ..Default::default() }),
                 })
             },
         )

@@ -27,6 +27,7 @@ unidiff = "0.4"
 similar = "2"
 tempfile = "3"
 chrono = { version = "0.4", features = ["serde"] }
+schemars = { version = "0.8", features = ["chrono"] }
 
 [profile.release]
 opt-level = "z"

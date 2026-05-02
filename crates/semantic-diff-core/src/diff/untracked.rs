@@ -142,7 +142,7 @@ mod tests {
         let file_path = format!("{test_dir}/test_file.txt");
         std::fs::write(&file_path, "line1\nline2\nline3\n").unwrap();
 
-        let (diff, binary) = generate_untracked_diff(&[file_path.clone()]);
+        let (diff, binary) = generate_untracked_diff(std::slice::from_ref(&file_path));
 
         // Should not be binary
         assert!(binary.is_empty());

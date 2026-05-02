@@ -1,8 +1,7 @@
-/// Tests for diff input resolution: file, stdin-like, git-args, PR URL normalization.
-use std::io::Write;
-
-/// Since resolve_input is async and reads stdin/runs git, we test the normalization
-/// helpers and file-based resolution via a temp patch file.
+//! Tests for diff input resolution: file, stdin-like, git-args, PR URL normalization.
+//!
+//! Since resolve_input is async and reads stdin/runs git, we test the normalization
+//! helpers and file-based resolution via a temp patch file.
 
 #[tokio::test]
 async fn test_resolve_diff_file() {
@@ -25,7 +24,11 @@ async fn test_resolve_diff_file() {
         result.source.kind,
         semantic_diff_core::result::SourceKind::DiffFile
     ));
-    assert_eq!(result.title, "test.patch");
+    // Smart title (F3) prefixes with the repo name (or cwd basename) when run inside one.
+    assert!(
+        result.title.ends_with(": test.patch") || result.title == "test.patch",
+        "title was {:?}", result.title
+    );
 }
 
 #[tokio::test]
@@ -99,12 +102,16 @@ async fn test_git_args_default_title() {
     // Should succeed (even if empty diff)
     assert!(result.is_ok(), "git diff should succeed in a git repo");
     let r = result.unwrap();
-    assert_eq!(r.title, "Unstaged changes");
+    // F3: smart title prefixes with the repo name; falls back to cwd basename.
+    assert!(
+        r.title.ends_with(": Unstaged changes") || r.title == "Unstaged changes",
+        "title was {:?}", r.title
+    );
     assert!(matches!(
         r.source.kind,
         semantic_diff_core::result::SourceKind::GitArgs
     ));
-    assert_eq!(r.source.value, "unstaged");
+    assert_eq!(r.source.value, "Unstaged changes");
 }
 
 #[tokio::test]
@@ -121,7 +128,11 @@ async fn test_git_args_with_args_sets_title() {
     // This may fail on CI if there's no commit history; just test it doesn't panic
     // and that the title is set correctly when it succeeds.
     if let Ok(r) = result {
-        assert_eq!(r.title, "git diff HEAD~1..HEAD");
+        // F3: smart title for `BASE..HEAD` form
+        assert!(
+            r.title.ends_with(": HEAD~1..HEAD") || r.title == "git diff HEAD~1..HEAD",
+            "title was {:?}", r.title
+        );
     }
 }
 

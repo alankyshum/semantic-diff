@@ -27,6 +27,7 @@ fn make_input(diff: &str, title: &str) -> ResolvedInput {
             value: "test.patch".to_string(),
         },
         title: title.to_string(),
+        repo: None,
     }
 }
 
@@ -43,7 +44,7 @@ async fn test_no_llm_produces_complete_valid_result() {
     };
 
     let config = semantic_diff_core::config::Config::default_config();
-    let result = run(make_input(SAMPLE_PATCH, "Test PR"), opts, &config)
+    let _result = run(make_input(SAMPLE_PATCH, "Test PR"), opts, &config)
         .await
         .unwrap();
 
@@ -59,7 +60,7 @@ async fn test_no_llm_produces_complete_valid_result() {
     // All sections should be in error/skipped state (--no-llm)
     let group_id = &doc.groups[0].id;
     let review = &doc.reviews[group_id];
-    for (_sec_name, sec_entry) in &review.sections {
+    for sec_entry in review.sections.values() {
         assert_ne!(sec_entry.state, "ready", "no-llm sections should not be ready");
     }
 }
@@ -77,7 +78,7 @@ async fn test_empty_diff_produces_complete_result_with_no_groups() {
     };
 
     let config = semantic_diff_core::config::Config::default_config();
-    let result = run(make_input("", "Empty diff"), opts, &config)
+    let _result = run(make_input("", "Empty diff"), opts, &config)
         .await
         .unwrap();
 

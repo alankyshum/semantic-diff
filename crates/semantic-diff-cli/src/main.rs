@@ -75,7 +75,7 @@ async fn main() -> Result<()> {
     }
 
     // Load config
-    let config = semantic_diff_core::config::load();
+    let mut config = semantic_diff_core::config::load();
 
     // Resolve input (determine where the diff comes from)
     let use_stdin = cli.use_stdin();
@@ -129,10 +129,21 @@ async fn main() -> Result<()> {
         let _ = open::that(&url);
     }
 
+    // Apply CLI override (highest precedence) for llm providers, unless --no-llm.
+    // The flag has a default so we always pass Some(...); apply_overrides bakes precedence:
+    // CLI > env (SEMANTIC_DIFF_LLM_PROVIDERS, deprecated) > file > default.
+    let cli_override = if cli.no_llm {
+        None
+    } else {
+        Some(semantic_diff_core::llm_cli::parse_provider_order(&cli.llm_providers)?)
+    };
+    config.apply_overrides(cli_override);
+    tracing::info!(?config, "effective config");
+
     let llm_providers = if cli.no_llm {
         Vec::new()
     } else {
-        semantic_diff_core::llm_cli::parse_provider_order(&cli.llm_providers)?
+        config.llm_providers.clone()
     };
 
     // Run the orchestrator

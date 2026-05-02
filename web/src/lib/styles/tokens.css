@@ -46,8 +46,9 @@
   --color-diff-del-emph: #fecaca;
 }
 
-/* Layout tokens (used by F1/F2) */
+/* Layout tokens (used by F1/F2/F5) */
 :root {
+  --app-nav-h: 44px;
   --header-h: 56px;
   --sidebar-w: 240px;
   --sidebar-w-collapsed: 48px;

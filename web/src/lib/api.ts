@@ -8,6 +8,13 @@ export async function fetchResults(): Promise<ResultSummary[]> {
   return res.json();
 }
 
+export async function fetchResultsForRepo(repoName: string): Promise<ResultSummary[]> {
+  const res = await fetch(`${API_BASE}/repos/${encodeURIComponent(repoName)}/results`);
+  if (res.status === 404) return [];
+  if (!res.ok) throw new Error(`Failed to fetch results for repo: ${res.status}`);
+  return res.json();
+}
+
 export async function fetchResult(id: string): Promise<ResultDocument> {
   const res = await fetch(`${API_BASE}/result/${id}`);
   if (!res.ok) throw new Error(`Result not found: ${id}`);

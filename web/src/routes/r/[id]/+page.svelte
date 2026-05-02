@@ -2,12 +2,15 @@
   import { onMount, onDestroy } from 'svelte';
   import { page } from '$app/stores';
   import { fetchResult, subscribeToResult } from '$lib/api';
-  import type { ResultDocument, Group } from '$lib/types';
+  import type { ResultDocument } from '$lib/types';
   import Mermaid from '$lib/components/Mermaid.svelte';
   import MarkdownView from '$lib/components/MarkdownView.svelte';
   import SeverityBadge from '$lib/components/SeverityBadge.svelte';
   import GroupSidebar from '$lib/components/GroupSidebar.svelte';
-  import ThemeToggle from '$lib/components/ThemeToggle.svelte';
+  import DiffViewer from '$lib/components/DiffViewer.svelte';
+  import RunMetadataPanel from '$lib/components/RunMetadataPanel.svelte';
+  import RepoHistoryNav from '$lib/components/RepoHistoryNav.svelte';
+  import { statusColor } from '$lib/util/date';
 
   let doc: ResultDocument | null = null;
   let error = '';
@@ -15,10 +18,36 @@
   let selectedGroupId = 'g0';
   let unsubscribe: (() => void) | null = null;
   let sidebarCollapsed = false;
+  let viewMode: 'review' | 'split' | 'diff' = 'review';
+  let sidebarView: 'group' | 'file' = 'group';
+  let selectedFile: string | null = null;
+  // Initialize from `window` if available (client) or default to false (SSR-safe).
+  // `false` is the conservative default — Split is the augmenting feature; absence
+  // shouldn't be momentarily inflated to presence.
+  let viewportWide = typeof window !== 'undefined' && window.innerWidth >= 1280;
 
-  $: resultId = $page.params.id;
+  $: resultId = $page.params.id as string;
   $: selectedGroup = doc?.groups.find(g => g.id === selectedGroupId) ?? doc?.groups[0] ?? null;
   $: selectedReview = doc && selectedGroupId ? doc.reviews[selectedGroupId] : null;
+
+  $: totalIssues = doc
+    ? Object.values(doc.reviews).reduce((acc, r) => acc + (r.verdict_issues?.length ?? 0), 0)
+    : 0;
+
+  $: viewModeKey = doc ? `view-mode:${doc.id}` : '';
+
+  // Auto-downgrade split → diff if viewport too narrow.
+  $: if (!viewportWide && viewMode === 'split') {
+    viewMode = 'diff';
+  }
+
+  function setViewMode(m: 'review' | 'split' | 'diff') {
+    if (m === 'split' && !viewportWide) return;
+    viewMode = m;
+    if (viewModeKey) {
+      try { localStorage.setItem(viewModeKey, m); } catch { /* ignore */ }
+    }
+  }
 
   async function loadResult() {
     try {
@@ -26,6 +55,21 @@
       loading = false;
       if (doc && doc.groups.length > 0) {
         selectedGroupId = doc.groups[0].id;
+      }
+      // Restore per-result view mode
+      if (doc) {
+        try {
+          const saved = localStorage.getItem(`view-mode:${doc.id}`);
+          if (saved === 'review' || saved === 'split' || saved === 'diff') {
+            viewMode = saved;
+          }
+        } catch { /* ignore */ }
+        try {
+          const savedSide = localStorage.getItem(`sidebar-view:${doc.id}`);
+          if (savedSide === 'group' || savedSide === 'file') {
+            sidebarView = savedSide;
+          }
+        } catch { /* ignore */ }
       }
       // Subscribe to updates if still running
       if (doc?.status === 'running') {
@@ -41,26 +85,112 @@
     }
   }
 
+  function isEditableTarget(t: EventTarget | null): boolean {
+    if (!(t instanceof HTMLElement)) return false;
+    const tag = t.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+    if (t.isContentEditable) return true;
+    return false;
+  }
+
+  function onKey(e: KeyboardEvent) {
+    if (e.key !== 'v' || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (isEditableTarget(e.target)) return;
+    const order: Array<'review' | 'split' | 'diff'> = ['review', 'split', 'diff'];
+    let i = order.indexOf(viewMode);
+    for (let step = 0; step < 3; step++) {
+      i = (i + 1) % order.length;
+      const next = order[i];
+      if (next === 'split' && !viewportWide) continue;
+      setViewMode(next);
+      return;
+    }
+  }
+
+  function onResize() {
+    viewportWide = typeof window !== 'undefined' && window.innerWidth >= 1280;
+  }
+
+  // Tablist keyboard navigation
+  function onTabKey(e: KeyboardEvent) {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    const order: Array<'review' | 'split' | 'diff'> = ['review', 'split', 'diff'];
+    const i = order.indexOf(viewMode);
+    let nextIdx = e.key === 'ArrowRight' ? (i + 1) % 3 : (i + 2) % 3;
+    let next = order[nextIdx];
+    if (next === 'split' && !viewportWide) {
+      // skip
+      nextIdx = e.key === 'ArrowRight' ? (nextIdx + 1) % 3 : (nextIdx + 2) % 3;
+      next = order[nextIdx];
+    }
+    setViewMode(next);
+    e.preventDefault();
+  }
+
   onMount(() => {
     try {
       sidebarCollapsed = localStorage.getItem('sidebar-collapsed') === '1';
     } catch { /* ignore */ }
+    onResize();
+    window.addEventListener('resize', onResize);
+    window.addEventListener('keydown', onKey);
     loadResult();
   });
 
-  onDestroy(() => unsubscribe?.());
+  onDestroy(() => {
+    unsubscribe?.();
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('keydown', onKey);
+    }
+  });
 
   function setSidebarCollapsed(v: boolean) {
     sidebarCollapsed = v;
     try { localStorage.setItem('sidebar-collapsed', v ? '1' : '0'); } catch { /* ignore */ }
   }
 
-  function statusColor(status: string): string {
-    switch (status) {
-      case 'complete': return 'var(--color-success)';
-      case 'running': return 'var(--color-warning)';
-      case 'failed': return 'var(--color-danger)';
-      default: return 'var(--color-fg-muted)';
+  function setSidebarView(v: 'group' | 'file') {
+    sidebarView = v;
+    if (doc) {
+      try { localStorage.setItem(`sidebar-view:${doc.id}`, v); } catch { /* ignore */ }
+    }
+  }
+
+  // Set of group ids that touch the currently-selected file (file view only).
+  // In group view, returns the empty set so no dimming applies.
+  $: highlightedGroupIds = (() => {
+    if (sidebarView !== 'file' || !selectedFile || !doc) return new Set<string>();
+    const entry = doc.file_index?.find(f => f.path === selectedFile);
+    if (entry && entry.group_ids.length > 0) return new Set(entry.group_ids);
+    // Fall back to scanning groups[].changes if file_index didn't supply group_ids.
+    const matched = doc.groups
+      .filter(g => g.changes.some(c => c.file === selectedFile))
+      .map(g => g.id);
+    return new Set(matched);
+  })();
+
+  function onSelectFile(e: CustomEvent<{ file: string }>) {
+    selectedFile = e.detail.file;
+    if (!doc) return;
+    // Jump to the first group that touches this file so the main content updates.
+    const entry = doc.file_index?.find(f => f.path === selectedFile);
+    const firstId = entry?.group_ids[0]
+      ?? doc.groups.find(g => g.changes.some(c => c.file === selectedFile))?.id;
+    if (firstId && firstId !== selectedGroupId) {
+      selectedGroupId = firstId;
+    }
+    if (typeof window !== 'undefined') {
+      // Defer to next tick so the new group has rendered.
+      queueMicrotask(() => {
+        const el = document.querySelector('.main .group-header');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Also nudge the sidebar group card into view (no-op if already visible).
+        if (firstId) {
+          const sb = document.getElementById(`sb-group-${firstId}`);
+          sb?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      });
     }
   }
 </script>
@@ -76,25 +206,57 @@
       <div class="header-left">
         <a href="/" class="back">← All reviews</a>
         <h1>{doc.title}</h1>
+        {#if doc.repo?.name}
+          <a class="repo-chip" href="/?repo={encodeURIComponent(doc.repo.name)}" title="Filter by repo">
+            {doc.repo.name}{#if doc.repo.branch}<span class="repo-branch">@{doc.repo.branch}</span>{/if}
+          </a>
+          <RepoHistoryNav repoName={doc.repo.name} currentId={doc.id} />
+        {/if}
         <span class="status-badge" style="color: {statusColor(doc.status)}">{doc.status}</span>
       </div>
       <div class="header-meta">
         <span>{doc.diff.files.length} files</span>
         <span>{doc.groups.length} groups</span>
         <span class="doc-id">{doc.id}</span>
-        <ThemeToggle />
       </div>
     </header>
 
     <div class="body" class:sidebar-collapsed={sidebarCollapsed}>
-      <!-- Sidebar -->
-      <GroupSidebar
-        groups={doc.groups}
-        reviews={doc.reviews}
-        bind:selectedGroupId
-        collapsed={sidebarCollapsed}
-        on:toggleCollapsed={(e) => setSidebarCollapsed(e.detail)}
-      />
+      <!-- Sidebar column: segmented switch + GroupSidebar -->
+      <div class="sidebar-col">
+        {#if !sidebarCollapsed}
+          <div class="sidebar-view-switch" role="tablist" aria-label="Sidebar view">
+            <button
+              type="button"
+              role="tab"
+              class="sv-btn"
+              class:active={sidebarView === 'group'}
+              aria-selected={sidebarView === 'group'}
+              on:click={() => setSidebarView('group')}
+            >By group</button>
+            <button
+              type="button"
+              role="tab"
+              class="sv-btn"
+              class:active={sidebarView === 'file'}
+              aria-selected={sidebarView === 'file'}
+              on:click={() => setSidebarView('file')}
+            >By file</button>
+          </div>
+        {/if}
+        <GroupSidebar
+          groups={doc.groups}
+          reviews={doc.reviews}
+          bind:selectedGroupId
+          collapsed={sidebarCollapsed}
+          view={sidebarView}
+          files={doc.file_index ?? []}
+          {selectedFile}
+          {highlightedGroupIds}
+          on:selectFile={onSelectFile}
+          on:toggleCollapsed={(e) => setSidebarCollapsed(e.detail)}
+        />
+      </div>
 
       <!-- Main content -->
       <main class="main">
@@ -109,53 +271,181 @@
             </div>
           </div>
 
-          <!-- WHY -->
-          <section class="section-card section-card--prose">
-            <h3>WHY</h3>
-            {#if selectedReview.sections.WHY?.state === 'loading'}
-              <div class="skeleton">Analyzing intent…</div>
-            {:else if selectedReview.sections.WHY?.state === 'ready'}
-              <MarkdownView content={selectedReview.sections.WHY.content ?? ''} />
-            {:else if selectedReview.sections.WHY?.state === 'error'}
-              <div class="section-error">{selectedReview.sections.WHY.content}</div>
-            {/if}
-          </section>
+          <!-- Tabs: Review | Issues -->
+          <div class="tab-strip">
+            <span class="tab tab-active" aria-current="page">Review</span>
+            <a class="tab" href="/r/{doc.id}/issues">
+              Issues{#if totalIssues > 0}<span class="tab-count">({totalIssues})</span>{/if}
+            </a>
+          </div>
 
-          <!-- WHAT -->
-          <section class="section-card section-card--prose">
-            <h3>WHAT</h3>
-            {#if selectedReview.sections.WHAT?.state === 'loading'}
-              <div class="skeleton">Analyzing changes…</div>
-            {:else if selectedReview.sections.WHAT?.state === 'ready'}
-              <MarkdownView content={selectedReview.sections.WHAT.content ?? ''} />
-            {:else if selectedReview.sections.WHAT?.state === 'error'}
-              <div class="section-error">{selectedReview.sections.WHAT.content}</div>
-            {/if}
-          </section>
+          <!-- View-mode toggle -->
+          <div class="view-toggle" role="tablist" aria-label="View mode">
+            {#each ['review', 'split', 'diff'] as const as m}
+              {@const disabled = m === 'split' && !viewportWide}
+              <button
+                type="button"
+                role="tab"
+                aria-selected={viewMode === m}
+                aria-disabled={disabled}
+                class="view-btn"
+                class:active={viewMode === m}
+                class:disabled
+                tabindex={viewMode === m ? 0 : -1}
+                on:click={() => !disabled && setViewMode(m)}
+                on:keydown={onTabKey}
+              >
+                {m === 'review' ? 'Review' : m === 'split' ? 'Split' : 'Diff'}
+              </button>
+            {/each}
+            <span class="view-hint" aria-hidden="true">press <kbd>v</kbd> to cycle</span>
+          </div>
 
-          <!-- HOW -->
-          <section class="section-card">
-            <h3>HOW</h3>
-            {#if selectedReview.sections.HOW?.state === 'loading'}
-              <div class="skeleton">Generating diagram…</div>
-            {:else if selectedReview.sections.HOW?.state === 'ready'}
-              <Mermaid content={selectedReview.sections.HOW.content ?? ''} />
-            {:else if selectedReview.sections.HOW?.state === 'error'}
-              <div class="section-error">{selectedReview.sections.HOW.content}</div>
-            {/if}
-          </section>
+          {#if viewMode === 'diff'}
+            <section class="section-card">
+              {#if selectedGroup.unified_diff}
+                <DiffViewer unifiedDiff={selectedGroup.unified_diff} />
+              {:else}
+                <p class="diff-fallback">Diff not available — re-run review to capture per-group diff.</p>
+              {/if}
+            </section>
+          {:else if viewMode === 'split'}
+            <div class="split">
+              <div class="split-left">
+                {#each ['WHY', 'WHAT', 'HOW', 'VERDICT'] as section}
+                  <section class="section-card section-card--prose">
+                    <h3>{section}</h3>
+                    {#if selectedReview.sections[section]?.state === 'loading'}
+                      <div class="skeleton">Loading…</div>
+                    {:else if selectedReview.sections[section]?.state === 'ready'}
+                      {#if section === 'HOW'}
+                        <Mermaid content={selectedReview.sections[section].content ?? ''} />
+                      {:else if section === 'VERDICT'}
+                        {#if selectedReview.verdict_issues && selectedReview.verdict_issues.length > 0}
+                          <div class="issues">
+                            {#each selectedReview.verdict_issues as issue}
+                              <article class="issue" id="issue-{issue.id}">
+                                <header class="issue-header">
+                                  <SeverityBadge severity={issue.severity} />
+                                  <span class="issue-id">{issue.id}</span>
+                                  <h4>{issue.title}</h4>
+                                </header>
+                                <MarkdownView content={issue.body_md} />
+                                {#if issue.files.length}
+                                  <footer class="issue-files">
+                                    {#each issue.files as f}<code class="file-chip">{f}</code>{/each}
+                                  </footer>
+                                {/if}
+                              </article>
+                            {/each}
+                          </div>
+                          <details class="raw-verdict">
+                            <summary>Raw VERDICT</summary>
+                            <MarkdownView content={selectedReview.sections[section].content ?? ''} />
+                          </details>
+                        {:else}
+                          <MarkdownView content={selectedReview.sections[section].content ?? ''} />
+                        {/if}
+                      {:else}
+                        <MarkdownView content={selectedReview.sections[section].content ?? ''} />
+                      {/if}
+                    {:else if selectedReview.sections[section]?.state === 'error'}
+                      <div class="section-error">{selectedReview.sections[section].content}</div>
+                    {/if}
+                  </section>
+                {/each}
+              </div>
+              <div class="split-right">
+                <section class="section-card split-diff">
+                  {#if selectedGroup.unified_diff}
+                    <DiffViewer unifiedDiff={selectedGroup.unified_diff} />
+                  {:else}
+                    <p class="diff-fallback">Diff not available — re-run review to capture per-group diff.</p>
+                  {/if}
+                </section>
+              </div>
+            </div>
+          {:else}
+            <!-- review mode (default) -->
+            <!-- WHY -->
+            <section class="section-card section-card--prose">
+              <h3>WHY</h3>
+              {#if selectedReview.sections.WHY?.state === 'loading'}
+                <div class="skeleton">Analyzing intent…</div>
+              {:else if selectedReview.sections.WHY?.state === 'ready'}
+                <MarkdownView content={selectedReview.sections.WHY.content ?? ''} />
+              {:else if selectedReview.sections.WHY?.state === 'error'}
+                <div class="section-error">{selectedReview.sections.WHY.content}</div>
+              {/if}
+            </section>
 
-          <!-- VERDICT -->
-          <section class="section-card section-card--prose">
-            <h3>VERDICT</h3>
-            {#if selectedReview.sections.VERDICT?.state === 'loading'}
-              <div class="skeleton">Reviewing for issues…</div>
-            {:else if selectedReview.sections.VERDICT?.state === 'ready'}
-              <MarkdownView content={selectedReview.sections.VERDICT.content ?? ''} />
-            {:else if selectedReview.sections.VERDICT?.state === 'error'}
-              <div class="section-error">{selectedReview.sections.VERDICT.content}</div>
-            {/if}
-          </section>
+            <!-- WHAT -->
+            <section class="section-card section-card--prose">
+              <h3>WHAT</h3>
+              {#if selectedReview.sections.WHAT?.state === 'loading'}
+                <div class="skeleton">Analyzing changes…</div>
+              {:else if selectedReview.sections.WHAT?.state === 'ready'}
+                <MarkdownView content={selectedReview.sections.WHAT.content ?? ''} />
+              {:else if selectedReview.sections.WHAT?.state === 'error'}
+                <div class="section-error">{selectedReview.sections.WHAT.content}</div>
+              {/if}
+            </section>
+
+            <!-- HOW -->
+            <section class="section-card">
+              <h3>HOW</h3>
+              {#if selectedReview.sections.HOW?.state === 'loading'}
+                <div class="skeleton">Generating diagram…</div>
+              {:else if selectedReview.sections.HOW?.state === 'ready'}
+                <Mermaid content={selectedReview.sections.HOW.content ?? ''} />
+              {:else if selectedReview.sections.HOW?.state === 'error'}
+                <div class="section-error">{selectedReview.sections.HOW.content}</div>
+              {/if}
+            </section>
+
+            <!-- VERDICT -->
+            <section class="section-card section-card--prose">
+              <h3>VERDICT</h3>
+              {#if selectedReview.sections.VERDICT?.state === 'loading'}
+                <div class="skeleton">Reviewing for issues…</div>
+              {:else if selectedReview.sections.VERDICT?.state === 'ready'}
+                {#if selectedReview.verdict_issues && selectedReview.verdict_issues.length > 0}
+                  <div class="issues">
+                    {#each selectedReview.verdict_issues as issue}
+                      <article class="issue" id="issue-{issue.id}">
+                        <header class="issue-header">
+                          <SeverityBadge severity={issue.severity} />
+                          <span class="issue-id">{issue.id}</span>
+                          <h4>{issue.title}</h4>
+                        </header>
+                        <MarkdownView content={issue.body_md} />
+                        {#if issue.files.length}
+                          <footer class="issue-files">
+                            {#each issue.files as f}<code class="file-chip">{f}</code>{/each}
+                          </footer>
+                        {/if}
+                      </article>
+                    {/each}
+                  </div>
+                  <details class="raw-verdict">
+                    <summary>Raw VERDICT</summary>
+                    <MarkdownView content={selectedReview.sections.VERDICT.content ?? ''} />
+                  </details>
+                {:else}
+                  <MarkdownView content={selectedReview.sections.VERDICT.content ?? ''} />
+                {/if}
+              {:else if selectedReview.sections.VERDICT?.state === 'error'}
+                <div class="section-error">{selectedReview.sections.VERDICT.content}</div>
+              {/if}
+            </section>
+          {/if}
+
+          {#if doc.metadata}
+            <details class="run-details">
+              <summary>Run details</summary>
+              <RunMetadataPanel metadata={doc.metadata} repo={doc.repo} />
+            </details>
+          {/if}
         {:else}
           <div class="no-groups">No groups found.</div>
         {/if}
@@ -176,17 +466,26 @@
     padding: 0.75rem 1.5rem;
     border-bottom: 1px solid var(--color-border);
     background: var(--color-bg-elev);
-    position: sticky; top: 0; z-index: 10;
+    position: sticky; top: var(--app-nav-h); z-index: 10;
     height: var(--header-h);
   }
   .header-left { display: flex; align-items: center; gap: 0.75rem; }
   .back { color: var(--color-fg-muted); font-size: 0.85rem; }
   h1 { margin: 0; font-size: 1.1rem; }
+  .repo-chip {
+    font-size: 0.75rem;
+    background: var(--color-bg-inset);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    padding: 0.1rem 0.55rem;
+    color: var(--color-accent);
+  }
+  .repo-chip:hover { border-color: var(--color-accent); text-decoration: none; }
+  .repo-branch { color: var(--color-fg-muted); margin-left: 0.15rem; }
   .status-badge { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
   .header-meta { display: flex; gap: 1rem; align-items: center; font-size: 0.8rem; color: var(--color-fg-muted); }
   .doc-id { font-family: monospace; }
 
-  /* F2: grid layout so sidebar can be sticky. F1: width follows --content-max. */
   .body {
     display: grid;
     grid-template-columns: var(--sidebar-w) 1fr;
@@ -195,6 +494,36 @@
   }
   .body.sidebar-collapsed {
     grid-template-columns: var(--sidebar-w-collapsed) 1fr;
+  }
+  .sidebar-col {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .sidebar-view-switch {
+    display: flex;
+    margin: 0.5rem 0.5rem 0;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .sv-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--color-fg-muted);
+    font-size: 0.75rem;
+    padding: 0.3rem 0.4rem;
+    cursor: pointer;
+    border-right: 1px solid var(--color-border);
+  }
+  .sv-btn:last-child { border-right: none; }
+  .sv-btn:hover { color: var(--color-fg); background: var(--color-bg-elev); }
+  .sv-btn.active {
+    background: var(--color-bg-inset);
+    color: var(--color-fg);
+    font-weight: 600;
   }
   .main {
     flex: 1;
@@ -205,7 +534,7 @@
     margin: 0 auto;
   }
 
-  .group-header { margin-bottom: 1.5rem; }
+  .group-header { margin-bottom: 1rem; }
   .group-header h2 { margin: 0 0 0.25rem; font-size: 1.3rem; }
   .group-desc { color: var(--color-fg-muted); margin: 0 0 0.75rem; }
   .group-files { display: flex; flex-wrap: wrap; gap: 0.4rem; }
@@ -215,11 +544,69 @@
     border-radius: 4px; padding: 0.1rem 0.5rem; color: var(--color-accent);
   }
 
+  .tab-strip {
+    display: flex; gap: 0.25rem;
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: 0.75rem;
+  }
+  .tab {
+    padding: 0.4rem 0.85rem;
+    font-size: 0.85rem;
+    color: var(--color-fg-muted);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+  .tab:hover { color: var(--color-fg); text-decoration: none; }
+  .tab-active {
+    color: var(--color-fg);
+    border-bottom-color: var(--color-accent);
+    font-weight: 600;
+  }
+  .tab-count { color: var(--color-fg-muted); margin-left: 0.25rem; font-weight: 400; }
+
+  .view-toggle {
+    display: inline-flex; align-items: center;
+    gap: 0; margin-bottom: 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .view-btn {
+    background: transparent;
+    border: none;
+    padding: 0.35rem 0.85rem;
+    color: var(--color-fg-muted);
+    font-size: 0.8rem;
+    cursor: pointer;
+    border-right: 1px solid var(--color-border);
+  }
+  .view-btn:last-of-type { border-right: none; }
+  .view-btn:hover:not(.disabled) { background: var(--color-bg-elev); color: var(--color-fg); }
+  .view-btn.active {
+    background: var(--color-accent);
+    color: var(--color-bg);
+    font-weight: 600;
+  }
+  .view-btn.disabled { opacity: 0.4; cursor: not-allowed; }
+  .view-hint {
+    margin-left: 0.75rem;
+    font-size: 0.7rem;
+    color: var(--color-fg-muted);
+    border: none;
+  }
+  .view-hint kbd {
+    background: var(--color-bg-inset);
+    border: 1px solid var(--color-border);
+    border-radius: 3px;
+    padding: 0 0.3rem;
+    font-family: monospace;
+    font-size: 0.7rem;
+  }
+
   .section-card {
     background: var(--color-bg-elev); border: 1px solid var(--color-border); border-radius: 8px;
     padding: 1.25rem; margin-bottom: 1rem;
   }
-  /* F1: cap prose width inside cards even when card itself is wide. */
   .section-card--prose :global(.markdown-body) {
     max-width: var(--reading-max);
   }
@@ -232,11 +619,55 @@
   }
   @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
   .section-error { color: var(--color-danger); font-size: 0.85rem; }
+  .diff-fallback { color: var(--color-fg-muted); font-style: italic; margin: 0; }
 
-  /* F2 mobile fallback: stack sidebar above main, no slide-over drawer in Wave A. */
+  .issues { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem; }
+  .issue {
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    background: var(--color-bg);
+  }
+  .issue-header { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.4rem; }
+  .issue-header h4 { margin: 0; font-size: 0.95rem; flex: 1; }
+  .issue-id { font-family: monospace; font-size: 0.75rem; color: var(--color-fg-muted); }
+  .issue-files { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.4rem; }
+  .raw-verdict { margin-top: 0.5rem; }
+  .raw-verdict summary { cursor: pointer; color: var(--color-fg-muted); font-size: 0.8rem; }
+
+  .split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  .split-left, .split-right { min-width: 0; }
+  .split-right .split-diff {
+    position: sticky;
+    top: calc(var(--app-nav-h) + var(--header-h) + 1rem);
+    max-height: calc(100vh - var(--app-nav-h) - var(--header-h) - 2rem);
+    overflow: auto;
+  }
+
+  .run-details {
+    margin-top: 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-bg-elev);
+    padding: 0.75rem 1rem;
+  }
+  .run-details > summary {
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--color-fg-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .run-details[open] > summary { margin-bottom: 0.75rem; }
+
   @media (max-width: 768px) {
     .body, .body.sidebar-collapsed {
       grid-template-columns: 1fr;
     }
+    .split { grid-template-columns: 1fr; }
   }
 </style>

@@ -1,0 +1,67 @@
+{
+  "$id": "https://raw.githubusercontent.com/alankyshum/semantic-diff/main/schemas/semantic-diff.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "definitions": {
+    "AiCli": {
+      "enum": [
+        "claude",
+        "copilot"
+      ],
+      "type": "string"
+    },
+    "CliConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "LlmProvider": {
+      "enum": [
+        "claude",
+        "copilot",
+        "cursor"
+      ],
+      "type": "string"
+    }
+  },
+  "description": "Raw on-disk JSON shape. Stable kebab/nested layout; used for both load and save.\n\nNote: `save()` writes plain JSON; any hand-edited comments in the existing JSONC file will be lost on save.",
+  "properties": {
+    "claude": {
+      "$ref": "#/definitions/CliConfig"
+    },
+    "copilot": {
+      "$ref": "#/definitions/CliConfig"
+    },
+    "cursor": {
+      "$ref": "#/definitions/CliConfig"
+    },
+    "llm-providers": {
+      "items": {
+        "$ref": "#/definitions/LlmProvider"
+      },
+      "type": [
+        "array",
+        "null"
+      ]
+    },
+    "preferred-ai-cli": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/AiCli"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "title": "SemanticDiffConfig",
+  "type": "object"
+}

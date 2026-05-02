@@ -34,7 +34,13 @@ tower-http = { version = "0.5", features = ["fs", "trace", "cors"] }
 tokio-stream = { version = "0.1", features = ["sync"] }
 include_dir = "0.7"
 open = "5"
+urlencoding = "2"
 blake3.workspace = true
+schemars.workspace = true
+
+[[bin]]
+name = "gen-schema"
+path = "src/bin/gen-schema.rs"
 
 [dev-dependencies]
 tempfile.workspace = true

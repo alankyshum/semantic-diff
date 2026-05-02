@@ -1,4 +1,7 @@
 pub mod llm;
+pub mod verdict;
+
+pub use verdict::{parse_verdict, FileAnchor, Issue, Severity};
 
 use serde::{Serialize, Deserialize};
 use std::collections::{HashMap, VecDeque};

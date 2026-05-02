@@ -51,7 +51,11 @@ fn build_section_prompt(section: ReviewSection, shared_context: &str, review_sou
             "Analyze the PURPOSE of these changes. Return a markdown list ranked by importance.\n\
              Each item: one sentence explaining why this change was made.\n\
              Focus on intent, not mechanics. Max 5 items.\n\
-             Return ONLY markdown, no code fences around the whole response.".to_string()
+             Return ONLY markdown, no code fences around the whole response.\n\n\
+             If the requirement chain is non-trivial, add ONE optional `mindmap` block at the\n\
+             end tracing lineage: root = user-visible goal, children = sub-goals, leaves =\n\
+             concrete files/functions changed. Keep it to ≤ 20 nodes. Skip the mindmap entirely\n\
+             for trivial changes.".to_string()
         }
         ReviewSection::What => {
             "Describe the BEHAVIORAL CHANGES as a markdown table with columns:\n\
@@ -62,26 +66,20 @@ fn build_section_prompt(section: ReviewSection, shared_context: &str, review_sou
              Return ONLY the markdown table.".to_string()
         }
         ReviewSection::How => {
-            // Updated prompt per plan §3.7: always emit Before/After Mermaid, never SKIP
-            "Produce a Mermaid diagram contrasting BEFORE and AFTER for these changes.\n\
-             REQUIRED format:\n\n\
-             ```mermaid\n\
-             flowchart LR\n\
-                 subgraph Before\n\
-                     ...nodes/edges showing existing flow...\n\
-                 end\n\
-                 subgraph After\n\
-                     ...nodes/edges showing new flow...\n\
-                 end\n\
-             ```\n\n\
-             Rules:\n\
-             - Always include both subgraphs.\n\
-             - Label nodes with concepts (e.g. \"Client\", \"Auth Service\", \"Cache\"), not code symbols.\n\
-             - Label edges with outcome-focused short text.\n\
-             - If the change does NOT alter data/control flow (pure rename, dep bump, docs), still emit\n\
-               both subgraphs but make them identical and add a node \"(unchanged)\".\n\
-             - Do NOT use SKIP. Always return a mermaid block.\n\
-             Return ONLY the mermaid code block.".to_string()
+            "Explain HOW the change is implemented. Use 1-3 mermaid diagrams chosen from this\n\
+             menu, picking the type(s) that best illustrate THIS change:\n\
+             - `flowchart` (e.g. with Before/After subgraphs) — default for general code\n\
+               restructuring.\n\
+             - `sequenceDiagram` — when control flow / call ordering changed.\n\
+             - `stateDiagram-v2` — for state machine or status field changes.\n\
+             - `classDiagram` — for type, struct, trait, or interface refactors.\n\
+             - `erDiagram` — for schema or data model changes.\n\n\
+             Prefer one focused diagram over many. Output 1 to 3 fenced ```mermaid blocks total.\n\
+             Each ```mermaid block MUST start with a `%% <intent>` comment line so readers know\n\
+             why that diagram is there.\n\n\
+             Follow the diagrams with a short prose section (≤ 200 words) walking through the\n\
+             diff highlights.\n\n\
+             Output markdown only (the mermaid blocks plus the prose).".to_string()
         }
         ReviewSection::Verdict => {
             let skill_preamble = match review_source {
@@ -105,9 +103,12 @@ fn build_section_prompt(section: ReviewSection, shared_context: &str, review_sou
                  If a `.claude/rules/` or `.linkedin/ai-agent/` directory exists in the repo, \
                  fold its rules into your analysis.\n\n\
                  If no high-severity issues found, say \"No high-severity issues detected.\"\n\
-                 Return markdown with ## headings per issue found. Max 3 issues.\n\
-                 Prefix each issue heading with a bug number like RV-1, RV-2, etc.\n\
-                 Example: ## RV-1: Potential null dereference in auth handler\n\
+                 Format EACH issue as:\n\
+                 ### RV-<n> [<SEVERITY>] <short title>\n\
+                 <body markdown>\n\n\
+                 <SEVERITY> must be one of: Critical, High, Medium, Low, Nit, Info.\n\
+                 Use only ### (H3) for issue headings; do not use ## or # for issues.\n\
+                 Number issues sequentially (RV-1, RV-2, ...). Max 3 issues.\n\
                  This allows users to reference specific findings when asking their AI assistant to fix them.",
                 skill_preamble
             )
@@ -158,27 +159,39 @@ mod tests {
     }
 
     #[test]
-    fn test_how_prompt_always_has_subgraph_before() {
+    fn test_how_prompt_lists_diagram_menu() {
         let group = make_group("Auth refactor");
         let diff = empty_diff();
         let source = ReviewSource::BuiltIn;
         let prompt = build_review_prompt(ReviewSection::How, &group, &diff, &source);
-        assert!(
-            prompt.contains("subgraph Before"),
-            "HOW prompt must always contain 'subgraph Before', got: {}",
-            prompt
-        );
+        for needle in &[
+            "sequenceDiagram",
+            "stateDiagram-v2",
+            "classDiagram",
+            "erDiagram",
+            "flowchart",
+            "mermaid",
+            "1 to 3",
+            "%%",
+        ] {
+            assert!(
+                prompt.contains(needle),
+                "HOW prompt must contain {:?}, got: {}",
+                needle,
+                prompt
+            );
+        }
     }
 
     #[test]
-    fn test_how_prompt_always_has_subgraph_after() {
+    fn test_how_prompt_no_longer_mandates_subgraph_before() {
         let group = make_group("DB migration");
         let diff = empty_diff();
         let source = ReviewSource::BuiltIn;
         let prompt = build_review_prompt(ReviewSection::How, &group, &diff, &source);
         assert!(
-            prompt.contains("subgraph After"),
-            "HOW prompt must always contain 'subgraph After', got: {}",
+            !prompt.contains("subgraph Before"),
+            "HOW prompt must not mandate literal 'subgraph Before' anymore, got: {}",
             prompt
         );
     }
@@ -189,7 +202,6 @@ mod tests {
         let diff = empty_diff();
         let source = ReviewSource::BuiltIn;
         let prompt = build_review_prompt(ReviewSection::How, &group, &diff, &source);
-        // Verify SKIP instruction is gone
         assert!(
             !prompt.contains("return exactly the text: SKIP"),
             "HOW prompt must not contain old SKIP instruction"
@@ -197,15 +209,64 @@ mod tests {
     }
 
     #[test]
-    fn test_how_prompt_flowchart_lr() {
+    fn test_why_prompt_mentions_optional_mindmap() {
         let group = make_group("Retry logic");
         let diff = empty_diff();
         let source = ReviewSource::BuiltIn;
-        let prompt = build_review_prompt(ReviewSection::How, &group, &diff, &source);
+        let prompt = build_review_prompt(ReviewSection::Why, &group, &diff, &source);
         assert!(
-            prompt.contains("flowchart LR"),
-            "HOW prompt must specify flowchart LR"
+            prompt.contains("mindmap"),
+            "WHY prompt must mention 'mindmap', got: {}",
+            prompt
         );
+        assert!(
+            prompt.contains("optional"),
+            "WHY prompt must mark mindmap as 'optional', got: {}",
+            prompt
+        );
+    }
+
+    #[test]
+    fn test_how_and_why_prompts_include_shared_context() {
+        // Build a group with one change and matching diff hunk so shared context emits FILE/HUNK.
+        use crate::diff::{DiffFile, DiffLine, Hunk, LineType};
+        use crate::grouper::GroupedChange;
+
+        let change = GroupedChange { file: "src/foo.rs".to_string(), hunks: vec![0] };
+        let group = SemanticGroup::new(
+            "Foo group".to_string(),
+            "desc".to_string(),
+            vec![change],
+        );
+        let hunk = Hunk {
+            header: String::new(),
+            source_start: 1,
+            target_start: 1,
+            lines: vec![DiffLine {
+                line_type: LineType::Context,
+                content: "fn foo() {}".to_string(),
+                inline_segments: None,
+            }],
+        };
+        let file = DiffFile {
+            source_file: "a/src/foo.rs".to_string(),
+            target_file: "b/src/foo.rs".to_string(),
+            is_rename: false,
+            is_untracked: false,
+            hunks: vec![hunk],
+            added_count: 0,
+            removed_count: 0,
+        };
+        let diff = DiffData { files: vec![file], binary_files: vec![] };
+        let source = ReviewSource::BuiltIn;
+
+        let how = build_review_prompt(ReviewSection::How, &group, &diff, &source);
+        let why = build_review_prompt(ReviewSection::Why, &group, &diff, &source);
+
+        for prompt in &[&how, &why] {
+            assert!(prompt.contains("FILE: src/foo.rs"), "missing FILE marker: {}", prompt);
+            assert!(prompt.contains("HUNK 0:"), "missing HUNK marker: {}", prompt);
+        }
     }
 
     #[test]
