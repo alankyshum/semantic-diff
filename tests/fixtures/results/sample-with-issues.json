@@ -525,8 +525,8 @@
   "groups": [
     {
       "id": "g0",
-      "label": "All changes",
-      "description": "All files in the diff",
+      "label": "LLM backend plumbing",
+      "description": "New invoke_llm / invoke_llm_text helpers and Claude text-output variant",
       "changes": [
         {
           "file": "src/grouper/llm.rs",
@@ -535,6 +535,19 @@
       ],
       "content_hash": "5fec573e3316e3f5",
       "unified_diff": "diff --git a/src/grouper/llm.rs b/src/grouper/llm.rs\n--- a/src/grouper/llm.rs\n+++ b/src/grouper/llm.rs\n@@ -231,6 +231,32 @@\n     Ok(validated_groups)\n }\n \n+/// Invoke the detected LLM backend with a raw prompt and return the text response.\n+/// Uses JSON output format (for structured responses like grouping).\n+pub async fn invoke_llm(\n+    backend: LlmBackend,\n+    model: &str,\n+    prompt: &str,\n+) -> anyhow::Result<String> {\n+    match backend {\n+        LlmBackend::Claude => invoke_claude(prompt, model).await,\n+        LlmBackend::Copilot => invoke_copilot(prompt, model).await,\n+    }\n+}\n+\n+/// Invoke the LLM backend with text output format (for free-form markdown responses).\n+/// For Claude, uses `--output-format text` instead of JSON to avoid the wrapper.\n+pub async fn invoke_llm_text(\n+    backend: LlmBackend,\n+    model: &str,\n+    prompt: &str,\n+) -> anyhow::Result<String> {\n+    match backend {\n+        LlmBackend::Claude => invoke_claude_text(prompt, model).await,\n+        LlmBackend::Copilot => invoke_copilot(prompt, model).await,\n+    }\n+}\n+\n /// Invoke the `claude` CLI and return the LLM response text.\n ///\n /// Pipes the prompt via stdin to avoid exposing code diffs in the process table.\n@@ -292,6 +318,65 @@\n     Ok(result_text.to_string())\n }\n \n+/// Invoke the `claude` CLI with text output format (no JSON wrapper).\n+/// Used for free-form responses like review summaries.\n+async fn invoke_claude_text(prompt: &str, model: &str) -> anyhow::Result<String> {\n+    use std::process::Stdio;\n+    use tokio::io::{AsyncReadExt, AsyncWriteExt};\n+\n+    let mut child = Command::new(\"claude\")\n+        .args([\n+            \"-p\",\n+            \"--output-format\",\n+            \"text\",\n+            \"--model\",\n+            model,\n+        ])\n+        .stdin(Stdio::piped())\n+        .stdout(Stdio::piped())\n+        .stderr(Stdio::piped())\n+        .spawn()?;\n+\n+    if let Some(mut stdin) = child.stdin.take() {\n+        stdin.write_all(prompt.as_bytes()).await?;\n+    }\n+\n+    // Read stdout and stderr concurrently to avoid deadlock if stderr pipe fills up\n+    let stdout_pipe = child.stdout.take()\n+        .ok_or_else(|| anyhow::anyhow!(\"failed to capture claude stdout\"))?;\n+    let stderr_pipe = child.stderr.take();\n+\n+    let stdout_fut = async {\n+        let mut limited = stdout_pipe.take(MAX_RESPONSE_BYTES as u64);\n+        let mut buf = Vec::with_capacity(8192);\n+        let bytes_read = limited.read_to_end(&mut buf).await?;\n+        Ok::<(Vec<u8>, usize), std::io::Error>((buf, bytes_read))\n+    };\n+    let stderr_fut = async {\n+        let mut stderr_buf = Vec::new();\n+        if let Some(mut stderr) = stderr_pipe {\n+            stderr.read_to_end(&mut stderr_buf).await.ok();\n+        }\n+        stderr_buf\n+    };\n+\n+    let (stdout_result, stderr_buf) = tokio::join!(stdout_fut, stderr_fut);\n+    let (buf, bytes_read) = stdout_result?;\n+\n+    if bytes_read >= MAX_RESPONSE_BYTES {\n+        child.kill().await.ok();\n+        anyhow::bail!(\"LLM response exceeded {MAX_RESPONSE_BYTES} byte limit\");\n+    }\n+\n+    let status = child.wait().await?;\n+    if !status.success() {\n+        let stderr_str = String::from_utf8_lossy(&stderr_buf);\n+        anyhow::bail!(\"claude exited with status {status}: {stderr_str}\");\n+    }\n+\n+    Ok(String::from_utf8(buf)?)\n+}\n+\n /// Invoke `copilot --yolo` and return the LLM response text.\n ///\n /// Pipes the prompt via stdin to avoid exposing code diffs in the process table.\n"
+    },
+    {
+      "id": "g1",
+      "label": "Semantic grouper hardening",
+      "description": "Cache synchronization and error-context improvements in semantic.rs",
+      "changes": [
+        {
+          "file": "src/grouper/semantic.rs",
+          "hunks": []
+        }
+      ],
+      "content_hash": "a1b2c3d4e5f67890",
+      "unified_diff": "diff --git a/src/grouper/semantic.rs b/src/grouper/semantic.rs\n--- a/src/grouper/semantic.rs\n+++ b/src/grouper/semantic.rs\n@@ -15,4 +15,6 @@\n+    // synchronize cache writes\n+    let _lock = cache.write().await;\n"
     }
   ],
   "reviews": {
@@ -546,7 +559,7 @@
       },
       "sections": {
         "VERDICT": {
-          "state": "ok",
+          "state": "ready",
           "content": "### RV-1 [CRITICAL] Possible null deref in parser\n\nThe parser may dereference a null pointer when input is empty.\n\n_src/grouper/llm.rs:42_\n\n### RV-2 [HIGH] Race condition in cache eviction\n\nConcurrent writes to the cache are not synchronized.\n\n_src/grouper/semantic.rs:17_\n\n### RV-3 [MEDIUM] Inefficient O(n\u00b2) loop\n\nReplace with a hashmap lookup.\n\n_src/grouper/llm.rs:88_\n\n### RV-4 [MEDIUM] Missing error context\n\nWrap with `.context()` to preserve provenance.\n\n_src/grouper/semantic.rs:33_\n\n### RV-5 [LOW] Unused import\n\nRemove `use std::collections::BTreeMap;`.\n\n_src/grouper/llm.rs:3_\n"
         },
         "HOW": {
@@ -579,21 +592,6 @@
           ]
         },
         {
-          "id": "RV-2",
-          "severity": "high",
-          "title": "Race condition in cache eviction",
-          "body_md": "Concurrent writes to the cache are not synchronized.",
-          "files": [
-            "src/grouper/semantic.rs"
-          ],
-          "anchors": [
-            {
-              "file": "src/grouper/semantic.rs",
-              "line": 17
-            }
-          ]
-        },
-        {
           "id": "RV-3",
           "severity": "medium",
           "title": "Inefficient O(n\u00b2) loop",
@@ -609,21 +607,6 @@
           ]
         },
         {
-          "id": "RV-4",
-          "severity": "medium",
-          "title": "Missing error context",
-          "body_md": "Wrap with `.context()` to preserve provenance.",
-          "files": [
-            "src/grouper/semantic.rs"
-          ],
-          "anchors": [
-            {
-              "file": "src/grouper/semantic.rs",
-              "line": 33
-            }
-          ]
-        },
-        {
           "id": "RV-5",
           "severity": "low",
           "title": "Unused import",
@@ -635,6 +618,63 @@
             {
               "file": "src/grouper/llm.rs",
               "line": 3
+            }
+          ]
+        }
+      ]
+    },
+    "g1": {
+      "source": {
+        "kind": "skill",
+        "name": "review",
+        "path": ".claude/skills/review.md"
+      },
+      "sections": {
+        "VERDICT": {
+          "state": "ready",
+          "content": "### RV-2 [HIGH] Race condition in cache eviction\n\nConcurrent writes to the cache are not synchronized.\n\n_src/grouper/semantic.rs:17_\n\n### RV-4 [MEDIUM] Missing error context\n\nWrap with `.context()` to preserve provenance.\n\n_src/grouper/semantic.rs:33_\n"
+        },
+        "HOW": {
+          "state": "error",
+          "content": "skipped (--no-llm)"
+        },
+        "WHAT": {
+          "state": "error",
+          "content": "skipped (--no-llm)"
+        },
+        "WHY": {
+          "state": "error",
+          "content": "skipped (--no-llm)"
+        }
+      },
+      "verdict_issues": [
+        {
+          "id": "RV-2",
+          "severity": "high",
+          "title": "Race condition in cache eviction",
+          "body_md": "Concurrent writes to the cache are not synchronized.",
+          "files": [
+            "src/grouper/semantic.rs"
+          ],
+          "anchors": [
+            {
+              "file": "src/grouper/semantic.rs",
+              "line": 17
+            }
+          ]
+        },
+        {
+          "id": "RV-4",
+          "severity": "medium",
+          "title": "Missing error context",
+          "body_md": "Wrap with `.context()` to preserve provenance.",
+          "files": [
+            "src/grouper/semantic.rs"
+          ],
+          "anchors": [
+            {
+              "file": "src/grouper/semantic.rs",
+              "line": 33
             }
           ]
         }
@@ -687,7 +727,14 @@
       "group_ids": [
         "g0"
       ]
+    },
+    {
+      "path": "src/grouper/semantic.rs",
+      "add_lines": 2,
+      "del_lines": 0,
+      "group_ids": [
+        "g1"
+      ]
     }
-  ],
-  "_e2e_note": "Only 1 group present \u2014 F13 group-filter test should be skipped for this fixture."
+  ]
 }

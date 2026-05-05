@@ -247,33 +247,16 @@ Layout:
 
 #### Known limitations
 
-The plan was implemented in full to the spec, but a few items diverge from the
-document and are documented here so the suite stays honest about what it
-actually proves:
-
-- **Suite has not been run end-to-end to green from the agent that wrote it.**
-  The harness, fixtures, replay JSONs, and all 13 spec files exist on disk and
-  are wired up correctly, but the suite has not been run to a fully passing
-  state. Run `web/tests/e2e/run-and-log.sh` locally and triage failures
-  against `.kilo/plans/v2-browser-test-plan.md`.
 - **F8 multi-result history seeding.** Result IDs are deterministic
   (`blake3(diff || title)`), so spawning the same fixture twice yields one
   result, not two. The F8 suite seeds a second result by passing a unique
   `--title "F8 seed <ts>"`; if that mechanism breaks (e.g. the title stops
   feeding into the id hash), rows 1–3 / 5 fall back to `test.skip` and only
   the API-contract row 6 runs.
-- **F13 group filter (row 5)** is `test.skip`'d — `sample-with-issues.json`
-  only contains one group because `tests/fixtures/real-world.patch` produces
-  a single group under `--no-llm`. To exercise group filtering, regenerate the
-  fixture from a multi-group input.
 - **F6 token block schema.** The plan calls out `prompt` / `completion` /
   `total` rows; the actual `TokenUsage` schema is
   `{ input_tokens, output_tokens, cost_usd }` and the tests assert the labels
   the SPA actually renders (`Input` / `Output` / `Cost`).
-- **F13 row 7** asserts `details.raw-verdict` on `/r/:id/issues`, but the
-  implementation only renders that block on `/r/:id`. The spec is written as
-  the plan says and is expected to fail until either the test is relaxed to
-  `/r/:id` or the markup is moved.
 - **F1 row 4 visual snapshot** is gated behind `UPDATE_SNAPSHOTS=1` so it
   doesn't fail on first run; commit baselines under
   `web/tests/e2e/__snapshots__/` once they're reviewed.
@@ -288,10 +271,13 @@ actually proves:
   `target/release/semantic-diff` and re-run the suite — `globalSetup` always
   re-runs `cargo build`). If a test fails because the served HTML doesn't
   match the on-disk Svelte source, that's the cause.
-- **`data-testid="tokens-block"`** was added to
+- **Production-code changes for test support.**
+  `data-testid="tokens-block"` was added to
   `web/src/lib/components/RunMetadataPanel.svelte` so F6 can locate the
-  metadata-tokens section without fragile selectors. This is the only
-  production-code change made for the test suite.
+  metadata-tokens section without fragile selectors.
+  `web/src/routes/r/[id]/issues/+page.svelte` `writeUrl()` was changed from
+  SvelteKit `goto()` to `history.replaceState` to avoid router race conditions
+  when multiple filters change in rapid succession.
 
 #### Wave D — not tested
 

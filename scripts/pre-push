@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# pre-push hook for semantic-diff
+# Install: git config core.hooksPath scripts
+#
+# Enforces two gates before pushing:
+#   1. Version bump — workspace version in Cargo.toml must differ from origin.
+#   2. Code review — at least one commit since the remote HEAD must contain
+#      a Reviewed-by or Acked-by trailer (case-insensitive).
+#
+# Bypass with:  git push --no-verify
+
+REMOTE="$1"
+# shellcheck disable=SC2034
+URL="$2"
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BOLD='\033[1m'
+RESET='\033[0m'
+
+fail() { echo -e "${RED}${BOLD}pre-push:${RESET}${RED} $1${RESET}" >&2; exit 1; }
+info() { echo -e "${GREEN}pre-push:${RESET} $1"; }
+
+# ── 1. Version bump check ───────────────────────────────────────────────────
+
+LOCAL_VERSION=$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')
+REMOTE_VERSION=$(git show "${REMOTE}/main:Cargo.toml" 2>/dev/null \
+  | grep -m1 '^version' \
+  | sed 's/.*"\(.*\)".*/\1/' || echo "")
+
+if [ -z "$REMOTE_VERSION" ]; then
+  info "No remote Cargo.toml found (new repo?) — skipping version check."
+elif [ "$LOCAL_VERSION" = "$REMOTE_VERSION" ]; then
+  fail "Version not bumped. Local and remote are both ${LOCAL_VERSION}.
+  Bump [workspace.package] version in Cargo.toml before pushing."
+else
+  info "Version bump OK: ${REMOTE_VERSION} → ${LOCAL_VERSION}"
+fi
+
+# ── 2. Code review trailer check ────────────────────────────────────────────
+
+# Determine the range of new commits being pushed.
+while read -r local_ref local_oid remote_ref remote_oid; do
+  # Skip delete pushes.
+  if [ "$local_oid" = "0000000000000000000000000000000000000000" ]; then
+    continue
+  fi
+
+  # New branch — compare against remote default branch.
+  if [ "$remote_oid" = "0000000000000000000000000000000000000000" ]; then
+    RANGE="${REMOTE}/main..${local_oid}"
+  else
+    RANGE="${remote_oid}..${local_oid}"
+  fi
+
+  COMMIT_COUNT=$(git rev-list --count "$RANGE" 2>/dev/null || echo 0)
+  if [ "$COMMIT_COUNT" -eq 0 ]; then
+    continue
+  fi
+
+  # Check for at least one commit with a review trailer.
+  REVIEWED=$(git log --format='%B' "$RANGE" \
+    | grep -ciE '^\s*(Reviewed-by|Acked-by):' || true)
+
+  if [ "$REVIEWED" -eq 0 ]; then
+    fail "No reviewed commits in ${COMMIT_COUNT} new commit(s) on ${local_ref}.
+  At least one commit must contain a 'Reviewed-by:' or 'Acked-by:' trailer.
+  Example:  git commit --amend --trailer 'Reviewed-by: Alice <alice@example.com>'"
+  else
+    info "Code review OK: ${REVIEWED} review trailer(s) found in ${COMMIT_COUNT} commit(s)."
+  fi
+done
+
+exit 0

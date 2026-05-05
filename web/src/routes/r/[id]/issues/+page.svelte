@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
-  import { goto } from '$app/navigation';
   import { fetchResult } from '$lib/api';
   import type { ResultDocument, Issue, Severity } from '$lib/types';
   import SeverityBadge from '$lib/components/SeverityBadge.svelte';
@@ -44,8 +43,8 @@
     if (fileFilter) sp.set('file', fileFilter);
     if (groupFilter) sp.set('group', groupFilter);
     const qs = sp.toString();
-    const target = qs ? `?${qs}` : '';
-    goto(target, { replaceState: true, keepFocus: true, noScroll: true });
+    const target = qs ? `${location.pathname}?${qs}` : location.pathname;
+    history.replaceState(history.state, '', target);
   }
 
   function toggleSev(s: Severity) {
