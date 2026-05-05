@@ -98,13 +98,15 @@
   {/if}
 
   {#if metadata.tokens}
-    <h4>Tokens</h4>
-    <dl class="grid">
-      <dt>Input</dt><dd>{metadata.tokens.input_tokens ?? '–'}</dd>
-      <dt>Output</dt><dd>{metadata.tokens.output_tokens ?? '–'}</dd>
-      <dt>Cost</dt>
-      <dd>{metadata.tokens.cost_usd != null ? `$${metadata.tokens.cost_usd.toFixed(4)}` : '–'}</dd>
-    </dl>
+    <section class="tokens-block" data-testid="tokens-block">
+      <h4>Tokens</h4>
+      <dl class="grid">
+        <dt>Input</dt><dd>{metadata.tokens.input_tokens ?? '–'}</dd>
+        <dt>Output</dt><dd>{metadata.tokens.output_tokens ?? '–'}</dd>
+        <dt>Cost</dt>
+        <dd>{metadata.tokens.cost_usd != null ? `$${metadata.tokens.cost_usd.toFixed(4)}` : '–'}</dd>
+      </dl>
+    </section>
   {/if}
 
   {#if metadata.skill_files?.length}
