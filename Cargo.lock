@@ -1500,7 +1500,7 @@ dependencies = [
 
 [[package]]
 name = "semantic-diff-cli"
-version = "0.10.0"
+version = "0.10.1"
 dependencies = [
  "anyhow",
  "axum",
@@ -1528,7 +1528,7 @@ dependencies = [
 
 [[package]]
 name = "semantic-diff-core"
-version = "0.10.0"
+version = "0.10.1"
 dependencies = [
  "anyhow",
  "blake3",

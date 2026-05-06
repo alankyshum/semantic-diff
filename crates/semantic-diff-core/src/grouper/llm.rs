@@ -15,18 +15,18 @@ const MAX_LABEL_LEN: usize = 80;
 /// Maximum description length (characters).
 const MAX_DESC_LEN: usize = 500;
 
-/// Request semantic grouping from the configured LLM CLI providers with a 60-second timeout.
+/// Request semantic grouping from the configured LLM CLI providers with a 180-second timeout.
 pub async fn request_grouping_with_timeout(
     providers: &[LlmProvider],
     config: &Config,
     summaries: &str,
 ) -> anyhow::Result<Vec<SemanticGroup>> {
     tokio::time::timeout(
-        Duration::from_secs(60),
+        Duration::from_secs(180),
         request_grouping(providers, config, summaries),
     )
     .await
-    .map_err(|_| anyhow::anyhow!("LLM timed out after 60s"))?
+    .map_err(|_| anyhow::anyhow!("LLM timed out after 180s"))?
 }
 
 /// Invoke the LLM backend to group hunks by semantic intent.
@@ -130,11 +130,11 @@ pub async fn request_incremental_grouping(
     summaries: &str,
 ) -> anyhow::Result<Vec<SemanticGroup>> {
     tokio::time::timeout(
-        Duration::from_secs(60),
+        Duration::from_secs(180),
         request_incremental(providers, config, summaries),
     )
     .await
-    .map_err(|_| anyhow::anyhow!("LLM timed out after 60s"))?
+    .map_err(|_| anyhow::anyhow!("LLM timed out after 180s"))?
 }
 
 async fn request_incremental(

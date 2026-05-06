@@ -37,7 +37,7 @@ export function subscribeToResult(
     const groupId = e.data as string;
     if (groupId === 'complete') {
       onComplete();
-      es.close();
+      // Don't close — keep listening for rerun updates.
     } else {
       onUpdate(groupId);
     }

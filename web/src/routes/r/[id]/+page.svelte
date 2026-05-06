@@ -6,6 +6,7 @@
   import type { ResultDocument, ResultSummary } from '$lib/types';
   import { register, paletteItems, type PaletteItem } from '$lib/keyboard';
   import Mermaid from '$lib/components/Mermaid.svelte';
+  import Mindmap from '$lib/components/Mindmap.svelte';
   import MarkdownView from '$lib/components/MarkdownView.svelte';
   import SeverityBadge from '$lib/components/SeverityBadge.svelte';
   import GroupSidebar from '$lib/components/GroupSidebar.svelte';
@@ -14,6 +15,11 @@
   import RepoHistoryNav from '$lib/components/RepoHistoryNav.svelte';
   import RerunButton from '$lib/components/RerunButton.svelte';
   import { statusColor } from '$lib/util/date';
+
+  /** True when content has a mindmap/markmap fenced block. */
+  function hasMindmap(content: string | undefined): boolean {
+    return !!content && /```(?:mindmap|markmap)\n/.test(content);
+  }
 
   /** True when the section is `ready` or `error` (i.e. not currently loading). */
   function canRerun(state: string | undefined): boolean {
@@ -79,14 +85,13 @@
           }
         } catch { /* ignore */ }
       }
-      // Subscribe to updates if still running
-      if (doc?.status === 'running') {
-        unsubscribe = subscribeToResult(
-          resultId,
-          async () => { doc = await fetchResult(resultId); },
-          async () => { doc = await fetchResult(resultId); }
-        );
-      }
+      // Always subscribe to SSE so rerun updates are received even after
+      // the initial run completes.
+      unsubscribe = subscribeToResult(
+        resultId,
+        async () => { doc = await fetchResult(resultId); },
+        async () => { doc = await fetchResult(resultId); }
+      );
     } catch (e) {
       error = String(e);
       loading = false;
@@ -509,6 +514,8 @@
                     {:else if selectedReview.sections[section]?.state === 'ready'}
                       {#if section === 'HOW'}
                         <Mermaid content={selectedReview.sections[section].content ?? ''} />
+                      {:else if section === 'WHY' && hasMindmap(selectedReview.sections[section]?.content)}
+                        <Mindmap content={selectedReview.sections[section].content ?? ''} />
                       {:else if section === 'VERDICT'}
                         {#if selectedReview.verdict_issues && selectedReview.verdict_issues.length > 0}
                           <div class="issues">
@@ -567,7 +574,11 @@
               {#if selectedReview.sections.WHY?.state === 'loading'}
                 <div class="skeleton">Analyzing intent…</div>
               {:else if selectedReview.sections.WHY?.state === 'ready'}
-                <MarkdownView content={selectedReview.sections.WHY.content ?? ''} />
+                {#if hasMindmap(selectedReview.sections.WHY.content)}
+                  <Mindmap content={selectedReview.sections.WHY.content ?? ''} />
+                {:else}
+                  <MarkdownView content={selectedReview.sections.WHY.content ?? ''} />
+                {/if}
               {:else if selectedReview.sections.WHY?.state === 'error'}
                 <div class="section-error">{selectedReview.sections.WHY.content}</div>
               {/if}

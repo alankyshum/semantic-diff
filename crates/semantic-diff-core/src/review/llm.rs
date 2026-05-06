@@ -52,10 +52,10 @@ fn build_section_prompt(section: ReviewSection, shared_context: &str, review_sou
              Each item: one sentence explaining why this change was made.\n\
              Focus on intent, not mechanics. Max 5 items.\n\
              Return ONLY markdown, no code fences around the whole response.\n\n\
-             If the requirement chain is non-trivial, add ONE optional `mindmap` block at the\n\
-             end tracing lineage: root = user-visible goal, children = sub-goals, leaves =\n\
-             concrete files/functions changed. Keep it to ≤ 20 nodes. Skip the mindmap entirely\n\
-             for trivial changes.".to_string()
+             If the requirement chain is non-trivial, add ONE optional ```markmap block at the\n\
+             end tracing lineage using markdown heading hierarchy (# root goal, ## sub-goals,\n\
+             ### concrete files/functions changed). Keep it to ≤ 20 nodes. Skip the markmap\n\
+             entirely for trivial changes.".to_string()
         }
         ReviewSection::What => {
             "Describe the BEHAVIORAL CHANGES as a markdown table with columns:\n\
@@ -74,6 +74,11 @@ fn build_section_prompt(section: ReviewSection, shared_context: &str, review_sou
              - `stateDiagram-v2` — for state machine or status field changes.\n\
              - `classDiagram` — for type, struct, trait, or interface refactors.\n\
              - `erDiagram` — for schema or data model changes.\n\n\
+             **Highlighting changed parts:** For `flowchart` diagrams, mark nodes that were\n\
+             added or modified with the `:::changed` class suffix (e.g. `B[\"new handler\"]:::changed`).\n\
+             For changed edges, add a `linkStyle` line with stroke color `#d29922` to highlight them.\n\
+             For `sequenceDiagram`, use `activate`/`deactivate` or `note` annotations to mark changed\n\
+             interactions. This makes it immediately clear which parts of the diagram are new or modified.\n\n\
              Prefer one focused diagram over many. Output 1 to 3 fenced ```mermaid blocks total.\n\
              Each ```mermaid block MUST start with a `%% <intent>` comment line so readers know\n\
              why that diagram is there.\n\n\
@@ -129,7 +134,7 @@ pub fn build_review_prompt(
     build_section_prompt(section, &shared, review_source)
 }
 
-/// Invoke the LLM for a single review section with a 120-second timeout.
+/// Invoke the LLM for a single review section with a 300-second timeout.
 ///
 /// Returns the full [`LlmInvocation`] so callers can capture token/cost
 /// metadata (F6/F20). Use `.text` for the response body.
@@ -140,12 +145,12 @@ pub async fn invoke_review_section(
 ) -> Result<LlmInvocation, String> {
     use std::time::Duration;
     match tokio::time::timeout(
-        Duration::from_secs(120),
+        Duration::from_secs(300),
         invoke_llm_full(providers, config, prompt),
     ).await {
         Ok(Ok(invocation)) => Ok(invocation),
         Ok(Err(e)) => Err(e.to_string()),
-        Err(_) => Err("LLM timed out after 120s".to_string()),
+        Err(_) => Err("LLM timed out after 300s".to_string()),
     }
 }
 
@@ -176,6 +181,8 @@ mod tests {
             "mermaid",
             "1 to 3",
             "%%",
+            ":::changed",
+            "linkStyle",
         ] {
             assert!(
                 prompt.contains(needle),
@@ -212,19 +219,19 @@ mod tests {
     }
 
     #[test]
-    fn test_why_prompt_mentions_optional_mindmap() {
+    fn test_why_prompt_mentions_optional_markmap() {
         let group = make_group("Retry logic");
         let diff = empty_diff();
         let source = ReviewSource::BuiltIn;
         let prompt = build_review_prompt(ReviewSection::Why, &group, &diff, &source);
         assert!(
-            prompt.contains("mindmap"),
-            "WHY prompt must mention 'mindmap', got: {}",
+            prompt.contains("markmap"),
+            "WHY prompt must mention 'markmap', got: {}",
             prompt
         );
         assert!(
             prompt.contains("optional"),
-            "WHY prompt must mark mindmap as 'optional', got: {}",
+            "WHY prompt must mark markmap as 'optional', got: {}",
             prompt
         );
     }

@@ -131,7 +131,7 @@ impl Config {
     pub fn default_config() -> Self {
         Self {
             preferred_ai_cli: None,
-            claude_model: "haiku".to_string(),
+            claude_model: "sonnet".to_string(),
             copilot_model: "gemini-flash".to_string(),
             cursor_model: "auto".to_string(),
             llm_providers: default_provider_order(),
@@ -233,8 +233,8 @@ const DEFAULT_CONFIG: &str = r#"{
 
   // Claude CLI settings
   "claude": {
-    // Model: "haiku" (fast, default), "sonnet" (balanced), "opus" (powerful)
-    "model": "haiku"
+    // Model: "haiku" (fast), "sonnet" (balanced, default), "opus" (powerful)
+    "model": "sonnet"
   },
 
   // Copilot CLI settings
@@ -306,7 +306,7 @@ fn load_from(path: &Path) -> Config {
 }
 
 fn resolve_model_for_claude(model: Option<&str>) -> String {
-    let tier = model.map(model_tier).unwrap_or(ModelTier::Fast);
+    let tier = model.map(model_tier).unwrap_or(ModelTier::Balanced);
     match tier {
         ModelTier::Fast => "haiku",
         ModelTier::Balanced => "sonnet",
@@ -415,7 +415,7 @@ mod tests {
         let stripped = strip_json_comments(DEFAULT_CONFIG);
         let raw: RawConfig = serde_json::from_str(&stripped).unwrap();
         assert!(raw.preferred_ai_cli.is_none());
-        assert_eq!(raw.claude.model.as_deref(), Some("haiku"));
+        assert_eq!(raw.claude.model.as_deref(), Some("sonnet"));
         assert_eq!(raw.copilot.model.as_deref(), Some("gemini-flash"));
     }
 
