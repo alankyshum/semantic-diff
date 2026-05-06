@@ -58,12 +58,21 @@ fn build_section_prompt(section: ReviewSection, shared_context: &str, review_sou
              entirely for trivial changes.".to_string()
         }
         ReviewSection::What => {
-            "Describe the BEHAVIORAL CHANGES as a markdown table with columns:\n\
-             | Component | Before | After | Risk |\n\n\
+            "Describe the BEHAVIORAL CHANGES as a JSON array. Each element:\n\
+             {\"component\":\"...\",\"before\":\"...\",\"after\":\"...\",\"risk\":\"none|low|medium|high\"}\n\n\
              Focus on observable behavior differences, not code structure.\n\
-             Risk is one of: none, low, medium, high.\n\
-             Omit trivial changes (formatting, imports). Max 10 rows.\n\
-             Return ONLY the markdown table.".to_string()
+             Omit trivial changes (formatting, imports). Max 10 items.\n\
+             Return ONLY the raw JSON array, no markdown fences, no prose.\n\n\
+             If the change involves numeric shifts (thresholds, timeouts, limits, counts),\n\
+             also append a ```chart JSON block after the array with a Chart.js config\n\
+             comparing before/after values. Example:\n\
+             ```chart\n\
+             {\"type\":\"bar\",\"data\":{\"labels\":[\"timeout\",\"retries\"],\"datasets\":[\n\
+               {\"label\":\"Before\",\"data\":[60,3]},\n\
+               {\"label\":\"After\",\"data\":[180,5]}\n\
+             ]}}\n\
+             ```\n\
+             Skip the chart block if no numeric data is relevant.".to_string()
         }
         ReviewSection::How => {
             "Explain HOW the change is implemented. Use 1-3 mermaid diagrams chosen from this\n\
@@ -191,6 +200,17 @@ mod tests {
                 prompt
             );
         }
+    }
+
+    #[test]
+    fn test_what_prompt_requests_json_and_chart() {
+        let group = make_group("Timeout changes");
+        let diff = empty_diff();
+        let source = ReviewSource::BuiltIn;
+        let prompt = build_review_prompt(ReviewSection::What, &group, &diff, &source);
+        assert!(prompt.contains("JSON array"), "WHAT prompt must request JSON array, got: {}", prompt);
+        assert!(prompt.contains("```chart"), "WHAT prompt must mention chart block, got: {}", prompt);
+        assert!(!prompt.contains("markdown table"), "WHAT prompt should not mention markdown table");
     }
 
     #[test]

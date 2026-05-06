@@ -1,10 +1,11 @@
 <script lang="ts">
   import { effectiveTheme } from '$lib/stores/theme';
   import MarkdownView from './MarkdownView.svelte';
+  import { renderWithAutoFix } from '$lib/util/mermaid-lint';
 
   export let content: string;
 
-  type Block = { svg: string; caption: string | null; id: string; error: string };
+  type Block = { svg: string; caption: string | null; id: string; error: string; warnings: string[] };
   type ContentPart = { kind: 'mermaid'; index: number } | { kind: 'prose'; text: string };
 
   let blocks: Block[] = [];
@@ -82,14 +83,15 @@
       mermaidBlocks.map(async (p, i) => {
         const id = `mermaid-${Math.random().toString(36).slice(2)}-${i}`;
         try {
-          const { svg } = await mermaid.render(id, p.body);
-          return { svg, caption: p.caption, id, error: '' } as Block;
+          const { svg, warnings } = await renderWithAutoFix(mermaid, p.body, id);
+          return { svg, caption: p.caption, id, error: '', warnings } as Block;
         } catch (e) {
           return {
             svg: '',
             caption: p.caption,
             id,
             error: `Mermaid render error: ${e}`,
+            warnings: [],
           } as Block;
         }
       })
@@ -126,6 +128,11 @@
               <pre class="raw-content">{content}</pre>
             </div>
           {:else}
+            {#if block.warnings.length > 0}
+              <div class="mermaid-warnings">
+                {#each block.warnings as w}<span class="mermaid-warn-tag">{w}</span>{/each}
+              </div>
+            {/if}
             {@html block.svg}
           {/if}
         </figure>
@@ -155,6 +162,12 @@
   }
   .mermaid-error { color: var(--color-danger); }
   .mermaid-loading { color: var(--color-fg-muted); font-style: italic; }
+  .mermaid-warnings { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+  .mermaid-warn-tag {
+    font-size: 0.7rem; padding: 1px 6px; border-radius: 3px;
+    background: var(--color-warning, #d29922); color: var(--color-bg, #000);
+    opacity: 0.8;
+  }
   .raw-content { font-size: 0.75rem; color: var(--color-fg-muted); white-space: pre-wrap; word-break: break-all; }
   .mermaid-prose { max-width: var(--reading-max, 80ch); margin-bottom: 0.75rem; }
 

@@ -14,6 +14,7 @@
   import RunMetadataPanel from '$lib/components/RunMetadataPanel.svelte';
   import RepoHistoryNav from '$lib/components/RepoHistoryNav.svelte';
   import RerunButton from '$lib/components/RerunButton.svelte';
+  import WhatView from '$lib/components/WhatView.svelte';
   import { statusColor } from '$lib/util/date';
 
   /** True when content has a mindmap/markmap fenced block. */
@@ -516,6 +517,8 @@
                         <Mermaid content={selectedReview.sections[section].content ?? ''} />
                       {:else if section === 'WHY' && hasMindmap(selectedReview.sections[section]?.content)}
                         <Mindmap content={selectedReview.sections[section].content ?? ''} />
+                      {:else if section === 'WHAT'}
+                        <WhatView content={selectedReview.sections[section].content ?? ''} />
                       {:else if section === 'VERDICT'}
                         {#if selectedReview.verdict_issues && selectedReview.verdict_issues.length > 0}
                           <div class="issues">
@@ -595,7 +598,7 @@
               {#if selectedReview.sections.WHAT?.state === 'loading'}
                 <div class="skeleton">Analyzing changes…</div>
               {:else if selectedReview.sections.WHAT?.state === 'ready'}
-                <MarkdownView content={selectedReview.sections.WHAT.content ?? ''} />
+                <WhatView content={selectedReview.sections.WHAT.content ?? ''} />
               {:else if selectedReview.sections.WHAT?.state === 'error'}
                 <div class="section-error">{selectedReview.sections.WHAT.content}</div>
               {/if}
