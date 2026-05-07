@@ -16,14 +16,68 @@
 
   const RISK_ORDER: Record<string, number> = { high: 3, medium: 2, low: 1, none: 0 };
 
-  function parse(raw: string) {
-    // Try to extract JSON array from content (LLM may include prose before/after)
-    const jsonMatch = raw.match(/\[[\s\S]*?\]/);
-    const chartMatch = raw.match(/```chart\n([\s\S]*?)```/);
+  /**
+   * Extract a balanced JSON array (or object) starting at the first `[`/`{`
+   * in `raw`, respecting string literals and escapes. The previous regex
+   * `/\[[\s\S]*?\]/` was non-greedy and broke whenever a string value
+   * contained a `]` (e.g. `"warnings: []"`), truncating the JSON mid-string.
+   */
+  function extractBalancedJson(raw: string): string | null {
+    // Find the first opening bracket of either kind.
+    let start = -1;
+    let openCh = '';
+    let closeCh = '';
+    for (let i = 0; i < raw.length; i++) {
+      const c = raw[i];
+      if (c === '[' || c === '{') {
+        start = i;
+        openCh = c;
+        closeCh = c === '[' ? ']' : '}';
+        break;
+      }
+    }
+    if (start < 0) return null;
 
-    if (jsonMatch) {
+    let depth = 0;
+    let inStr = false;
+    let strQuote = '';
+    let escaped = false;
+    for (let i = start; i < raw.length; i++) {
+      const c = raw[i];
+      if (inStr) {
+        if (escaped) { escaped = false; continue; }
+        if (c === '\\') { escaped = true; continue; }
+        if (c === strQuote) { inStr = false; }
+        continue;
+      }
+      if (c === '"' || c === "'") { inStr = true; strQuote = c; continue; }
+      if (c === openCh) depth++;
+      else if (c === closeCh) {
+        depth--;
+        if (depth === 0) return raw.slice(start, i + 1);
+      }
+    }
+    return null;
+  }
+
+  function parse(raw: string) {
+    parseError = '';
+    rows = [];
+    chartJson = '';
+
+    const chartMatch = raw.match(/```chart\n([\s\S]*?)```/);
+    if (chartMatch) chartJson = chartMatch[1].trim();
+
+    // Strip the chart fence before locating the JSON array so a `]` inside the
+    // chart JSON config can't truncate the WHAT array.
+    const withoutChart = chartMatch
+      ? raw.slice(0, chartMatch.index!) + raw.slice(chartMatch.index! + chartMatch[0].length)
+      : raw;
+
+    const jsonText = extractBalancedJson(withoutChart);
+    if (jsonText) {
       try {
-        const parsed = JSON.parse(jsonMatch[0]);
+        const parsed = JSON.parse(jsonText);
         if (Array.isArray(parsed)) {
           rows = parsed.map((r: any) => ({
             component: String(r.component ?? ''),
@@ -35,15 +89,6 @@
       } catch (e) {
         parseError = `JSON parse error: ${e}`;
       }
-    }
-
-    if (chartMatch) {
-      chartJson = chartMatch[1].trim();
-    }
-
-    // Fallback: if no JSON found, the LLM may have returned a markdown table
-    if (rows.length === 0 && !parseError) {
-      parseError = '';  // Let MarkdownView handle it
     }
   }
 

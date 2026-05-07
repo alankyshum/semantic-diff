@@ -86,6 +86,10 @@
         const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         svg.setAttribute('style', 'width: 100%; height: 380px;');
         host.appendChild(svg);
+        // Stash the transformed root on the host so FullscreenViewer can
+        // re-create the markmap at viewport size with the same expand state.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (host as any).__markmapRoot = root;
         // `colorFreezeLevel` is a `deriveOptions` field rather than a direct
         // IMarkmapOptions field — pass through `as any` since the lib accepts
         // it at runtime and the share--markdown skill uses the same trick.
@@ -99,6 +103,24 @@
         // Defer fit so SVG has a measured size.
         queueMicrotask(() => { void mm.fit(); });
         mmInstances.push(mm);
+
+        // Add an expand-to-fullscreen button overlay if not present.
+        if (!host.querySelector('.diagram-expand-btn')) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'diagram-expand-btn';
+          btn.title = 'Open fullscreen';
+          btn.setAttribute('aria-label', 'Open mind map fullscreen');
+          btn.textContent = '⛶';
+          btn.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            host.dispatchEvent(new CustomEvent('diagram-expand', {
+              bubbles: true,
+              detail: { kind: 'markmap', el: host },
+            }));
+          });
+          host.appendChild(btn);
+        }
       } catch (e) {
         host.innerHTML = `<div class="mindmap-error">Mindmap render error: ${e}</div>`;
       }
@@ -148,6 +170,31 @@
     margin: 0.5rem 0 0.75rem 0;
     min-height: 200px;
     position: relative;
+  }
+  .mindmap-container :global(.diagram-expand-btn) {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 2;
+    background: var(--color-bg-elev);
+    border: 1px solid var(--color-border);
+    color: var(--color-fg-muted);
+    border-radius: 4px;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.7;
+    transition: opacity 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .mindmap-container:hover :global(.diagram-expand-btn) { opacity: 1; }
+  .mindmap-container :global(.diagram-expand-btn:hover) {
+    color: var(--color-fg);
+    border-color: var(--color-accent);
   }
   .mindmap-container :global(svg) { width: 100%; height: 380px; }
   .mindmap-root.dark :global(.markmap-foreign),

@@ -16,7 +16,43 @@
   import RerunButton from '$lib/components/RerunButton.svelte';
   import WhatView from '$lib/components/WhatView.svelte';
   import ReviewSkeleton from '$lib/components/ReviewSkeleton.svelte';
+  import FullscreenViewer from '$lib/components/FullscreenViewer.svelte';
   import { statusColor } from '$lib/util/date';
+
+  // Fullscreen viewer state — wired to the `diagram-expand` custom event that
+  // Mermaid.svelte / Mindmap.svelte dispatch from their expand button.
+  let viewerOpen = false;
+  let viewerKind: 'mermaid' | 'markmap' | null = null;
+  let viewerSource: HTMLElement | null = null;
+  function openViewer(e: Event) {
+    const ce = e as CustomEvent<{ kind: 'mermaid' | 'markmap'; el: HTMLElement }>;
+    if (!ce.detail) return;
+    viewerKind = ce.detail.kind;
+    viewerSource = ce.detail.el;
+    viewerOpen = true;
+  }
+  function closeViewer() {
+    viewerOpen = false;
+    viewerKind = null;
+    viewerSource = null;
+  }
+
+  /** Svelte action: forward the bubbled `diagram-expand` custom event to a
+   *  handler. Used in lieu of `on:diagram-expand=` because Svelte's
+   *  HTMLAttributes type doesn't recognise custom events. */
+  function listenDiagramExpand(node: HTMLElement, handler: (e: Event) => void) {
+    node.addEventListener('diagram-expand', handler);
+    return {
+      update(newHandler: (e: Event) => void) {
+        node.removeEventListener('diagram-expand', handler);
+        handler = newHandler;
+        node.addEventListener('diagram-expand', handler);
+      },
+      destroy() {
+        node.removeEventListener('diagram-expand', handler);
+      },
+    };
+  }
 
   /** True when the section is `ready` or `error` (i.e. not currently loading). */
   function canRerun(state: string | undefined): boolean {
@@ -382,7 +418,10 @@
 {:else if error}
   <div class="page-error">Error: {error}</div>
 {:else if doc}
-  <div class="layout">
+  <div
+    class="layout"
+    use:listenDiagramExpand={openViewer}
+  >
     <!-- Header -->
     <header class="header">
       <div class="header-left">
@@ -680,6 +719,13 @@
     </div>
   </div>
 {/if}
+
+<FullscreenViewer
+  bind:open={viewerOpen}
+  kind={viewerKind}
+  sourceEl={viewerSource}
+  onClose={closeViewer}
+/>
 
 <style>
   .page-error, .no-groups {

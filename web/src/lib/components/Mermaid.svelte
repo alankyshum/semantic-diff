@@ -52,17 +52,54 @@
     }
     const trailing = raw.slice(lastIndex).trim();
     if (trailing) contentParts.push({ kind: 'prose', text: trailing });
-    // Legacy fallback: no fenced blocks at all → treat entire content as one
-    // mermaid block (matches prior Mermaid.svelte behavior).
+    // Legacy fallback: no fenced blocks at all AND the content actually looks
+    // like a mermaid diagram (first non-empty line starts with a known
+    // diagram keyword) → treat entire content as one mermaid block.
+    //
+    // Without this guard, an LLM-generated HOW section that violates its
+    // prompt and emits only prose (or prose+```rust) gets handed to mermaid
+    // wholesale, which then fails with cryptic YAML errors on the prose. We'd
+    // rather render that as plain markdown.
     if (mermaidBlocks.length === 0 && chartJsonBlocks.length === 0) {
-      mermaidBlocks.push(parseBlock(raw));
+      if (looksLikeMermaid(raw)) {
+        mermaidBlocks.push(parseBlock(raw));
+        return {
+          mermaidBlocks,
+          chartJsonBlocks,
+          parts: [{ kind: 'mermaid', index: 0 }],
+        };
+      }
+      // Otherwise: render the whole thing as markdown prose.
       return {
         mermaidBlocks,
         chartJsonBlocks,
-        parts: [{ kind: 'mermaid', index: 0 }],
+        parts: raw.trim() ? [{ kind: 'prose', text: raw }] : [],
       };
     }
     return { mermaidBlocks, chartJsonBlocks, parts: contentParts };
+  }
+
+  /** Recognised mermaid diagram-type keywords (the ones the HOW prompt
+   *  whitelists, plus a couple of widely-used aliases). Used by the legacy
+   *  fallback to distinguish "naked" mermaid source from arbitrary prose. */
+  const MERMAID_KEYWORDS = [
+    'flowchart', 'graph', 'sequenceDiagram', 'classDiagram',
+    'stateDiagram', 'stateDiagram-v2', 'erDiagram',
+    'journey', 'gantt', 'pie', 'mindmap', 'timeline',
+    'xychart-beta', 'gitGraph', 'requirementDiagram',
+  ];
+
+  function looksLikeMermaid(raw: string): boolean {
+    // Strip leading `%%` comment lines and find the first content line.
+    const lines = raw.split(/\r?\n/);
+    for (const line of lines) {
+      const t = line.trim();
+      if (!t) continue;
+      if (t.startsWith('%%')) continue;
+      // First real line — does it start with a known keyword?
+      return MERMAID_KEYWORDS.some(kw => t.startsWith(kw));
+    }
+    return false;
   }
 
   function parseBlock(body: string): { body: string; caption: string | null } {
@@ -246,6 +283,20 @@
               </div>
             {/if}
             {@html block.svg}
+            <button
+              type="button"
+              class="diagram-expand-btn"
+              title="Open fullscreen"
+              aria-label="Open diagram fullscreen"
+              on:click|stopPropagation={(e) => {
+                const fig = (e.currentTarget as HTMLElement).closest('figure');
+                if (!fig) return;
+                fig.dispatchEvent(new CustomEvent('diagram-expand', {
+                  bubbles: true,
+                  detail: { kind: 'mermaid', el: fig },
+                }));
+              }}
+            >⛶</button>
           {:else if block.kind === 'chart'}
             <div class="chart-placeholder" data-chart-host data-chart-id={block.id}>
               <div class="chart-placeholder-inner">Rendering chart…</div>
@@ -278,8 +329,36 @@
     border-radius: 6px;
     padding: 1rem;
     margin: 0 0 0.75rem 0;
+    position: relative;
   }
   .mermaid-container :global(svg) { max-width: 100%; height: auto; }
+
+  /* Fullscreen expand button overlay (mermaid + markmap share the class via :global). */
+  .diagram-expand-btn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 2;
+    background: var(--color-bg-elev);
+    border: 1px solid var(--color-border);
+    color: var(--color-fg-muted);
+    border-radius: 4px;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.7;
+    transition: opacity 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .mermaid-container:hover .diagram-expand-btn { opacity: 1; }
+  .diagram-expand-btn:hover {
+    color: var(--color-fg);
+    border-color: var(--color-accent);
+  }
   .mermaid-caption {
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 0.8rem;
