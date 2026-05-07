@@ -59,9 +59,11 @@ pub async fn resolve_input(
 
     if let Some(pr_ref) = pr {
         let _gh = which::which("gh").context("`gh` CLI not found. Install GitHub CLI to use --pr.")?;
-        let pr_arg = normalize_pr_ref(pr_ref);
+        let pr_args = pr_diff_args(pr_ref);
+        let mut argv: Vec<&str> = vec!["pr", "diff"];
+        argv.extend(pr_args.iter().map(|s| s.as_str()));
         let fut = tokio::process::Command::new("gh")
-            .args(["pr", "diff", &pr_arg])
+            .args(&argv)
             .output();
         let output = tokio::time::timeout(std::time::Duration::from_secs(60), fut)
             .await
@@ -72,10 +74,11 @@ pub async fn resolve_input(
             bail!("`gh pr diff` failed: {}", stderr);
         }
         let content = String::from_utf8(output.stdout).context("gh pr diff output is not valid UTF-8")?;
-        let fallback = format!("PR: {}", pr_ref);
+        let display = display_pr_ref(pr_ref);
+        let fallback = format!("PR: {}", display);
         let title = title_override
             .map(|s| s.to_string())
-            .unwrap_or_else(|| derive_title(&SourceKind::PrUrl, &pr_arg, repo.as_ref(), &fallback));
+            .unwrap_or_else(|| derive_title(&SourceKind::PrUrl, &display, repo.as_ref(), &fallback));
         return Ok(ResolvedInput {
             diff: content,
             untracked: vec![],
@@ -249,15 +252,45 @@ fn short_ref(r: &str) -> String {
     }
 }
 
-/// Normalize a PR reference to something `gh pr diff` accepts.
-fn normalize_pr_ref(pr: &str) -> String {
-    if pr.contains('#') && !pr.starts_with("http") {
-        return pr.to_string();
+/// Build the positional arguments to append after `gh pr diff` for a given
+/// user-provided PR reference. `gh pr diff` natively accepts
+/// `<number> | <url> | <branch>` — but NOT the `owner/repo#N` shorthand, which
+/// it interprets as a branch name. GitHub URLs may also fail when `gh` is
+/// configured for a GHE host. We translate both forms into `--repo owner/repo N`
+/// so `gh` always receives an unambiguous repo + number pair.
+fn pr_diff_args(pr: &str) -> Vec<String> {
+    // GitHub URL: https://github.com/owner/repo/pull/N[/...]
+    if pr.starts_with("http") {
+        if let Some(rest) = pr.strip_prefix("https://github.com/") {
+            let parts: Vec<&str> = rest.splitn(4, '/').collect();
+            if parts.len() >= 4 && parts[2] == "pull" {
+                let num = parts[3].split('/').next().unwrap_or(parts[3]);
+                if !num.is_empty() {
+                    let repo = format!("{}/{}", parts[0], parts[1]);
+                    return vec!["--repo".to_string(), repo, num.to_string()];
+                }
+            }
+        }
+        return vec![pr.to_string()];
     }
+    // owner/repo#N shorthand
+    if let Some((repo_part, num)) = pr.split_once('#') {
+        if repo_part.contains('/') && !num.is_empty() {
+            return vec!["--repo".to_string(), repo_part.to_string(), num.to_string()];
+        }
+    }
+    vec![pr.to_string()]
+}
+
+/// Short canonical form of a PR reference for display in titles. Returns
+/// `owner/repo#N` when the input is a GitHub PR URL; otherwise returns the
+/// input unchanged.
+fn display_pr_ref(pr: &str) -> String {
     if let Some(rest) = pr.strip_prefix("https://github.com/") {
         let parts: Vec<&str> = rest.splitn(4, '/').collect();
         if parts.len() >= 4 && parts[2] == "pull" {
-            return format!("{}/{}#{}", parts[0], parts[1], parts[3]);
+            let num = parts[3].split('/').next().unwrap_or(parts[3]);
+            return format!("{}/{}#{}", parts[0], parts[1], num);
         }
     }
     pr.to_string()
@@ -268,19 +301,67 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_normalize_pr_ref_url() {
+    fn test_pr_diff_args_url_uses_repo_flag() {
+        // gh pr diff may fail when configured for a GHE host — always use --repo.
         let url = "https://github.com/owner/repo/pull/123";
-        assert_eq!(normalize_pr_ref(url), "owner/repo#123");
+        assert_eq!(
+            pr_diff_args(url),
+            vec!["--repo".to_string(), "owner/repo".to_string(), "123".to_string()]
+        );
     }
 
     #[test]
-    fn test_normalize_pr_ref_already_normalized() {
-        assert_eq!(normalize_pr_ref("owner/repo#5"), "owner/repo#5");
+    fn test_pr_diff_args_url_with_trailing_path() {
+        let url = "https://github.com/owner/repo/pull/123/files";
+        assert_eq!(
+            pr_diff_args(url),
+            vec!["--repo".to_string(), "owner/repo".to_string(), "123".to_string()]
+        );
     }
 
     #[test]
-    fn test_normalize_pr_ref_bare() {
-        assert_eq!(normalize_pr_ref("some-random-string"), "some-random-string");
+    fn test_pr_diff_args_shorthand_uses_repo_flag() {
+        // gh pr diff does NOT accept owner/repo#N as a positional — it would
+        // treat the whole string as a branch name and fail. Translate it.
+        assert_eq!(
+            pr_diff_args("owner/repo#5"),
+            vec!["--repo".to_string(), "owner/repo".to_string(), "5".to_string()]
+        );
+    }
+
+    #[test]
+    fn test_pr_diff_args_bare_number_passes_through() {
+        assert_eq!(pr_diff_args("123"), vec!["123".to_string()]);
+    }
+
+    #[test]
+    fn test_pr_diff_args_branch_passes_through() {
+        assert_eq!(
+            pr_diff_args("some-feature-branch"),
+            vec!["some-feature-branch".to_string()]
+        );
+    }
+
+    #[test]
+    fn test_display_pr_ref_url() {
+        assert_eq!(
+            display_pr_ref("https://github.com/owner/repo/pull/123"),
+            "owner/repo#123"
+        );
+    }
+
+    #[test]
+    fn test_display_pr_ref_url_with_trailing_path() {
+        assert_eq!(
+            display_pr_ref("https://github.com/owner/repo/pull/123/files"),
+            "owner/repo#123"
+        );
+    }
+
+    #[test]
+    fn test_display_pr_ref_passthrough() {
+        assert_eq!(display_pr_ref("owner/repo#5"), "owner/repo#5");
+        assert_eq!(display_pr_ref("123"), "123");
     }
 
     #[test]

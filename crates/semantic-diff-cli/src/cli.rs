@@ -7,7 +7,8 @@ use clap::Parser;
 ///   semantic-diff HEAD~3..HEAD             # commit range
 ///   semantic-diff --staged                 # staged changes
 ///   semantic-diff --diff patch.patch       # from a diff file
-///   semantic-diff --pr owner/repo#123      # from a PR
+///   semantic-diff --pr owner/repo#123      # from a PR (shorthand)
+///   semantic-diff --pr https://github.com/owner/repo/pull/123  # from a PR URL
 ///   git diff HEAD~5 | semantic-diff --stdin
 ///   semantic-diff --history                # browse past saved reviews
 #[derive(Parser, Debug)]
