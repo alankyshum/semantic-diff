@@ -9,8 +9,9 @@ use semantic_diff_core::{
         LlmInfo, PerSectionTiming, ResultDocument, RunMetadata, SkillFileInfo, TokenUsage,
         SCHEMA_VERSION,
     },
-    review::{self, ReviewSection, ReviewSource},
+    review::{self, CachedSection, ReviewSection, ReviewSource},
 };
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 use tokio::sync::broadcast;
@@ -24,6 +25,9 @@ pub struct RunOpts {
     pub no_llm: bool,
     pub llm_providers: Vec<LlmProvider>,
     pub notifier: broadcast::Sender<String>,
+    /// When true, skip the on-disk review cache (force re-run all sections
+    /// and overwrite any existing entry).
+    pub no_cache: bool,
 }
 
 /// Handle returned after orchestrator completes.
@@ -135,13 +139,65 @@ pub async fn run(input: ResolvedInput, opts: RunOpts, config: &Config) -> Result
     doc.write_atomic(&path)?;
     let _ = opts.notifier.send("groups_ready".to_string());
 
+    // Per-group content hashes (string form, computed by `set_groups`). These
+    // key the on-disk review cache so that re-running on identical base/target
+    // commits replays cached LLM output instead of re-invoking providers.
+    let group_hashes: Vec<String> = doc
+        .groups
+        .iter()
+        .map(|g| g.content_hash.clone())
+        .collect();
+
+    // For each group, load any cached sections from disk (unless --no-cache).
+    // Sections that hit the cache are written immediately to `doc` and skipped
+    // from the spawn loop; the rest go to the LLM as usual.
+    //
+    // The cache hash is `GroupEntry.content_hash` (blake3-of-label+files+hunks)
+    // and the entry is invalidated automatically when the review source or
+    // skill body changes — see `review::load_sections_from_disk`.
+    let mut cached_per_group: Vec<HashMap<String, CachedSection>> =
+        vec![HashMap::new(); groups.len()];
+    if !opts.no_cache {
+        for (i, hash) in group_hashes.iter().enumerate() {
+            if let Some(entries) = review::load_sections_from_disk(hash, &review_source) {
+                cached_per_group[i] = entries;
+            }
+        }
+    } else {
+        // Force-refresh: drop any prior entries so a partial-write can't
+        // resurrect stale content if the new run aborts early.
+        for hash in &group_hashes {
+            review::delete_review_from_disk(hash);
+        }
+    }
+
     // Spawn review tasks for all groups × all sections.
     let mut tasks: JoinSet<(String, ReviewSection, Result<LlmInvocation, String>, u64)> =
         JoinSet::new();
 
     for (group_idx, group) in groups.iter().enumerate() {
         let group_id = format!("g{}", group_idx);
+        let cached = &cached_per_group[group_idx];
         for section in ReviewSection::all() {
+            // Cache hit: replay the stored content synchronously.
+            if let Some(entry) = cached.get(section.label()) {
+                let (set_result, dur_ms) = match entry {
+                    CachedSection::Ready(text) => (Ok(text.clone()), 0u64),
+                    CachedSection::Skipped => (Err("skipped".to_string()), 0u64),
+                };
+                doc.set_section(&group_id, section, set_result);
+                metadata.timings.push(PerSectionTiming {
+                    group_id: group_id.clone(),
+                    section: section.label().to_string(),
+                    duration_ms: dur_ms,
+                    cache_hit: true,
+                    input_tokens: None,
+                    output_tokens: None,
+                    cost_usd: None,
+                });
+                continue;
+            }
+
             let prompt = review::llm::build_review_prompt(section, group, &diff_data, &review_source);
             let providers = opts.llm_providers.clone();
             let config = config.clone();
@@ -155,8 +211,24 @@ pub async fn run(input: ResolvedInput, opts: RunOpts, config: &Config) -> Result
         }
     }
 
+    // Persist the doc with any cache-hit sections already filled in, and
+    // notify the SPA so cached content is visible immediately.
+    doc.set_metadata(metadata.clone());
+    doc.write_atomic(&path)?;
+    if cached_per_group.iter().any(|m| !m.is_empty()) {
+        let _ = opts.notifier.send("cached_sections_ready".to_string());
+    }
+
     // Accumulator for per-section token/cost stats (F20).
     let mut token_accum: Vec<(Option<u64>, Option<u64>, Option<f64>)> = Vec::new();
+
+    // Per-group section results destined for the on-disk cache. Seeded with
+    // any entries already loaded from disk so a partial re-run (e.g. only
+    // VERDICT was missing) still ends up with a complete cache file.
+    let mut to_persist: Vec<HashMap<String, CachedSection>> = cached_per_group.clone();
+    // Per-group "any section errored" flag — if set, we will NOT overwrite
+    // the on-disk cache for that group (preserves prior good content).
+    let mut group_had_error: Vec<bool> = vec![false; groups.len()];
 
     while let Some(task_result) = tasks.join_next().await {
         match task_result {
@@ -168,14 +240,43 @@ pub async fn run(input: ResolvedInput, opts: RunOpts, config: &Config) -> Result
                     Ok(invocation) => {
                         let tokens =
                             (invocation.input_tokens, invocation.output_tokens, invocation.cost_usd);
-                        (Ok(invocation.text), Some(tokens))
+                        // Run deterministic mermaid lint on HOW responses
+                        // before persisting. Bad mermaid would otherwise reach
+                        // the renderer and fail at view-time with cryptic
+                        // YAML/parse errors.
+                        let text = if matches!(section, ReviewSection::How) {
+                            run_mermaid_lint_on_how(&gid, &invocation.text)
+                        } else {
+                            invocation.text
+                        };
+                        (Ok(text), Some(tokens))
                     }
                     Err(e) => (Err(e), None),
                 };
-                doc.set_section(&gid, section, set_result);
+                doc.set_section(&gid, section, set_result.clone());
 
-                // Append timing entry (F6/F20). cache_hit=false; orchestrator
-                // does not currently observe disk-cache hits.
+                // Track for on-disk cache persistence below.
+                if let Some(idx) = gid
+                    .strip_prefix('g')
+                    .and_then(|s| s.parse::<usize>().ok())
+                {
+                    if idx < to_persist.len() {
+                        match &set_result {
+                            Ok(text) => {
+                                to_persist[idx].insert(
+                                    section.label().to_string(),
+                                    CachedSection::Ready(text.clone()),
+                                );
+                            }
+                            Err(_) => {
+                                group_had_error[idx] = true;
+                            }
+                        }
+                    }
+                }
+
+                // Append timing entry (F6/F20). cache_hit=false for live LLM
+                // invocations; cached entries set this above before spawning.
                 let (in_tok, out_tok, cost) = tokens.unwrap_or((None, None, None));
                 metadata.timings.push(PerSectionTiming {
                     group_id: gid.clone(),
@@ -208,26 +309,39 @@ pub async fn run(input: ResolvedInput, opts: RunOpts, config: &Config) -> Result
     doc.write_atomic(&path)?;
     let _ = opts.notifier.send("complete".to_string());
 
+    // Persist completed reviews to the on-disk cache. We only write entries
+    // for groups whose every section reached a non-error terminal state, so
+    // a transient provider failure won't poison the cache. If --no-cache was
+    // set, we still write so subsequent runs benefit from this one's output.
+    let expected = ReviewSection::all().len();
+    for (idx, sections) in to_persist.iter().enumerate() {
+        if group_had_error[idx] {
+            continue;
+        }
+        if sections.len() < expected {
+            continue;
+        }
+        if let Some(hash) = group_hashes.get(idx) {
+            review::save_sections_to_disk(hash, &review_source, sections);
+        }
+    }
+
     let id = doc.id.clone();
     Ok(ResultHandle { id, path })
 }
 
-/// Hash any skill files referenced by the review source.
+/// Collect skill file provenance for the result document. Delegates to
+/// `review::skill_fingerprint` so this metadata stays bit-identical to what
+/// the per-section disk cache stores for invalidation — previously these
+/// two paths each hashed the file independently, which let them drift.
 fn collect_skill_files(source: &ReviewSource) -> Vec<SkillFileInfo> {
-    match source {
-        ReviewSource::BuiltIn => vec![],
-        ReviewSource::Skill { name, path } => {
-            let bytes = match std::fs::read(path) {
-                Ok(b) => b,
-                Err(_) => return vec![],
-            };
-            let hash = blake3::hash(&bytes).to_hex().to_string();
-            vec![SkillFileInfo {
-                name: name.clone(),
-                path: path.to_string_lossy().to_string(),
-                hash_blake3: hash,
-            }]
-        }
+    match review::skill_fingerprint(source) {
+        Some(fp) => vec![SkillFileInfo {
+            name: fp.name,
+            path: fp.path,
+            hash_blake3: fp.hash_blake3,
+        }],
+        None => vec![],
     }
 }
 
@@ -303,6 +417,44 @@ fn aggregate_tokens(invocations: &[(Option<u64>, Option<u64>, Option<f64>)]) -> 
         output_tokens: if output_total > 0 { Some(output_total) } else { None },
         cost_usd: if cost_total > 0.0 { Some(cost_total) } else { None },
     })
+}
+
+/// Run the deterministic mermaid linter on every fenced ```mermaid block in
+/// a HOW-section response. Modifications are auto-applied; rejections (non-
+/// mermaid prose dressed as mermaid) are downgraded to a leading warning
+/// comment so the renderer's own fallback path can render the prose as
+/// markdown without choking on YAML errors.
+fn run_mermaid_lint_on_how(group_id: &str, raw: &str) -> String {
+    // Defensive: a bug in the linter (e.g. byte-vs-char index slicing) must
+    // not nuke an entire orchestrator run after we've already paid for the
+    // LLM calls. catch_unwind isolates the panic and falls back to the raw
+    // LLM text so the section still saves to the result document and the
+    // on-disk review cache.
+    let raw_owned = raw.to_string();
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        review::lint_markdown_mermaid(&raw_owned)
+    }));
+    let (rewritten, results) = match result {
+        Ok(v) => v,
+        Err(_) => {
+            tracing::error!(
+                group = %group_id,
+                "mermaid lint panicked; falling back to raw LLM text"
+            );
+            return raw_owned;
+        }
+    };
+    for (i, r) in results.iter().enumerate() {
+        if let Some(err) = &r.error {
+            tracing::warn!(group=%group_id, block=%i, "mermaid lint rejected block: {err}");
+        } else if r.modified {
+            tracing::info!(
+                group=%group_id, block=%i, fixes=?r.warnings,
+                "mermaid lint auto-fixed block",
+            );
+        }
+    }
+    rewritten
 }
 
 /// Determine the base results directory, defaulting to ~/.local/share/semantic-diff/results/

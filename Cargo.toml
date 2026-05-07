@@ -6,7 +6,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.10.1"
+version = "0.11.0"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/alankyshum/semantic-diff"
@@ -28,6 +28,7 @@ similar = "2"
 tempfile = "3"
 chrono = { version = "0.4", features = ["serde"] }
 schemars = { version = "0.8", features = ["chrono"] }
+merman = "0.4"
 
 [profile.release]
 opt-level = "z"

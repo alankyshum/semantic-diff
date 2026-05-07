@@ -1,7 +1,7 @@
 use crate::diff::DiffData;
 use crate::grouper::SemanticGroup;
 use crate::review::verdict::Severity;
-use crate::review::{Issue, ReviewSection, ReviewSource, SectionState};
+use crate::review::{Issue, ReviewSection, ReviewSource};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
@@ -9,6 +9,39 @@ use std::path::Path;
 
 /// Schema version for forward/backward compatibility.
 pub const SCHEMA_VERSION: u32 = 2;
+
+/// Compute the stable 8-hex result id for a `(raw_diff, title)` pair. This is
+/// the canonical identity used by `ResultDocument::new`, the CLI's preliminary
+/// id, and the server's `/api/runs` route. Centralized so callers cannot drift
+/// (the audit found three separate copies of this hash before centralization).
+///
+/// Returns a 16-byte ASCII hex string truncated to 8 chars; the slice is safe
+/// because blake3's hex output is ASCII.
+pub fn result_id(raw_diff: &str, title: &str) -> String {
+    let mut h = blake3::Hasher::new();
+    h.update(raw_diff.as_bytes());
+    h.update(title.as_bytes());
+    h.finalize().to_hex().as_str()[..8].to_string()
+}
+
+/// Compute the stable 16-hex content hash for a semantic group. Sort-stable
+/// across reorderings of `group.changes()` so the per-section disk cache hits
+/// even when the LLM grouper returns files in a different order on a
+/// re-invocation. Used by `ResultDocument::set_groups` and exposed for tests
+/// + the per-section cache.
+pub fn semantic_group_content_hash(group: &SemanticGroup) -> String {
+    let mut h = blake3::Hasher::new();
+    h.update(group.label.as_bytes());
+    let mut changes = group.changes();
+    changes.sort_by(|a, b| a.file.cmp(&b.file));
+    for c in &changes {
+        h.update(c.file.as_bytes());
+        for &hunk in &c.hunks {
+            h.update(&hunk.to_le_bytes());
+        }
+    }
+    h.finalize().to_hex().as_str()[..16].to_string()
+}
 
 /// The overall status of a review run.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -41,17 +74,6 @@ pub struct SectionEntry {
     pub state: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub content: Option<String>,
-}
-
-impl From<&SectionState> for SectionEntry {
-    fn from(state: &SectionState) -> Self {
-        match state {
-            SectionState::Loading => SectionEntry { state: "loading".to_string(), content: None },
-            SectionState::Ready(c) => SectionEntry { state: "ready".to_string(), content: Some(c.clone()) },
-            SectionState::Error(e) => SectionEntry { state: "error".to_string(), content: Some(e.clone()) },
-            SectionState::Skipped => SectionEntry { state: "skipped".to_string(), content: None },
-        }
-    }
 }
 
 /// Serializable review source.
@@ -245,16 +267,12 @@ impl ResultDocument {
         source: SourceInfo,
         title: String,
     ) -> Self {
-        // Compute a stable ID: blake3(raw_diff || title), take first 8 hex chars
-        let mut hasher = blake3::Hasher::new();
-        hasher.update(raw_diff.as_bytes());
-        hasher.update(title.as_bytes());
-        let hash = hasher.finalize();
-        let id = &hash.to_hex()[..8];
+        // Stable ID = blake3(raw_diff || title)[..8]. See `result_id`.
+        let id = result_id(raw_diff, &title);
 
         Self {
             schema_version: SCHEMA_VERSION,
-            id: id.to_string(),
+            id,
             title,
             created_at: Utc::now(),
             source,
@@ -290,25 +308,16 @@ impl ResultDocument {
 
     /// Set the semantic groups, initializing all review sections to Loading.
     pub fn set_groups(&mut self, groups: Vec<SemanticGroup>, source: &ReviewSource) {
-        use blake3::Hasher;
-
         self.groups = groups
             .iter()
             .enumerate()
             .map(|(i, g)| {
-                // Compute a content hash using blake3 for stability across Rust versions
-                let mut h = Hasher::new();
-                h.update(g.label.as_bytes());
+                // Stable per-group cache key. See `semantic_group_content_hash`.
+                let content_hash = semantic_group_content_hash(g);
+
+                // Sort-stable change list mirrors what the hash consumed.
                 let mut changes = g.changes();
                 changes.sort_by(|a, b| a.file.cmp(&b.file));
-                for c in &changes {
-                    h.update(c.file.as_bytes());
-                    for &hunk in &c.hunks {
-                        h.update(&hunk.to_le_bytes());
-                    }
-                }
-                let hash = &h.finalize().to_hex()[..16];
-
                 let group_changes: Vec<GroupChangeEntry> = changes
                     .iter()
                     .map(|c| GroupChangeEntry {
@@ -325,7 +334,7 @@ impl ResultDocument {
                     label: g.label.clone(),
                     description: g.description.clone(),
                     changes: group_changes,
-                    content_hash: hash.to_string(),
+                    content_hash,
                     unified_diff,
                 }
             })

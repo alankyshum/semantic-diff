@@ -4,4 +4,6 @@ pub mod config_probe;
 pub mod cost;
 pub mod input;
 pub mod orchestrator;
+pub mod port_lock;
+pub mod replay;
 pub mod server;

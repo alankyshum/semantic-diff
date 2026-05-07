@@ -1,4 +1,8 @@
-use semantic_diff_cli::{cli, input, orchestrator, server};
+use semantic_diff_cli::{
+    cli, input, orchestrator,
+    replay::{decide_for_current_environment, ReplayDecision},
+    server,
+};
 
 use anyhow::Result;
 use std::collections::HashMap;
@@ -97,16 +101,10 @@ async fn main() -> Result<()> {
         return Ok(());
     }
 
-    // Determine output directory — we need the ID from the parsed diff first.
-    // We'll use a temporary placeholder and compute it after parsing.
-    // For now: compute preliminary output dir from hash.
-    let preliminary_id = {
-        let mut h = blake3::Hasher::new();
-        h.update(input.diff.as_bytes());
-        h.update(input.title.as_bytes());
-        let hash = h.finalize();
-        hash.to_hex()[..8].to_string()
-    };
+    // Determine output directory. The id is the canonical
+    // `result_id(diff, title)` shared with `ResultDocument::new` and the
+    // server's `/api/runs` route — see `semantic_diff_core::result::result_id`.
+    let preliminary_id = semantic_diff_core::result::result_id(&input.diff, &input.title);
 
     let output_dir = cli.output.clone()
         .unwrap_or_else(|| orchestrator::default_output_dir(&preliminary_id));
@@ -140,6 +138,52 @@ async fn main() -> Result<()> {
         let _ = open::that(&url);
     }
 
+    // Replay short-circuit: if a completed `result.json` already exists at
+    // the deterministic output dir for this (diff, title), AND the current
+    // tool/schema/skill state matches what produced it, serve it instead of
+    // re-running the orchestrator.
+    //
+    // The `replay::decide` helper centralizes invalidation rules. Skipped
+    // entirely when the user passes:
+    //   - `--no-cache` (force refresh)
+    //   - `--no-llm` (the previous result has real LLM output the user is
+    //     now explicitly opting out of)
+    //   - `--output` (custom dir; honor user intent)
+    //
+    // For the common "re-run `semantic-diff --pr ...` against an unchanged
+    // PR" scenario this is a 0-token, ~instant load. For tool/skill/prompt
+    // changes it correctly falls through, with a printed reason so the user
+    // understands why a paid re-run is happening.
+    let existing_result = output_dir.join("result.json");
+    let bypass_replay = cli.no_cache || cli.no_llm || cli.output.is_some();
+    if !bypass_replay {
+        match decide_for_current_environment(&existing_result) {
+            ReplayDecision::Replay => {
+                eprintln!(
+                    "Replaying cached result: {} (use --no-cache to force re-run)",
+                    existing_result.display()
+                );
+                // Critical: emit `complete` on the per-id SSE channel so any
+                // browser/EventSource client connecting after the redirect
+                // sees a terminal event instead of dangling on keep-alives
+                // forever. See `replay` module rationale.
+                let _ = tx.send("complete".to_string());
+                tokio::signal::ctrl_c().await?;
+                eprintln!("Shutting down.");
+                return Ok(());
+            }
+            ReplayDecision::Run { reason } => {
+                if existing_result.exists() {
+                    // Only mention a bypass reason when there *was* a prior
+                    // run — otherwise this just clutters first-run output.
+                    eprintln!(
+                        "Re-running (cached result exists but is not replay-eligible: {reason})"
+                    );
+                }
+            }
+        }
+    }
+
     // Apply CLI override (highest precedence) for llm providers, unless --no-llm.
     // The flag has a default so we always pass Some(...); apply_overrides bakes precedence:
     // CLI > env (SEMANTIC_DIFF_LLM_PROVIDERS, deprecated) > file > default.
@@ -163,6 +207,7 @@ async fn main() -> Result<()> {
         no_llm: cli.no_llm,
         llm_providers,
         notifier: tx,
+        no_cache: cli.no_cache,
     };
 
     let handle = orchestrator::run(input, opts, &config).await?;

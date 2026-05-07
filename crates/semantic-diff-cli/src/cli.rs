@@ -51,6 +51,14 @@ pub struct Cli {
     #[arg(long)]
     pub no_llm: bool,
 
+    /// Bypass the on-disk review cache (`.git/semantic-diff-cache/reviews/`).
+    /// Forces every section to re-run via the LLM and overwrites stale
+    /// entries. Useful when iterating on prompts or skill files. Cache
+    /// invalidation also happens automatically when the diff content,
+    /// review source, or skill body changes.
+    #[arg(long)]
+    pub no_cache: bool,
+
     /// Comma-separated LLM CLI fallback order. Env: SEMANTIC_DIFF_LLM_PROVIDERS.
     #[arg(long, value_name = "LIST", default_value = "claude,copilot,cursor", env = "SEMANTIC_DIFF_LLM_PROVIDERS")]
     pub llm_providers: String,
@@ -122,7 +130,7 @@ const VALUE_FLAGS: &[&str] = &[
 
 /// Boolean flags this CLI owns.
 const BOOL_FLAGS: &[&str] = &[
-    "--stdin", "--no-open", "--no-llm", "--history", "--help", "-h", "--version", "-V",
+    "--stdin", "--no-open", "--no-llm", "--no-cache", "--history", "--help", "-h", "--version", "-V",
 ];
 
 /// Split argv (without the program name) into (own_args, git_args).

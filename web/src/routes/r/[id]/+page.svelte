@@ -6,7 +6,7 @@
   import type { ResultDocument, ResultSummary } from '$lib/types';
   import { register, paletteItems, type PaletteItem } from '$lib/keyboard';
   import Mermaid from '$lib/components/Mermaid.svelte';
-  import Mindmap from '$lib/components/Mindmap.svelte';
+  import Mindmap, { hasMindmap } from '$lib/components/Mindmap.svelte';
   import MarkdownView from '$lib/components/MarkdownView.svelte';
   import SeverityBadge from '$lib/components/SeverityBadge.svelte';
   import GroupSidebar from '$lib/components/GroupSidebar.svelte';
@@ -15,12 +15,8 @@
   import RepoHistoryNav from '$lib/components/RepoHistoryNav.svelte';
   import RerunButton from '$lib/components/RerunButton.svelte';
   import WhatView from '$lib/components/WhatView.svelte';
+  import ReviewSkeleton from '$lib/components/ReviewSkeleton.svelte';
   import { statusColor } from '$lib/util/date';
-
-  /** True when content has a mindmap/markmap fenced block. */
-  function hasMindmap(content: string | undefined): boolean {
-    return !!content && /```(?:mindmap|markmap)\n/.test(content);
-  }
 
   /** True when the section is `ready` or `error` (i.e. not currently loading). */
   function canRerun(state: string | undefined): boolean {
@@ -382,7 +378,7 @@
 </script>
 
 {#if loading}
-  <div class="page-loading">Loading review…</div>
+  <ReviewSkeleton variant="page" rows={5} />
 {:else if error}
   <div class="page-error">Error: {error}</div>
 {:else if doc}
@@ -430,18 +426,22 @@
             >By file</button>
           </div>
         {/if}
-        <GroupSidebar
-          groups={doc.groups}
-          reviews={doc.reviews}
-          bind:selectedGroupId
-          collapsed={sidebarCollapsed}
-          view={sidebarView}
-          files={doc.file_index ?? []}
-          {selectedFile}
-          {highlightedGroupIds}
-          on:selectFile={onSelectFile}
-          on:toggleCollapsed={(e) => setSidebarCollapsed(e.detail)}
-        />
+        {#if doc.groups.length === 0 && doc.status === 'running'}
+          <ReviewSkeleton variant="sidebar-only" rows={5} />
+        {:else}
+          <GroupSidebar
+            groups={doc.groups}
+            reviews={doc.reviews}
+            bind:selectedGroupId
+            collapsed={sidebarCollapsed}
+            view={sidebarView}
+            files={doc.file_index ?? []}
+            {selectedFile}
+            {highlightedGroupIds}
+            on:selectFile={onSelectFile}
+            on:toggleCollapsed={(e) => setSidebarCollapsed(e.detail)}
+          />
+        {/if}
       </div>
 
       <!-- Main content -->
@@ -669,6 +669,10 @@
               <RunMetadataPanel metadata={doc.metadata} repo={doc.repo} />
             </details>
           {/if}
+        {:else if doc.status === 'running'}
+          <!-- Groups not yet computed — keep the same shimmer affordance the
+               section cards use so the user has a consistent loading UI. -->
+          <ReviewSkeleton variant="main-only" rows={4} />
         {:else}
           <div class="no-groups">No groups found.</div>
         {/if}
@@ -678,7 +682,7 @@
 {/if}
 
 <style>
-  .page-loading, .page-error, .no-groups {
+  .page-error, .no-groups {
     display: flex; align-items: center; justify-content: center;
     height: 50vh; color: var(--color-fg-muted);
   }

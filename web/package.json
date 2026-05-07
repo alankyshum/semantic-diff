@@ -25,8 +25,11 @@
     "vitest": "^2.0.0"
   },
   "dependencies": {
+    "@types/js-yaml": "^4.0.9",
     "chart.js": "^4.4.0",
+    "chartjs-plugin-annotation": "^3.1.0",
     "diff2html": "^3.4.48",
+    "js-yaml": "^4.1.1",
     "marked": "^15.0.0",
     "markmap-lib": "^0.18.0",
     "markmap-view": "^0.18.0",

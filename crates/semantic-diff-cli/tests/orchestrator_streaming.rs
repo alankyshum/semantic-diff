@@ -40,7 +40,7 @@ async fn test_no_llm_produces_complete_valid_result() {
         output_dir: tmp.path().to_path_buf(),
         no_llm: true,
         llm_providers: vec![],
-        notifier: tx,
+        notifier: tx, no_cache: true,
     };
 
     let config = semantic_diff_core::config::Config::default_config();
@@ -74,7 +74,7 @@ async fn test_empty_diff_produces_complete_result_with_no_groups() {
         output_dir: tmp.path().to_path_buf(),
         no_llm: true,
         llm_providers: vec![],
-        notifier: tx,
+        notifier: tx, no_cache: true,
     };
 
     let config = semantic_diff_core::config::Config::default_config();
@@ -99,7 +99,7 @@ async fn test_result_json_is_valid_after_initial_write() {
         output_dir: tmp.path().to_path_buf(),
         no_llm: true,
         llm_providers: vec![],
-        notifier: tx,
+        notifier: tx, no_cache: true,
     };
 
     let config = semantic_diff_core::config::Config::default_config();
@@ -142,7 +142,7 @@ async fn test_result_id_deterministic_for_same_input() {
 
     let r1 = run(
         make_input(SAMPLE_PATCH, "Same Title"),
-        RunOpts { output_dir: tmp1.path().to_path_buf(), no_llm: true, llm_providers: vec![], notifier: tx1 },
+        RunOpts { output_dir: tmp1.path().to_path_buf(), no_llm: true, llm_providers: vec![], notifier: tx1, no_cache: true },
         &config,
     )
     .await
@@ -150,7 +150,7 @@ async fn test_result_id_deterministic_for_same_input() {
 
     let r2 = run(
         make_input(SAMPLE_PATCH, "Same Title"),
-        RunOpts { output_dir: tmp2.path().to_path_buf(), no_llm: true, llm_providers: vec![], notifier: tx2 },
+        RunOpts { output_dir: tmp2.path().to_path_buf(), no_llm: true, llm_providers: vec![], notifier: tx2, no_cache: true },
         &config,
     )
     .await
@@ -184,7 +184,7 @@ index 3333333..4444444 100644
         output_dir: tmp.path().to_path_buf(),
         no_llm: true,
         llm_providers: vec![],
-        notifier: tx,
+        notifier: tx, no_cache: true,
     };
 
     let config = semantic_diff_core::config::Config::default_config();

@@ -295,6 +295,14 @@ async fn get_result_handler(
 }
 
 /// GET /api/result/:id/events — SSE stream for live updates, scoped to `:id`.
+///
+/// If `result.json` for this id is already complete on disk, we prepend a
+/// synthetic `section-updated: complete` event before subscribing to the
+/// broadcast channel. Without this, a late-connecting EventSource (e.g.
+/// after the CLI's replay short-circuit, or any client that loads the page
+/// after the orchestrator finished) would only see keep-alives and never
+/// know the run is done — leaving spinners and progress bars hanging
+/// forever in the SPA.
 async fn sse_handler(
     Path(id): Path<String>,
     State(state): State<Arc<RuntimeState>>,
@@ -303,9 +311,25 @@ async fn sse_handler(
     if !is_valid_result_id(&id) {
         return (StatusCode::BAD_REQUEST, "invalid id").into_response();
     }
+
+    // Snapshot the on-disk completion state. We do this once at subscribe
+    // time rather than polling, because by the time the client connects
+    // either the orchestrator is still running (and will send `complete`
+    // itself) or it isn't (and our prepended event covers the gap).
+    let result_path = state.results_dir.join(&id).join("result.json");
+    let already_complete = std::fs::read_to_string(&result_path)
+        .ok()
+        .and_then(|c| serde_json::from_str::<serde_json::Value>(&c).ok())
+        .and_then(|d| {
+            d.get("status")
+                .and_then(|v| v.as_str())
+                .map(|s| s.eq_ignore_ascii_case("complete"))
+        })
+        .unwrap_or(false);
+
     let tx = state.notifier_for(&id);
     let rx = tx.subscribe();
-    let stream = BroadcastStream::new(rx).filter_map(move |msg| match msg {
+    let live = BroadcastStream::new(rx).filter_map(move |msg| match msg {
         Ok(group_id) => Some(Ok::<Event, Infallible>(
             Event::default()
                 .event("section-updated")
@@ -313,6 +337,18 @@ async fn sse_handler(
         )),
         Err(_) => None, // lagged or channel closed
     });
+
+    // Prepend a single synthetic `complete` event when applicable. Using
+    // `iter` + `chain` keeps the stream type one closure deep instead of
+    // pulling in a separate `Box<dyn Stream>`.
+    let prelude = futures::stream::iter(if already_complete {
+        vec![Ok::<Event, Infallible>(
+            Event::default().event("section-updated").data("complete"),
+        )]
+    } else {
+        vec![]
+    });
+    let stream = prelude.chain(live);
 
     Sse::new(stream)
         .keep_alive(
@@ -685,13 +721,11 @@ async fn resolve_run_input(req: &RunRequest) -> Result<input::ResolvedInput, Str
     }
 }
 
-/// Compute the preliminary 8-hex id from `(diff, title)` — mirrors
-/// `ResultDocument::new` and the CLI path in `main.rs`.
+/// Compute the preliminary 8-hex id from `(diff, title)` — delegates to the
+/// canonical helper in `semantic_diff_core::result::result_id` so the CLI,
+/// server, and `ResultDocument::new` cannot drift.
 fn preliminary_id(diff: &str, title: &str) -> String {
-    let mut h = blake3::Hasher::new();
-    h.update(diff.as_bytes());
-    h.update(title.as_bytes());
-    h.finalize().to_hex()[..8].to_string()
+    semantic_diff_core::result::result_id(diff, title)
 }
 
 fn load_or_default_config(state: &RuntimeState) -> Config {
@@ -742,7 +776,7 @@ async fn post_runs_handler(
     let notifier = state.notifier_for(&id);
     let llm_providers: Vec<LlmProvider> = if no_llm { Vec::new() } else { config.llm_providers.clone() };
 
-    let opts = RunOpts { output_dir, no_llm, llm_providers, notifier };
+    let opts = RunOpts { output_dir, no_llm, llm_providers, notifier, no_cache: false };
     let cfg_clone = config.clone();
     // W2: clone the registry handle so the spawned task can deregister the
     // per-id notifier when the run finishes (success or failure). The rerun
@@ -1032,6 +1066,10 @@ async fn post_rerun_section_handler(
 /// Start the axum server and return the bound address. Generates a fresh
 /// CSRF token internally; use [`start_with_token`] if the caller needs the
 /// token (e.g. integration tests).
+///
+/// When `port == 0`, attempts a deterministic-port reuse via
+/// [`crate::port_lock::acquire_port`] so SSH-tunnel bookmarks survive
+/// rerun-on-source-change. When `port != 0`, binds exactly that port.
 pub async fn start(state: AppState, port: u16) -> anyhow::Result<std::net::SocketAddr> {
     let (addr, _token) = start_with_token(state, port).await?;
     Ok(addr)
@@ -1046,10 +1084,31 @@ pub async fn start_with_token(
     let runtime: RuntimeState = state.into();
     let token = runtime.csrf_token.clone();
     let router = build_router_internal(runtime);
-    let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", port)).await?;
-    let addr = listener.local_addr()?;
+
+    let acquired = crate::port_lock::acquire_port(port).await?;
+    let addr = acquired.listener.local_addr()?;
+    let lock_path = acquired.lock_path.clone();
+    let listener = acquired.listener;
+
+    // Best-effort lock cleanup on Ctrl+C so the next invocation doesn't
+    // try to terminate a non-existent PID. The orchestrator path already
+    // sleeps on `tokio::signal::ctrl_c()` and exits, but we register here
+    // so the cleanup runs even when the run exits via other paths.
+    if let Some(p) = lock_path.clone() {
+        tokio::spawn(async move {
+            // Wait for SIGINT/SIGTERM. tokio::signal::ctrl_c handles SIGINT;
+            // we use the simpler form for portability.
+            let _ = tokio::signal::ctrl_c().await;
+            crate::port_lock::release(&p);
+        });
+    }
+
     tokio::spawn(async move {
         axum::serve(listener, router).await.ok();
+        // Server exited cleanly — release the lock.
+        if let Some(p) = lock_path {
+            crate::port_lock::release(&p);
+        }
     });
     Ok((addr, token))
 }

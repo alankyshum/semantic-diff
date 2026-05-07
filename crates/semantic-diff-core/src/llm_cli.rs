@@ -458,7 +458,18 @@ fn compact_message(message: &str) -> String {
     let compact = message.split_whitespace().collect::<Vec<_>>().join(" ");
     let compact = compact.trim();
     if compact.len() > 240 {
-        format!("{}…", &compact[..240])
+        // Truncate at a char boundary at or below 240 bytes. Slicing
+        // `&compact[..240]` directly would panic when the 240th byte lands
+        // inside a multi-byte UTF-8 char (e.g. an em-dash or emoji in an
+        // LLM error message), and this code path is reached for *every*
+        // LLM failure so the panic was reproducible in the wild.
+        let cut = compact
+            .char_indices()
+            .map(|(i, _)| i)
+            .take_while(|&i| i <= 240)
+            .last()
+            .unwrap_or(0);
+        format!("{}…", &compact[..cut])
     } else {
         compact.to_string()
     }
@@ -635,5 +646,26 @@ mod tests {
     #[test]
     fn test_classify_failure_kind_detects_rate_limit() {
         assert_eq!(classify_failure_kind("429 rate limit exceeded"), FailureKind::RateLimited);
+    }
+
+    #[test]
+    fn compact_message_handles_multibyte_chars_at_truncation_boundary() {
+        // Regression: `&compact[..240]` panicked when byte 240 landed
+        // inside a multi-byte UTF-8 char. Build a message where the cut
+        // point falls inside an em-dash (3 bytes).
+        let mut msg = String::with_capacity(300);
+        msg.push_str(&"a".repeat(239));
+        msg.push('—'); // 3 bytes — straddles byte 240
+        msg.push_str(&"b".repeat(40));
+        let out = compact_message(&msg);
+        assert!(out.ends_with('…'), "should be truncated with ellipsis");
+        // Truncation must land on a char boundary, never inside the dash.
+        assert!(out.is_char_boundary(out.len() - '…'.len_utf8()));
+    }
+
+    #[test]
+    fn compact_message_passes_through_short_messages() {
+        let out = compact_message("hello   world");
+        assert_eq!(out, "hello world");
     }
 }
