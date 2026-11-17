@@ -9,6 +9,7 @@ use axum::{
     routing::{get, post},
     Json,
 };
+
 use semantic_diff_core::config::{self, Config, RawConfig};
 use semantic_diff_core::diff;
 use semantic_diff_core::grouper;
@@ -170,7 +171,7 @@ fn build_router_internal(state: RuntimeState) -> Router {
         // API routes
         .route("/api/results", get(list_results_handler))
         .route("/api/repos/:name/results", get(list_results_by_repo_handler))
-        .route("/api/result/:id", get(get_result_handler))
+        .route("/api/result/:id", get(get_result_handler).delete(delete_result_handler))
         .route("/api/result/:id/events", get(sse_handler))
         // Settings UI (F5)
         .route("/api/config", get(get_config_handler).put(put_config_handler))
@@ -291,6 +292,28 @@ async fn get_result_handler(
             (StatusCode::OK, headers, content).into_response()
         }
         Err(_) => (StatusCode::NOT_FOUND, "result not found").into_response(),
+    }
+}
+
+/// DELETE /api/result/:id — remove a saved review directory from disk.
+async fn delete_result_handler(
+    Path(id): Path<String>,
+    headers: HeaderMap,
+    State(state): State<Arc<RuntimeState>>,
+) -> Response {
+    if let Err(resp) = check_csrf(&headers, &state) {
+        return resp;
+    }
+    if !is_valid_result_id(&id) {
+        return (StatusCode::BAD_REQUEST, "invalid id").into_response();
+    }
+    let dir = state.results_dir.join(&id);
+    if !dir.join("result.json").is_file() {
+        return (StatusCode::NOT_FOUND, "result not found").into_response();
+    }
+    match std::fs::remove_dir_all(&dir) {
+        Ok(()) => StatusCode::NO_CONTENT.into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, format!("delete failed: {e}")).into_response(),
     }
 }
 

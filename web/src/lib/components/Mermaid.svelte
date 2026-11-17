@@ -249,6 +249,34 @@
     });
   }
 
+  const MIN_ZOOM = 0.25;
+  const MAX_ZOOM = 8;
+
+  /** Inline zoom: resizes the SVG inside a fixed-height canvas that scrolls when content is larger. */
+  function zoomFigure(fig: HTMLElement, factor: number | 'reset') {
+    const canvas = fig.querySelector<HTMLElement>('.diagram-canvas');
+    const svg = canvas?.querySelector<SVGSVGElement>('svg');
+    if (!canvas || !svg) return;
+    // Freeze the canvas height at first zoom so surrounding content never shifts.
+    if (!canvas.style.height) canvas.style.height = `${canvas.offsetHeight}px`;
+    const cur = Number(fig.dataset.zoom || '1');
+    const next = factor === 'reset' ? 1 : Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, cur * factor));
+    fig.dataset.zoom = String(next);
+    svg.style.maxWidth = next === 1 ? '' : 'none';
+    svg.style.width = next === 1 ? '' : `${next * 100}%`;
+  }
+
+  /** Svelte action: mouse-wheel up/down zooms the diagram instead of scrolling the page. */
+  function wheelZoom(node: HTMLElement) {
+    const onWheel = (e: WheelEvent) => {
+      if (e.deltaY === 0) return;
+      e.preventDefault();
+      zoomFigure(node, e.deltaY < 0 ? 1.12 : 1 / 1.12);
+    };
+    node.addEventListener('wheel', onWheel, { passive: false });
+    return { destroy: () => node.removeEventListener('wheel', onWheel) };
+  }
+
   // Re-render when content or theme changes.
   let lastRenderSig = '';
   $: {
@@ -267,7 +295,7 @@
     {#if part.kind === 'mermaid'}
       {@const block = blocks[part.index]}
       {#if block}
-        <figure class="mermaid-container">
+        <figure class="mermaid-container" use:wheelZoom>
           {#if block.caption}
             <figcaption class="mermaid-caption">{block.caption}</figcaption>
           {/if}
@@ -282,7 +310,15 @@
                 {#each block.warnings as w}<span class="mermaid-warn-tag">{w}</span>{/each}
               </div>
             {/if}
-            {@html block.svg}
+            <div class="diagram-canvas">{@html block.svg}</div>
+            <div class="diagram-zoom-btns">
+              <button type="button" class="diagram-zoom-btn" title="Zoom out" aria-label="Zoom out"
+                on:click={(e) => zoomFigure((e.currentTarget as HTMLElement).closest('figure')!, 1 / 1.2)}>−</button>
+              <button type="button" class="diagram-zoom-btn" title="Reset zoom" aria-label="Reset zoom"
+                on:click={(e) => zoomFigure((e.currentTarget as HTMLElement).closest('figure')!, 'reset')}>⊙</button>
+              <button type="button" class="diagram-zoom-btn" title="Zoom in" aria-label="Zoom in"
+                on:click={(e) => zoomFigure((e.currentTarget as HTMLElement).closest('figure')!, 1.2)}>+</button>
+            </div>
             <button
               type="button"
               class="diagram-expand-btn"
@@ -354,6 +390,30 @@
     opacity: 0.7;
     transition: opacity 0.15s, color 0.15s, border-color 0.15s;
   }
+  .diagram-canvas { overflow: auto; }
+  .diagram-zoom-btns {
+    position: absolute;
+    top: 0.5rem;
+    right: calc(0.5rem + 28px + 4px);
+    z-index: 2;
+    display: flex;
+    gap: 4px;
+    opacity: 0.7;
+    transition: opacity 0.15s;
+  }
+  .diagram-zoom-btn {
+    background: var(--color-bg-elev);
+    border: 1px solid var(--color-border);
+    color: var(--color-fg-muted);
+    border-radius: 4px;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    line-height: 1;
+  }
+  .diagram-zoom-btn:hover { color: var(--color-fg); border-color: var(--color-accent); }
+  .mermaid-container:hover .diagram-zoom-btns { opacity: 1; }
   .mermaid-container:hover .diagram-expand-btn { opacity: 1; }
   .diagram-expand-btn:hover {
     color: var(--color-fg);

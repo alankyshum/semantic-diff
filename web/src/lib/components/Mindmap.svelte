@@ -98,11 +98,29 @@
           colorFreezeLevel: 2,
           initialExpandLevel: 3,
           duration: 250,
+          scrollForPan: false,
         } as any);
         mm.setData(root);
         // Defer fit so SVG has a measured size.
         queueMicrotask(() => { void mm.fit(); });
         mmInstances.push(mm);
+
+        const zoomBar = document.createElement('div');
+        zoomBar.className = 'diagram-zoom-btns';
+        const mk = (label: string, title: string, fn: () => void) => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'diagram-zoom-btn';
+          b.title = title;
+          b.setAttribute('aria-label', title);
+          b.textContent = label;
+          b.addEventListener('click', (ev) => { ev.stopPropagation(); fn(); });
+          zoomBar.appendChild(b);
+        };
+        mk('−', 'Zoom out', () => { void mm.rescale(1 / 1.25); });
+        mk('⊙', 'Reset zoom', () => { void mm.fit(); });
+        mk('+', 'Zoom in', () => { void mm.rescale(1.25); });
+        host.appendChild(zoomBar);
 
         // Add an expand-to-fullscreen button overlay if not present.
         if (!host.querySelector('.diagram-expand-btn')) {
@@ -191,6 +209,17 @@
     opacity: 0.7;
     transition: opacity 0.15s, color 0.15s, border-color 0.15s;
   }
+  .mindmap-container :global(.diagram-zoom-btns) {
+    position: absolute; top: 0.5rem; right: calc(0.5rem + 28px + 4px);
+    z-index: 2; display: flex; gap: 4px; opacity: 0.7; transition: opacity 0.15s;
+  }
+  .mindmap-container :global(.diagram-zoom-btn) {
+    background: var(--color-bg-elev); border: 1px solid var(--color-border);
+    color: var(--color-fg-muted); border-radius: 4px; width: 28px; height: 28px;
+    cursor: pointer; font-size: 0.95rem; line-height: 1;
+  }
+  .mindmap-container :global(.diagram-zoom-btn:hover) { color: var(--color-fg); border-color: var(--color-accent); }
+  .mindmap-container:hover :global(.diagram-zoom-btns) { opacity: 1; }
   .mindmap-container:hover :global(.diagram-expand-btn) { opacity: 1; }
   .mindmap-container :global(.diagram-expand-btn:hover) {
     color: var(--color-fg);
