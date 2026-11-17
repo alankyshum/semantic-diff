@@ -317,19 +317,9 @@ fn resolve_model_for_claude(model: Option<&str>) -> String {
 
 fn resolve_model_for_copilot(model: Option<&str>) -> String {
     match model {
-        Some(m) => {
-            let tier = model_tier(m);
-            match m {
-                "sonnet" | "opus" | "haiku" | "gemini-flash" | "gemini-pro" => m.to_string(),
-                _ => match tier {
-                    ModelTier::Fast => "gemini-flash",
-                    ModelTier::Balanced => "sonnet",
-                    ModelTier::Power => "opus",
-                }
-                .to_string(),
-            }
-        }
-        None => "gemini-flash".to_string(),
+        // Copilot model ids (e.g. "claude-sonnet-5.5") are passed through verbatim.
+        Some(m) if !m.trim().is_empty() => m.to_string(),
+        _ => "gemini-flash".to_string(),
     }
 }
 
@@ -408,6 +398,12 @@ mod tests {
         assert_eq!(model_tier("gemini-flash"), ModelTier::Fast);
         assert_eq!(model_tier("sonnet"), ModelTier::Balanced);
         assert_eq!(model_tier("opus"), ModelTier::Power);
+    }
+
+    #[test]
+    fn test_copilot_model_passthrough() {
+        assert_eq!(resolve_model_for_copilot(Some("claude-sonnet-5.5")), "claude-sonnet-5.5");
+        assert_eq!(resolve_model_for_copilot(None), "gemini-flash");
     }
 
     #[test]

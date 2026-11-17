@@ -148,7 +148,14 @@
     </div>
   {:else}
     {#each groups as group (group.name)}
-      <RepoCard repoName={group.name} results={group.results} />
+      <RepoCard
+        repoName={group.name}
+        results={group.results}
+        on:deleted={(e) => {
+          results = results.filter((r) => r.id !== e.detail);
+          fullResults = fullResults.filter((d) => d.id !== e.detail);
+        }}
+      />
     {/each}
   {/if}
 </div>
